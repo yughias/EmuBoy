@@ -73,7 +73,7 @@ uint8_t* getReadAddress(uint16_t address){
     MAP_MEMORY(WRAM);
 
     if(address >= 0xE000 && address < 0xFE00)
-        return WRAM + (address - 0x2000);
+        return WRAM + (address - 0xE000);
 
     MAP_MEMORY(OAM);
 
@@ -153,7 +153,7 @@ uint8_t* getWriteAddress(uint16_t address){
     MAP_MEMORY(WRAM);
 
     if(address >= 0xE000 && address < 0xFE00)
-        return WRAM + (address - 0x2000);
+        return WRAM + (address - 0xE000);
 
     MAP_MEMORY(OAM);
 
