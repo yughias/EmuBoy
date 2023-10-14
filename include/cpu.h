@@ -11,6 +11,7 @@ typedef struct cpu_t {
     bool     HALTED;
     bool     IME;
     bool     EI_DELAY;
+    bool     WAIT_INTERRUPT_DISPATCH;
 
     // 16 bit regs 
     uint16_t AF[1];

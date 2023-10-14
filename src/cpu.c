@@ -130,6 +130,7 @@ void initCPU(cpu_t* cpu){
     cpu->HALTED = false;
     cpu->IME = false;
     cpu->EI_DELAY = false;
+    cpu->WAIT_INTERRUPT_DISPATCH = false;
 }
 
 void infoCPU(cpu_t* cpu){
@@ -140,7 +141,7 @@ void infoCPU(cpu_t* cpu){
             *cpu->SP, *cpu->PC, *cpu->readMemory(*cpu->PC), *cpu->readMemory(*cpu->PC+1), *cpu->readMemory(*cpu->PC+2), *cpu->readMemory(*cpu->PC+3));
 }
 
-void processInterrupt(cpu_t* cpu){
+void dispatchInterrupt(cpu_t* cpu){
     uint8_t mask = *cpu->readMemory(IE_ADDR) & *cpu->readMemory(IF_ADDR);
     for(int i = 0; i < 5; i++){
         bool bit = mask & 1;
@@ -148,18 +149,25 @@ void processInterrupt(cpu_t* cpu){
         if(bit){
             *cpu->writeMemory(IF_ADDR) &= ~(uint8_t)(1 << i);
             CALL(cpu, 0x40 + 0x08*i);
-            cpu->cycles += 20;
+            cpu->cycles += 4;
             cpu->IME = false;
+            cpu->WAIT_INTERRUPT_DISPATCH = false;
             return;
         }
     } 
 }
 
 void stepCPU(cpu_t* cpu){
+    if(cpu->WAIT_INTERRUPT_DISPATCH){
+        dispatchInterrupt(cpu);
+        return;
+    }
+
     if(*cpu->readMemory(IE_ADDR) & *cpu->readMemory(IF_ADDR)){
         cpu->HALTED = false;
         if(cpu->IME & !cpu->EI_DELAY){
-            processInterrupt(cpu);
+            cpu->WAIT_INTERRUPT_DISPATCH = true;
+            cpu->cycles += 16;
             return;
         }
     }

@@ -65,8 +65,23 @@ uint8_t* mbc1_ram(uint16_t addr){
     return ERAM + addr;
 }
 
+uint8_t* mbc2_4000_7FFF(uint16_t addr){
+    size_t real_addr = addr;
+    real_addr &= (1 << 14) - 1;
+    uint8_t bank = (MBC_2000_3FFF & 0b1111) == 0x00 ? 0x01 : (MBC_2000_3FFF & 0b1111); 
+    real_addr |= bank << 14;
+    real_addr &= ROM_SIZE - 1;
+    return ROM + real_addr;
+}
+
 uint8_t* mbc2_ram(uint16_t addr){
-    uint16_t ram_addr = addr &= (1 << 9) - 1;
+    if((MBC_0000_1FFF & 0x0F) != 0x0A){
+        NOT_MAPPED[0] = 0xFF;
+        NOT_MAPPED[1] = 0xFF;
+        return NOT_MAPPED;
+    }
+
+    uint16_t ram_addr = addr & (1 << 9) - 1;
     ERAM[ram_addr] |= 0xF0;
     return ERAM + ram_addr;
 }
@@ -132,7 +147,20 @@ uint8_t* mbc_standard_registers(uint16_t addr){
         return &MBC_4000_5FFF;
     else
         return &MBC_6000_7FFF;
+
+    return NOT_MAPPED;
 }
+
+uint8_t* mbc2_registers(uint16_t addr){
+    if(addr < 0x4000)
+        if(!(addr & 0x100))
+            return &MBC_0000_1FFF;
+        else
+            return &MBC_2000_3FFF;
+
+    return NOT_MAPPED;
+}
+
 
 uint8_t* mbc_advanced_registers(uint16_t addr){
     if(addr < 0x2000)
@@ -145,6 +173,8 @@ uint8_t* mbc_advanced_registers(uint16_t addr){
         return &MBC_4000_5FFF;
     else
         return &MBC_6000_7FFF;
+    
+    return NOT_MAPPED;
 }
 
 void detectMBC(){
@@ -178,10 +208,20 @@ void detectMBC(){
         printf("MBC1 WITH RAM AND BATTERY ON!\n");
         break;
 
-        case 0x06:
-        MBC_2000_2FFF = 0x01;
+        case 0x05:
+        mbc_rom_write = mbc2_registers;
+        MBC_2000_3FFF = 0x01;
         mbc_mapper_0000_3FFF = noMbcAddress;
-        mbc_mapper_4000_7FFF = mbc1_4000_7FFF;
+        mbc_mapper_4000_7FFF = mbc2_4000_7FFF;
+        mbc_mapper_A000_BFFF = noMappedAdress;
+        printf("MBC2 ONLY ON!\n");
+        break;
+
+        case 0x06:
+        mbc_rom_write = mbc2_registers;
+        MBC_2000_3FFF = 0x01;
+        mbc_mapper_0000_3FFF = noMbcAddress;
+        mbc_mapper_4000_7FFF = mbc2_4000_7FFF;
         mbc_mapper_A000_BFFF = mbc2_ram;
         hasBattery = true;
         printf("MBC2 WITH RAM AND BATTERY ON!\n");
