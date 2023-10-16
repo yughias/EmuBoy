@@ -269,7 +269,6 @@ void updatePPU(){
     if(!(LCDC_REG & LCD_ENABLE_MASK)){
         LY_REG = 0;
         internal_ly = 0;
-        lyc_compare = false;
         ppu_mode = 0;
         ppu_counter = 0;
         windowY_counter = 0;

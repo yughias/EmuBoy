@@ -150,7 +150,6 @@ void dispatchInterrupt(cpu_t* cpu){
             *cpu->writeMemory(IF_ADDR) &= ~(uint8_t)(1 << i);
             CALL(cpu, 0x40 + 0x08*i);
             cpu->cycles += 4;
-            cpu->IME = false;
             cpu->WAIT_INTERRUPT_DISPATCH = false;
             return;
         }
@@ -166,6 +165,7 @@ void stepCPU(cpu_t* cpu){
     if(*cpu->readMemory(IE_ADDR) & *cpu->readMemory(IF_ADDR)){
         cpu->HALTED = false;
         if(cpu->IME & !cpu->EI_DELAY){
+            cpu->IME = false;
             cpu->WAIT_INTERRUPT_DISPATCH = true;
             cpu->cycles += 16;
             return;

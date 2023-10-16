@@ -1,5 +1,6 @@
 #include <SDL_MAINLOOP.h>
 #include <hardware.h>
+#include <info.h>
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -33,6 +34,7 @@ void setup(){
 
     initCPU(&cpu);
     initMemory();
+    initAudio();
 
     char bootromName[FILENAME_MAX];
     getAbsoluteDir(bootromName);
@@ -44,13 +46,11 @@ void setup(){
     if(hasBattery)
         loadSav(savName);
 
-    printf("%X\n", ROM[0x147]);
-
-    initAudio();
-
     #ifdef DEBUG
     freopen("log.txt", "wb", stderr);
     #endif
+
+    printInfo(ROM);
 
     onExit = closeEmulator;
     noRender();

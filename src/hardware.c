@@ -83,11 +83,11 @@ void updateDiv(){
 
 void emulateHardware(cpu_t* cpu){
     for(size_t i = 0; i < CYCLES_PER_FRAME; i++){
-        if(SC_REG == 0x81){
-            SC_REG = 0x01;
+        if((SC_REG & 0x80) && (SC_REG & 0x01)){
+            SC_REG &= 0x7F;
             IF_REG |= SERIAL_IRQ;
         }
-        
+
         emulateApu();
         convertAudio();
         updatePPU();
