@@ -46,8 +46,8 @@ void updateTimer(){
             if(TIMA_REG == 0xFF){
                 IF_REG |= TIMER_IRQ;
                 TIMA_REG = TMA_REG;
-            } 
-            TIMA_REG++;
+            } else
+                TIMA_REG++;
 
             switch(TAC_REG & TIMER_CLOCK_MASK){
                 case 0:

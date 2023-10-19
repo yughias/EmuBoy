@@ -216,7 +216,7 @@ new_licensee_code new_licensee_list[] = {
     { "92",	"Video system" },
     { "93",	"Ocean/Acclaim" },
     { "95",	"Varie" },
-    { "96",	"Yonezawa/s’pal" },
+    { "96",	"Yonezawa/s'pal" },
     { "97",	"Kaneko" },
     { "99",	"Pack in soft" },
     { "9H",	"Bottom Up" },
@@ -299,10 +299,10 @@ size_t getRomSize(uint8_t* buffer){
 }
 
 size_t getRamSize(uint8_t* buffer){
-    if(buffer[0x147] == 0x05 || buffer[0x147] == 0x06)
+    if(buffer[0x147] == 0x06)
         return 512;
 
-    switch(buffer[0x147]){
+    switch(buffer[0x149]){
         case 0x00:
         case 0x01:
         return 0;
