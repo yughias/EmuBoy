@@ -1,5 +1,6 @@
 #include <SDL_MAINLOOP.h>
 #include <hardware.h>
+#include <gameshark.h>
 #include <info.h>
 
 #include <stdio.h>
@@ -9,6 +10,7 @@
 void closeEmulator(){
     if(hasBattery)
         saveSav(savName);
+    freeGameShark();
     freeMemory();
     freeAudio();
 }
@@ -45,6 +47,11 @@ void setup(){
     detectMBC();
     if(hasBattery)
         loadSav(savName);
+
+    char gamesharkName[FILENAME_MAX];
+    getAbsoluteDir(gamesharkName);
+    strcat(gamesharkName, "data/gameshark.txt");
+    loadGameShark(gamesharkName);
 
     #ifdef DEBUG
     freopen("log.txt", "wb", stderr);

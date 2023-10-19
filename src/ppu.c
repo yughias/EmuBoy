@@ -1,5 +1,7 @@
 #include <SDL_MAINLOOP.h>
 #include <hardware.h>
+#include <gameshark.h>
+
 #include <stdlib.h>
 
 int colorRGB[4];
@@ -299,6 +301,8 @@ void updatePPU(){
         windowY_counter = 0;
         frameSkip = false;
         renderPixels();
+
+        emulateGameShark();
     }
 
     // old stat mode timing
