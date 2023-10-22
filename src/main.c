@@ -15,10 +15,16 @@ void closeEmulator(){
     freeAudio();
 }
 
+float avg = 0;
+
 void setup(){
     size(LCD_WIDTH, LCD_HEIGHT);
     setTitle(u8"ゲーム　ボーイ　ちゃん");
+    #ifndef SPEED_TEST
     frameRate(REFRESH_RATE);
+    #else
+    frameRate(1000);
+    #endif
 
     char logoPath[FILENAME_MAX];
     getAbsoluteDir(logoPath);
@@ -64,9 +70,22 @@ void setup(){
 }
 
 void loop(){
-    char string[64];
-    sprintf(string, "%d\n", (int)(1000.0f / deltaTime + 0.5f));
-    setTitle(string);
+    #ifdef SPEED_TEST
+    if(frameCount > 1){
+        avg += 1000.0f / deltaTime; 
+    }
+
+    if(*cpu.PC >= 0x100){
+        avg /= frameCount - 1;
+        printf("%f\n", avg);
+        system("pause");
+        exit(0);
+    }
+    #endif
+
+    char str[100];
+    sprintf(str, "%d\n", (int)(1000.0f / deltaTime + 0.5f));
+    setTitle(str);
 
     if(frameCount == 1)
         initPaletteRGB();

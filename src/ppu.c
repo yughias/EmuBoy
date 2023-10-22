@@ -307,7 +307,7 @@ void updatePPU(){
 
     // old stat mode timing
     if(internal_ly < LCD_HEIGHT){
-        if(ppu_counter <= 80)
+        if(ppu_counter < 80)
             ppu_mode = OAM_SCAN_MODE;
         else if(ppu_counter < 80 + 172)
             ppu_mode = DRAW_MODE;

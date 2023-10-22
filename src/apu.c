@@ -8,8 +8,12 @@ SDL_AudioDeviceID audioDev;
 int16_t buffer[AUDIO_BUFFER_SIZE];
 size_t bufIdx = 0;
 
-int audio_request_rate;
-int audio_counter;
+size_t audio_request_rate;
+size_t audio_counter;
+
+size_t queued_samples;
+size_t queued_check_counter;
+size_t queued_check_rate; 
 
 // gameboy registers
 uint8_t NR52_REG;
@@ -219,6 +223,9 @@ void initAudio(){
     audio_request_rate = APU_FREQUENCY / AUDIO_FREQUENCY;
     audio_counter = 0;
 
+    queued_check_rate = audio_request_rate * AUDIO_SAMPLES;
+    queued_check_counter = 0;
+
     SDL_PauseAudioDevice(audioDev, 0);
 }
 
@@ -359,13 +366,21 @@ void convertAudio(){
         audio_counter = audio_request_rate;
     } 
 
-    if(bufIdx >= AUDIO_SAMPLES && SDL_GetQueuedAudioSize(audioDev) < AUDIO_BUFFER_SIZE*2){
+    if(bufIdx >= AUDIO_SAMPLES && queued_samples < AUDIO_BUFFER_SIZE*2){
         SDL_QueueAudio(audioDev, &buffer, bufIdx*2);
         bufIdx = 0;
     }
 
+    if(!queued_check_counter){
+        queued_samples = SDL_GetQueuedAudioSize(audioDev);
+        queued_check_counter = queued_check_rate;
+    }
+
     if(audio_counter)
         audio_counter--;
+
+    if(queued_check_counter)
+        queued_check_counter--;
 }
 
 void freeAudio(){

@@ -5,13 +5,14 @@
 #include <stdint.h>
 
 typedef uint8_t* (*busFunc)(uint16_t);
+typedef enum { NONE, PUSH_1, PUSH_2, PC_JMP } INT_PHASE;
 
 typedef struct cpu_t {
     // interrupt vars
     bool     HALTED;
     bool     IME;
     bool     EI_DELAY;
-    bool     WAIT_INTERRUPT_DISPATCH;
+    INT_PHASE INTERRUPT_DISPATCH;
 
     // 16 bit regs 
     uint16_t AF[1];

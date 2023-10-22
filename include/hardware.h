@@ -22,5 +22,6 @@ void emulateCpu(cpu_t*);
 void emulateHardware(cpu_t*);
 void updateTimer();
 void updateDiv();
+void startTimerCounter();
 
 #endif

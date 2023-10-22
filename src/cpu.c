@@ -130,7 +130,7 @@ void initCPU(cpu_t* cpu){
     cpu->HALTED = false;
     cpu->IME = false;
     cpu->EI_DELAY = false;
-    cpu->WAIT_INTERRUPT_DISPATCH = false;
+    cpu->INTERRUPT_DISPATCH = NONE;
 }
 
 void infoCPU(cpu_t* cpu){
@@ -142,22 +142,40 @@ void infoCPU(cpu_t* cpu){
 }
 
 void dispatchInterrupt(cpu_t* cpu){
-    uint8_t mask = *cpu->readMemory(IE_ADDR) & *cpu->readMemory(IF_ADDR);
-    for(int i = 0; i < 5; i++){
-        bool bit = mask & 1;
-        mask >>= 1;
-        if(bit){
-            *cpu->writeMemory(IF_ADDR) &= ~(uint8_t)(1 << i);
-            CALL(cpu, 0x40 + 0x08*i);
-            cpu->cycles += 4;
-            cpu->WAIT_INTERRUPT_DISPATCH = false;
-            return;
+    cpu->cycles += 4;
+    switch(cpu->INTERRUPT_DISPATCH){
+        case PUSH_1:
+        *cpu->SP -= 1;
+        *cpu->writeMemory(*cpu->SP) = *cpu->PC >> 8;
+        cpu->INTERRUPT_DISPATCH = PUSH_2;
+        return;
+
+        case PUSH_2:
+        *cpu->SP -= 1;
+        *cpu->writeMemory(*cpu->SP) = *cpu->PC & 0xFF;
+        cpu->INTERRUPT_DISPATCH = PC_JMP;
+        return;
+
+        case PC_JMP:
+        uint8_t mask = *cpu->readMemory(IE_ADDR) & *cpu->readMemory(IF_ADDR);
+        uint16_t jmp_addr = 0;
+        for(int i = 0; i < 5; i++){
+            bool bit = mask & 1;
+            mask >>= 1;
+            if(bit){
+                *cpu->writeMemory(IF_ADDR) &= ~(uint8_t)(1 << i);
+                jmp_addr = 0x40 + 0x08*i;
+                break;
+            }
         }
-    } 
+        JP(cpu, jmp_addr);
+        cpu->INTERRUPT_DISPATCH = NONE;
+        return;
+    }
 }
 
 void stepCPU(cpu_t* cpu){
-    if(cpu->WAIT_INTERRUPT_DISPATCH){
+    if(cpu->INTERRUPT_DISPATCH != NONE){
         dispatchInterrupt(cpu);
         return;
     }
@@ -166,8 +184,8 @@ void stepCPU(cpu_t* cpu){
         cpu->HALTED = false;
         if(cpu->IME & !cpu->EI_DELAY){
             cpu->IME = false;
-            cpu->WAIT_INTERRUPT_DISPATCH = true;
-            cpu->cycles += 16;
+            cpu->INTERRUPT_DISPATCH = PUSH_1;
+            cpu->cycles += 8;
             return;
         }
     }
@@ -1033,8 +1051,9 @@ void CALLC(cpu_t* cpu, uint16_t val){
 }
 
 void PUSH(cpu_t* cpu, uint16_t val){
+    *cpu->writeMemory(*cpu->SP-1) = val >> 8;
+    *cpu->writeMemory(*cpu->SP-2) = val & 0xFF;
     *cpu->SP = *cpu->SP - 2;
-    *(uint16_t*)cpu->writeMemory(*cpu->SP) = val;
 }
 
 void RST(cpu_t* cpu, uint8_t addr){

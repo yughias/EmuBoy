@@ -88,7 +88,12 @@ uint8_t* getReadAddress(uint16_t address){
     MAP_REG(IF);
     MAP_REG(TIMA);
     MAP_REG(TMA);
-    MAP_REG(TAC);
+    
+    if(address == TAC_ADDR){
+        TAC_REG |= 0b11111000;
+        return &TAC_REG;
+    }
+
     MAP_REG(SC);
     MAP_REG(DMA);
     MAP_REG(OBP0);
@@ -230,6 +235,7 @@ uint8_t* getWriteAddress(uint16_t address){
 
     if(address == DIV_ADDR){
         DIV_REG = 0x00;
+        startTimerCounter();
         return NOT_MAPPED;
     }
 

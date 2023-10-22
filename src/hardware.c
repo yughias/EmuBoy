@@ -38,38 +38,39 @@ void emulateCpu(cpu_t* cpu){
         cpu->cycles--;
 }
 
-void updateTimer(){
-    TAC_REG |= 0b11111000;
+void startTimerCounter(){
+    switch(TAC_REG & TIMER_CLOCK_MASK){
+        case 0:
+        timer_counter = 1024;
+        break;
 
-    if(TAC_REG & TIMER_ENABLE_MASK){
-        if(!timer_counter){
-            if(TIMA_REG == 0xFF){
-                IF_REG |= TIMER_IRQ;
-                TIMA_REG = TMA_REG;
-            } else
-                TIMA_REG++;
+        case 1:
+        timer_counter = 16;
+        break;
 
-            switch(TAC_REG & TIMER_CLOCK_MASK){
-                case 0:
-                timer_counter = 1024;
-                break;
+        case 2:
+        timer_counter = 64;
+        break;
 
-                case 1:
-                timer_counter = 16;
-                break;
-
-                case 2:
-                timer_counter = 64;
-                break;
-
-                case 3:
-                timer_counter = 256;
-                break;
-            }
-        }
-        
-        timer_counter--;
+        case 3:
+        timer_counter = 256;
+        break;
     }
+}
+
+void updateTimer(){
+    if(!timer_counter){
+        if(TAC_REG & TIMER_ENABLE_MASK){
+            if(TIMA_REG == 0xFF){
+                    IF_REG |= TIMER_IRQ;
+                    TIMA_REG = TMA_REG;
+                } else
+                    TIMA_REG++;
+        }
+
+        startTimerCounter();
+    } else
+        timer_counter--;
 }
 
 void updateDiv(){
