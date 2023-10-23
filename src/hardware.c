@@ -10,22 +10,12 @@ cpu_t cpu = {
     .writeMemory = getWriteAddress
 };
 
-size_t master_cycle = 0;
-
 void emulateCpu(cpu_t* cpu){
     if(!cpu->cycles){
         #ifdef DEBUG
-        if(!bootromEnabled){
-            infoCPU(cpu);
-        }
-        stepCPU(cpu);
-        if(!bootromEnabled){
-            master_cycle += cpu->cycles;
-            fprintf(stderr, "%llu\n", master_cycle);
-        }
-        #else
-        stepCPU(cpu);
+        infoCPU(cpu);
         #endif
+        stepCPU(cpu);
 
         if(writeToDMA){
             startDMA();

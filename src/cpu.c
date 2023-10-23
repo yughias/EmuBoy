@@ -94,13 +94,11 @@ void LDD(cpu_t*, uint8_t*, uint8_t);
 #define CLEAR_H 0b11011111
 #define CLEAR_C 0b11101111
 
-#define SET_FLAG(f)          *cpu->F |= SET_ ## f
-#define CLEAR_FLAG(f)        *cpu->F &= CLEAR_ ## f
-#define CHANGE_FLAG(f, val)  *cpu->F ^= (-!!(val) ^ *cpu->F) & SET_ ## f
-
 // cpu utility function
 void setZero(cpu_t*, uint16_t);
 bool calculateCarry(int, uint16_t, uint16_t, bool);
+void composeFlagReg(cpu_t*);
+void splitFlagReg(cpu_t*);
 
 void initCPU(cpu_t* cpu){
     cpu->cycles = 0;
@@ -112,7 +110,7 @@ void initCPU(cpu_t* cpu){
     cpu->D = cpu->E + 1;
     cpu->L = (uint8_t*)cpu->HL;
     cpu->H = cpu->L + 1;
- 
+
     *cpu->AF = 0x0000;
     *cpu->BC = 0x0000;
     *cpu->DE = 0x0000;
@@ -125,7 +123,9 @@ void initCPU(cpu_t* cpu){
     //*cpu->DE = 0x00D8;
     //*cpu->HL = 0x014D;
     //*cpu->SP = 0xFFFE;
-    //*cpu->PC = 0x0100;
+    //*cpu->PC = 0x0101;
+    
+    splitFlagReg(cpu);
 
     cpu->HALTED = false;
     cpu->IME = false;
@@ -134,14 +134,22 @@ void initCPU(cpu_t* cpu){
 }
 
 void infoCPU(cpu_t* cpu){
+    uint8_t old_F = *cpu->F;
+
+    composeFlagReg(cpu);
+
     fprintf(stderr, "A: %02X F: %02X B: %02X C: %02X D: %02X E: %02X H: %02X L: %02X ",
             *cpu->A, *cpu->F, *cpu->B, *cpu->C, *cpu->D, *cpu->E, *cpu->H, *cpu->L);
 
     fprintf(stderr, "SP: %04X PC: 00:%04X (%02X %02X %02X %02X)\n",
             *cpu->SP, *cpu->PC, *cpu->readMemory(*cpu->PC), *cpu->readMemory(*cpu->PC+1), *cpu->readMemory(*cpu->PC+2), *cpu->readMemory(*cpu->PC+3));
+
+    *cpu->F = old_F;
 }
 
 void dispatchInterrupt(cpu_t* cpu){
+    static uint8_t ie_val;
+    static uint8_t if_val;
     cpu->cycles += 4;
     switch(cpu->INTERRUPT_DISPATCH){
         case PUSH_1:
@@ -151,13 +159,15 @@ void dispatchInterrupt(cpu_t* cpu){
         return;
 
         case PUSH_2:
+        ie_val = *cpu->readMemory(IE_ADDR);
+        if_val = *cpu->readMemory(IF_ADDR);
         *cpu->SP -= 1;
         *cpu->writeMemory(*cpu->SP) = *cpu->PC & 0xFF;
         cpu->INTERRUPT_DISPATCH = PC_JMP;
         return;
 
         case PC_JMP:
-        uint8_t mask = *cpu->readMemory(IE_ADDR) & *cpu->readMemory(IF_ADDR);
+        uint8_t mask = ie_val & if_val;
         uint16_t jmp_addr = 0;
         for(int i = 0; i < 5; i++){
             bool bit = mask & 1;
@@ -601,6 +611,8 @@ void stepCPU(cpu_t* cpu){
                 switch(q){
                     case 0:
                     POP(cpu, rp2[p]);
+                    if(rp2[p] == cpu->AF)
+                        splitFlagReg(cpu);
                     cpu->cycles += 12;
                     break;
 
@@ -767,6 +779,7 @@ void stepCPU(cpu_t* cpu){
                 switch(q){
                     case 0:
                     *cpu->PC += 1;
+                    composeFlagReg(cpu);
                     PUSH(cpu, *rp2[p]);
                     cpu->cycles += 16;
                     break;
@@ -801,9 +814,6 @@ void stepCPU(cpu_t* cpu){
         break;
     }
 
-    // in gameboy cpu, lower bits of F register are always 0, clear them if they're set
-    *cpu->F &= SET_C | SET_H | SET_N | SET_Z;
-
     // 'clean' IE and IF flag highest bit
     *cpu->writeMemory(IE_ADDR) &= VBLANK_IRQ | STAT_IRQ | TIMER_IRQ | SERIAL_IRQ | JOYPAD_IRQ;
     *cpu->writeMemory(IF_ADDR) &= VBLANK_IRQ | STAT_IRQ | TIMER_IRQ | SERIAL_IRQ | JOYPAD_IRQ;
@@ -823,22 +833,22 @@ void JR(cpu_t* cpu, int8_t d){
 }
 
 void JRNZ(cpu_t* cpu, int8_t d){
-    if(!(*cpu->F & SET_Z))
+    if(!cpu->Z_FLAG)
         JR(cpu, d);
 }
 
 void JRZ(cpu_t* cpu, int8_t d){
-    if((*cpu->F & SET_Z))
+    if(cpu->Z_FLAG)
         JR(cpu, d);
 }
 
 void JRNC(cpu_t* cpu, int8_t d){
-    if(!(*cpu->F & SET_C))
+    if(!cpu->C_FLAG)
         JR(cpu, d);
 }
 
 void JRC(cpu_t* cpu, int8_t d){
-    if(*cpu->F & SET_C)
+    if(cpu->C_FLAG)
         JR(cpu, d);
 }
 
@@ -851,12 +861,9 @@ void LD_16(cpu_t* cpu, uint16_t* reg, uint16_t val){
 }
 
 void ADD_16(cpu_t* cpu, uint16_t* regDst, uint16_t* regSrc){
-    CLEAR_FLAG(N);
-    bool carry = calculateCarry(16, *regDst, *regSrc, 0);
-    CHANGE_FLAG(C, carry);
-
-    bool aux_carry = calculateCarry(12, *regDst, *regSrc, 0);
-    CHANGE_FLAG(H, aux_carry);
+    cpu->N_FLAG = false;
+    cpu->C_FLAG = calculateCarry(16, *regDst, *regSrc, 0);
+    cpu->H_FLAG = calculateCarry(12, *regDst, *regSrc, 0);
 
     *regDst += *regSrc;
 }
@@ -870,18 +877,16 @@ void DEC_16(cpu_t* cpu, uint16_t* reg){
 }
 
 void INC_8(cpu_t* cpu, uint8_t* reg){
-    bool aux_carry = calculateCarry(4, *reg, 1, 0);
-    CHANGE_FLAG(H, aux_carry);
-    CLEAR_FLAG(N);
+    cpu->H_FLAG = calculateCarry(4, *reg, 1, 0);
+    cpu->N_FLAG = false;
 
     *reg += 1;
     setZero(cpu, *reg);
 }
 
 void DEC_8(cpu_t* cpu, uint8_t* reg){
-    bool aux_carry = calculateCarry(4, *reg, -1, 0);
-    CHANGE_FLAG(H, !aux_carry);
-    SET_FLAG(N);
+    cpu->H_FLAG = !calculateCarry(4, *reg, -1, 0);
+    cpu->N_FLAG = true;
 
     *reg -= 1;
     setZero(cpu, *reg);
@@ -891,44 +896,42 @@ void DAA(cpu_t* cpu){
     // explanation at:
     //      https://forums.nesdev.org/viewtopic.php?t=15944
 
-
-    if(!(*cpu->F & SET_N)){  // after an addition, adjust if (half-)carry occurred or if result is out of bounds
-        if((*cpu->F & SET_C) || *cpu->A > 0x99){
+    if(!cpu->N_FLAG){  // after an addition, adjust if (half-)carry occurred or if result is out of bounds
+        if(cpu->C_FLAG || *cpu->A > 0x99){
             *cpu->A += 0x60;
-            SET_FLAG(C);
+            cpu->C_FLAG = true;
         }
         
-        if((*cpu->F & SET_H) || (*cpu->A & 0x0f) > 0x09)
+        if(cpu->H_FLAG || (*cpu->A & 0x0f) > 0x09)
             *cpu->A += 0x6;
     } else {  // after a subtraction, only adjust if (half-)carry occurred
-        if(*cpu->F & SET_C)
+        if(cpu->C_FLAG)
             *cpu->A -= 0x60;
         
-        if(*cpu->F & SET_H)
+        if(cpu->H_FLAG)
             *cpu->A -= 0x6;
     }
 
     setZero(cpu, *cpu->A);
-    CLEAR_FLAG(H);
+    cpu->H_FLAG = false;
 }
 
 void CPL(cpu_t* cpu){
     *cpu->A = ~(*cpu->A);
-    SET_FLAG(N);
-    SET_FLAG(H);
+    cpu->N_FLAG = true;
+    cpu->H_FLAG = true;
 }
 
 void SCF(cpu_t* cpu){
-    SET_FLAG(C);
-    CLEAR_FLAG(H);
-    CLEAR_FLAG(N);
+    cpu->C_FLAG = true;
+    cpu->H_FLAG = false;
+    cpu->N_FLAG = false;
 }
 
 void CCF(cpu_t* cpu){
-    bool carry = *cpu->F & SET_C;
-    CHANGE_FLAG(C, !carry);
-    CLEAR_FLAG(H);
-    CLEAR_FLAG(N);
+    cpu->C_FLAG = !cpu->C_FLAG;
+    cpu->H_FLAG = false;
+    cpu->N_FLAG = false;
 }
 
 void HLT(cpu_t* cpu){
@@ -936,22 +939,22 @@ void HLT(cpu_t* cpu){
 }
 
 void RETNZ(cpu_t* cpu){
-    if(!(*cpu->F & SET_Z))
+    if(!cpu->Z_FLAG)
         POP(cpu, cpu->PC);
 }
 
 void RETZ(cpu_t* cpu){
-    if(*cpu->F & SET_Z)
+    if(cpu->Z_FLAG)
         POP(cpu, cpu->PC);
 }
 
 void RETNC(cpu_t* cpu){
-    if(!(*cpu->F & SET_C))
+    if(!cpu->C_FLAG)
         POP(cpu, cpu->PC);
 }
 
 void RETC(cpu_t* cpu){
-    if(*cpu->F & SET_C)
+    if(cpu->C_FLAG)
         POP(cpu, cpu->PC);
 }
 
@@ -966,15 +969,12 @@ void LDH2(cpu_t* cpu, uint8_t n){
 
 void ADD_SP(cpu_t* cpu, int8_t n){
     uint16_t res = *cpu->SP + n;
-    bool carry = calculateCarry(8, *cpu->SP, n, 0);
-    CHANGE_FLAG(C, carry);
-
-    bool aux_carry = calculateCarry(4, *cpu->SP, n, 0);
-    CHANGE_FLAG(H, aux_carry);
+    cpu->C_FLAG = calculateCarry(8, *cpu->SP, n, 0);
+    cpu->H_FLAG = calculateCarry(4, *cpu->SP, n, 0);
 
     *cpu->SP = res;
-    CLEAR_FLAG(Z);
-    CLEAR_FLAG(N);
+    cpu->Z_FLAG = false;
+    cpu->N_FLAG = false;
 }
 
 void LD_SP(cpu_t* cpu, int8_t n){
@@ -998,22 +998,22 @@ void JP(cpu_t* cpu, uint16_t val){
 }
 
 void JPNZ(cpu_t* cpu, uint16_t val){
-    if(!(*cpu->F & SET_Z))
+    if(!cpu->Z_FLAG)
         JP(cpu, val);
 }
 
 void JPZ(cpu_t* cpu, uint16_t val){
-    if(*cpu->F & SET_Z)
+    if(cpu->Z_FLAG)
         JP(cpu, val);
 }
 
 void JPNC(cpu_t* cpu, uint16_t val){
-    if(!(*cpu->F & SET_C))
+    if(!cpu->C_FLAG)
         JP(cpu, val);
 }
 
 void JPC(cpu_t* cpu, uint16_t val){
-    if(*cpu->F & SET_C)
+    if(cpu->C_FLAG)
         JP(cpu, val);
 }
 
@@ -1031,22 +1031,22 @@ void CALL(cpu_t* cpu, uint16_t val){
 }
 
 void CALLNZ(cpu_t* cpu, uint16_t val){
-    if(!(*cpu->F & SET_Z))
+    if(!cpu->Z_FLAG)
         CALL(cpu, val);
 }
 
 void CALLZ(cpu_t* cpu, uint16_t val){
-    if(*cpu->F & SET_Z)
+    if(cpu->Z_FLAG)
         CALL(cpu, val);
 }
 
 void CALLNC(cpu_t* cpu, uint16_t val){
-    if(!(*cpu->F & SET_C))
+    if(!cpu->C_FLAG)
         CALL(cpu, val);
 }
 
 void CALLC(cpu_t* cpu, uint16_t val){
-    if(*cpu->F & SET_C)
+    if(cpu->C_FLAG)
         CALL(cpu, val);
 }
 
@@ -1061,47 +1061,45 @@ void RST(cpu_t* cpu, uint8_t addr){
 }
 
 void RLCA(cpu_t* cpu){
-    bool carry = *cpu->A & 0b10000000;
-    CHANGE_FLAG(C, carry);
-    CLEAR_FLAG(H);
-    CLEAR_FLAG(N);
-    CLEAR_FLAG(Z);
+    cpu->C_FLAG = *cpu->A & 0b10000000;
+    cpu->H_FLAG = false;
+    cpu->N_FLAG = false;
+    cpu->Z_FLAG = false;
 
-    *cpu->A = (*cpu->A << 1) | (carry);
+    *cpu->A = (*cpu->A << 1) | (cpu->C_FLAG);
 }
 
 void RRCA(cpu_t* cpu){
-    bool carry = *cpu->A & 0b1;
-    CHANGE_FLAG(C, carry);
-    CLEAR_FLAG(H);
-    CLEAR_FLAG(N);
-    CLEAR_FLAG(Z);
-    *cpu->A = (*cpu->A >> 1) | (carry << 7);
+    cpu->C_FLAG = *cpu->A & 0b1;
+    cpu->H_FLAG = false;
+    cpu->N_FLAG = false;
+    cpu->Z_FLAG = false;
+    *cpu->A = (*cpu->A >> 1) | (cpu->C_FLAG << 7);
 }
 
 void RLA(cpu_t* cpu){
-    bool carry = *cpu->F & SET_C;
-    CHANGE_FLAG(C, *cpu->A & 0b10000000);
-    CLEAR_FLAG(H);
-    CLEAR_FLAG(N);
-    CLEAR_FLAG(Z);
-    *cpu->A = (*cpu->A << 1) | carry;
+    bool old_carry = cpu->C_FLAG;
+    cpu->C_FLAG = *cpu->A & 0b10000000;
+    cpu->H_FLAG = false;
+    cpu->N_FLAG = false;
+    cpu->Z_FLAG = false;
+    *cpu->A = (*cpu->A << 1) | old_carry;
 }
 
 void RRA(cpu_t* cpu){
-    bool carry = *cpu->F & SET_C;
-    CHANGE_FLAG(C, *cpu->A & 0b1);
-    CLEAR_FLAG(H);
-    CLEAR_FLAG(N);
-    CLEAR_FLAG(Z);
-    *cpu->A = (*cpu->A >> 1) | (carry << 7);
+    bool old_carry = cpu->C_FLAG;
+    cpu->C_FLAG = *cpu->A & 0b1;
+    cpu->H_FLAG = false;
+    cpu->N_FLAG = false;
+    cpu->Z_FLAG = false;
+    *cpu->A = (*cpu->A >> 1) | (old_carry << 7);
 }
 
 void RLC(cpu_t* cpu, uint8_t* reg){
     bool msb = *reg >> 7;
-    CHANGE_FLAG(C, msb);
-    CLEAR_FLAG(H);
-    CLEAR_FLAG(N);
+    cpu->C_FLAG = msb;
+    cpu->H_FLAG = false;
+    cpu->N_FLAG = false;
     *reg = (*reg << 1) | msb;
 
     setZero(cpu, *reg);
@@ -1109,41 +1107,41 @@ void RLC(cpu_t* cpu, uint8_t* reg){
 
 void RRC(cpu_t* cpu, uint8_t* reg){
     bool lsb = *reg & 0b1;
-    CHANGE_FLAG(C, lsb);
-    CLEAR_FLAG(H);
-    CLEAR_FLAG(N);
+    cpu->C_FLAG = lsb;
+    cpu->H_FLAG = false;
+    cpu->N_FLAG = false;
     *reg = (lsb << 7) | (*reg >> 1);
 
     setZero(cpu, *reg);
 }
 
 void RL(cpu_t* cpu, uint8_t* reg){
-    bool carry = *cpu->F & SET_C;
+    bool old_carry = cpu->C_FLAG;
     bool msb = *reg >> 7;
-    *reg = (*reg << 1) | carry;
-    CHANGE_FLAG(C, msb);
-    CLEAR_FLAG(H);
-    CLEAR_FLAG(N);
+    *reg = (*reg << 1) | old_carry;
+    cpu->C_FLAG = msb;
+    cpu->H_FLAG = false;
+    cpu->N_FLAG = false;
 
     setZero(cpu, *reg);
 }
 
 void RR(cpu_t* cpu, uint8_t* reg){
-    bool carry = *cpu->F & SET_C;
+    bool old_carry = cpu->C_FLAG;
     bool lsb = *reg & 0b1;
-    *reg = (*reg >> 1) | (carry << 7);
-    CHANGE_FLAG(C, lsb);
-    CLEAR_FLAG(H);
-    CLEAR_FLAG(N);
+    *reg = (*reg >> 1) | (old_carry << 7);
+    cpu->C_FLAG = lsb;
+    cpu->H_FLAG = false;
+    cpu->N_FLAG = false;
 
     setZero(cpu, *reg);
 }
 
 void SLA(cpu_t* cpu, uint8_t* reg){
     bool msb = *reg >> 7;
-    CHANGE_FLAG(C, msb);
-    CLEAR_FLAG(H);
-    CLEAR_FLAG(N);
+    cpu->C_FLAG = msb;
+    cpu->H_FLAG = false;
+    cpu->N_FLAG = false;
 
     *reg = *reg << 1;
 
@@ -1153,9 +1151,9 @@ void SLA(cpu_t* cpu, uint8_t* reg){
 void SRA(cpu_t* cpu, uint8_t* reg){
     bool sign = *reg >> 7;
     bool lsb = *reg & 0b1;
-    CHANGE_FLAG(C, lsb);
-    CLEAR_FLAG(H);
-    CLEAR_FLAG(N);
+    cpu->C_FLAG = lsb;
+    cpu->H_FLAG = false;
+    cpu->N_FLAG = false;
 
     *reg = (*reg >> 1) | (sign << 7);
 
@@ -1168,17 +1166,17 @@ void SWAP(cpu_t* cpu, uint8_t* reg){
     *reg |= high_nibble;
 
     setZero(cpu, *reg);
-    CLEAR_FLAG(N);
-    CLEAR_FLAG(H);
-    CLEAR_FLAG(C);
+    cpu->N_FLAG = false;
+    cpu->H_FLAG = false;
+    cpu->C_FLAG = false;
 }
 
 
 void SRL(cpu_t* cpu, uint8_t* reg){
     bool lsb = *reg & 0b1;
-    CHANGE_FLAG(C, lsb);
-    CLEAR_FLAG(H);
-    CLEAR_FLAG(N);
+    cpu->C_FLAG = lsb;
+    cpu->H_FLAG = false;
+    cpu->N_FLAG = false;
 
     *reg = *reg >> 1;
 
@@ -1187,9 +1185,9 @@ void SRL(cpu_t* cpu, uint8_t* reg){
 
 void BIT(cpu_t* cpu, uint8_t bit, uint8_t* reg){
     uint8_t masked_bit = *reg & (1 << bit);
-    CHANGE_FLAG(Z, masked_bit == 0);
-    SET_FLAG(H);
-    CLEAR_FLAG(N);
+    cpu->Z_FLAG = masked_bit == 0;
+    cpu->H_FLAG = true;
+    cpu->N_FLAG = false;
 }
 
 void RES(cpu_t* cpu, uint8_t bit, uint8_t* reg){
@@ -1202,85 +1200,76 @@ void SET(cpu_t* cpu, uint8_t bit, uint8_t* reg){
 
 void ADD(cpu_t* cpu, uint8_t* reg, uint8_t val){
     uint8_t res = *reg + val;
-    bool carry = calculateCarry(8, *reg, val, 0);
-    CHANGE_FLAG(C, carry);
+    cpu->C_FLAG = calculateCarry(8, *reg, val, 0);
 
-    bool aux_carry = calculateCarry(4, *reg, val, 0);
-    CHANGE_FLAG(H, aux_carry);
+    cpu->H_FLAG = calculateCarry(4, *reg, val, 0);
 
     *reg = res;
     setZero(cpu, *reg);
-    CLEAR_FLAG(N);
+    cpu->N_FLAG = false;
 }
 
 void ADC(cpu_t* cpu, uint8_t* reg, uint8_t val){
-    bool carry = *cpu->F & SET_C;
+    bool carry = cpu->C_FLAG;
     uint8_t res = *reg + val + carry;
 
-    bool new_carry = calculateCarry(8, *reg, val, carry);
-    CHANGE_FLAG(C, new_carry);
+    cpu->C_FLAG = calculateCarry(8, *reg, val, carry);
 
-    bool aux_carry = calculateCarry(4, *reg, val, carry);
-    CHANGE_FLAG(H, aux_carry);
+    cpu->H_FLAG = calculateCarry(4, *reg, val, carry);
 
     *reg = res;
     setZero(cpu, *reg);
-    CLEAR_FLAG(N);
+    cpu->N_FLAG = false;
 }
 
 void SUB(cpu_t* cpu, uint8_t* reg, uint8_t val){
     val = ~val + 1;
-    bool carry = calculateCarry(8, *reg, val - 1, 1);
-    CHANGE_FLAG(C, !carry);
+    cpu->C_FLAG = !calculateCarry(8, *reg, val - 1, 1);
 
-    bool aux_carry = calculateCarry(4, *reg, val - 1, 1);
-    CHANGE_FLAG(H, !aux_carry);
+    cpu->H_FLAG = !calculateCarry(4, *reg, val - 1, 1);
 
     uint8_t res = *reg + val;
 
     *reg = res;
     setZero(cpu, *reg);
-    SET_FLAG(N);
+    cpu->N_FLAG = true;
 }
 
 void SBC(cpu_t* cpu, uint8_t* reg, uint8_t val){
     val = ~val + 1;
-    bool carry = *cpu->F & SET_C;
-    bool new_carry = calculateCarry(8, *reg, val - 1, !carry);
-    bool aux_carry = calculateCarry(4, *reg, val - 1, !carry);
-
-    CHANGE_FLAG(C, !new_carry);
-    CHANGE_FLAG(H, !aux_carry);
+    bool carry = cpu->C_FLAG;
+    cpu->C_FLAG = !calculateCarry(8, *reg, val - 1, !carry);
+    cpu->H_FLAG = !calculateCarry(4, *reg, val - 1, !carry);
 
     uint8_t res = *reg + val - carry;
 
     *reg = res;
     setZero(cpu, *reg);
-    SET_FLAG(N);
+    cpu->N_FLAG = true;
 }
 
 void AND(cpu_t* cpu, uint8_t* reg, uint8_t val){
     *reg &= val;
     setZero(cpu, *reg);
-    SET_FLAG(H);
-    CLEAR_FLAG(C);
-    CLEAR_FLAG(N);
+    cpu->H_FLAG = true;
+    cpu->C_FLAG = false;
+    cpu->N_FLAG = false;
 }
 
 void XOR(cpu_t* cpu, uint8_t* reg, uint8_t val){
     *reg ^= val;
     setZero(cpu, *reg);
-    CLEAR_FLAG(H);
-    CLEAR_FLAG(C);
-    CLEAR_FLAG(N);
+    cpu->H_FLAG = false;
+    cpu->C_FLAG = false;
+    cpu->N_FLAG = false;
 }
 
 void OR(cpu_t* cpu, uint8_t* reg, uint8_t val){
     *reg |= val;
     setZero(cpu, *reg);
-    CLEAR_FLAG(H);
-    CLEAR_FLAG(C);
-    CLEAR_FLAG(N);
+    cpu->H_FLAG = false;
+    cpu->C_FLAG = false;
+    cpu->N_FLAG = false;
 }
 
 void CP(cpu_t* cpu, uint8_t* reg, uint8_t val){
@@ -1290,35 +1279,29 @@ void CP(cpu_t* cpu, uint8_t* reg, uint8_t val){
 }
 
 void ADC_16(cpu_t* cpu, uint16_t* reg, uint16_t val){
-    bool carry = *cpu->F & SET_C;
+    bool carry = cpu->C_FLAG;
 
-    bool new_carry = calculateCarry(16, *reg, val, carry);
-    CHANGE_FLAG(C, new_carry);
-    
-    bool aux_carry = calculateCarry(12, *reg, val, carry);
-    CHANGE_FLAG(H, aux_carry);
+    cpu->C_FLAG = calculateCarry(16, *reg, val, carry);
+    cpu->H_FLAG = calculateCarry(12, *reg, val, carry);
 
     uint16_t res = *reg + val + carry;
            
     *reg = res;
     setZero(cpu, *reg);
-    CLEAR_FLAG(N);
+    cpu->N_FLAG = false;
 }
 
 void SBC_16(cpu_t* cpu, uint16_t* reg, uint16_t val){
     val = ~val + 1;
-    bool carry = *cpu->F & SET_C;
-    bool new_carry = calculateCarry(16, *reg, val - 1, !carry);
-    bool aux_carry = calculateCarry(12, *reg, val - 1, !carry);
-
-    CHANGE_FLAG(C, !new_carry);
-    CHANGE_FLAG(H, !aux_carry);
+    bool carry = cpu->C_FLAG;
+    cpu->C_FLAG = !calculateCarry(16, *reg, val - 1, !carry);
+    cpu->H_FLAG = !calculateCarry(12, *reg, val - 1, !carry);
 
     uint16_t res = *reg + val - carry; 
 
     *reg = res;
     setZero(cpu, *reg);
-    SET_FLAG(N);
+    cpu->N_FLAG = true;
 }
 
 void NEG(cpu_t* cpu, uint8_t* reg){
@@ -1338,8 +1321,8 @@ void RRD(cpu_t* cpu){
     *cpu->A = (tmpA & 0xF0) | (val & 0xF);
     *cpu->writeMemory(*cpu->HL) = (val >> 4) | (tmpA << 4);
     setZero(cpu, *cpu->A);
-    CLEAR_FLAG(N);
-    CLEAR_FLAG(H);
+    cpu->N_FLAG = false;
+    cpu->H_FLAG = false;
 }
 
 void RLD(cpu_t* cpu){
@@ -1348,11 +1331,9 @@ void RLD(cpu_t* cpu){
     *cpu->A = (tmpA & 0xF0) | (val >> 4);
     *cpu->writeMemory(*cpu->HL) = (val << 4) | (tmpA & 0xF);
     setZero(cpu, *cpu->A);
-    CLEAR_FLAG(N);
-    CLEAR_FLAG(H);
+    cpu->N_FLAG = false;
+    cpu->H_FLAG = false;
 }
-
-// block instructions
 
 void LDI(cpu_t* cpu, uint8_t* reg, uint8_t val){
     *reg = val;
@@ -1365,11 +1346,26 @@ void LDD(cpu_t* cpu, uint8_t* reg, uint8_t val){
 }
 
 void setZero(cpu_t* cpu, uint16_t val){
-    CHANGE_FLAG(Z, val == 0);
+    cpu->Z_FLAG = val == 0;
 }
 
 bool calculateCarry(int bit, uint16_t a, uint16_t b, bool cy) {
   int32_t result = a + b + cy;
   int32_t carry = result ^ a ^ b;
   return carry & (1 << bit);
+}
+
+void composeFlagReg(cpu_t* cpu){
+    *cpu->F = 0;
+    *cpu->F |= cpu->Z_FLAG << 7;
+    *cpu->F |= cpu->N_FLAG << 6;
+    *cpu->F |= cpu->H_FLAG << 5;
+    *cpu->F |= cpu->C_FLAG << 4;
+}
+
+void splitFlagReg(cpu_t* cpu){
+    cpu->Z_FLAG = *cpu->F & SET_Z;
+    cpu->N_FLAG = *cpu->F & SET_N;
+    cpu->H_FLAG = *cpu->F & SET_H;
+    cpu->C_FLAG = *cpu->F & SET_C;
 }

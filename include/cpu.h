@@ -32,6 +32,12 @@ typedef struct cpu_t {
     uint8_t* H;
     uint8_t* L;
 
+    // bool flags
+    bool Z_FLAG;
+    bool N_FLAG;
+    bool H_FLAG;
+    bool C_FLAG;
+
     // busFunc
     busFunc readMemory;
     busFunc writeMemory;
