@@ -7,12 +7,8 @@
 uint8_t BOOTROM_DISABLE_REG;
 uint8_t IE_REG;
 uint8_t IF_REG;
-uint8_t TIMA_REG;
-uint8_t TMA_REG;
-uint8_t TAC_REG;
 uint8_t SB_REG;
 uint8_t SC_REG;
-uint8_t DIV_REG;
 
 uint8_t NOT_MAPPED[0x10000];
 uint8_t TEMP_REG;
@@ -51,6 +47,11 @@ void initMemory(){
     internal_ly = 0;
     stat_irq = false;
     bootromEnabled = true;
+    gb_timer.counter = 0x00;
+    gb_timer.old_state = false;
+    gb_timer.delay = 0x00;
+    gb_timer.ignore_write = false;
+    gb_timer.tma_overwritten = false;
 }
 
 void freeMemory(){
@@ -98,7 +99,11 @@ uint8_t* getReadAddress(uint16_t address){
     MAP_REG(DMA);
     MAP_REG(OBP0);
     MAP_REG(OBP1);
-    MAP_REG(DIV);
+    
+    if(address == DIV_ADDR){
+        return &gb_timer.div;
+    }
+    
     MAP_REG(WX);
     MAP_REG(WY);
 
@@ -177,8 +182,20 @@ uint8_t* getWriteAddress(uint16_t address){
     MAP_REG(BGP);
     MAP_REG(IE);
     MAP_REG(IF);
-    MAP_REG(TIMA);
-    MAP_REG(TMA);
+    
+    if(address == TIMA_ADDR){
+        gb_timer.delay = 0;
+        if(gb_timer.ignore_write)
+            return NOT_MAPPED;
+        return &TIMA_REG;
+    }
+
+    if(address == TMA_ADDR){
+        if(gb_timer.ignore_write)
+            gb_timer.tma_overwritten = true;
+        return &TMA_REG;
+    }
+
     MAP_REG(TAC);
     MAP_REG(SC);
     MAP_REG(SB);
@@ -234,8 +251,7 @@ uint8_t* getWriteAddress(uint16_t address){
     MAP_MEMORY(WAVE_RAM);
 
     if(address == DIV_ADDR){
-        DIV_REG = 0x00;
-        startTimerCounter();
+        gb_timer.counter = 0x00;
         return NOT_MAPPED;
     }
 

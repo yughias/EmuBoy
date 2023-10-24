@@ -312,41 +312,26 @@ void stepCPU(cpu_t* cpu){
 
                     case 4:
                     *cpu->PC += 2;
-                    old_PC = *cpu->PC;
                     JRNZ(cpu, *cpu->readMemory(*cpu->PC-1));
-                    if(old_PC == *cpu->PC)
-                        cpu->cycles += 8;
-                    else
-                        cpu->cycles += 12;
+                    cpu->cycles += 8;
                     break;
 
                     case 5:
                     *cpu->PC += 2;
                     JRZ(cpu, *cpu->readMemory(*cpu->PC-1));
-                    if(old_PC == *cpu->PC)
-                        cpu->cycles += 8;
-                    else
-                        cpu->cycles += 12;
+                    cpu->cycles += 8;
                     break;
 
                     case 6:
                     *cpu->PC += 2;
-                    old_PC = *cpu->PC;
                     JRNC(cpu, *cpu->readMemory(*cpu->PC-1));
-                    if(old_PC == *cpu->PC)
-                        cpu->cycles += 8;
-                    else
-                        cpu->cycles += 12;
+                    cpu->cycles += 8;
                     break;
 
                     case 7:
                     *cpu->PC += 2;
-                    old_PC = *cpu->PC;
                     JRC(cpu, *cpu->readMemory(*cpu->PC-1));
-                    if(old_PC == *cpu->PC)
-                        cpu->cycles += 8;
-                    else
-                        cpu->cycles += 12;
+                    cpu->cycles += 8;
                     break;
                 }
                 break;
@@ -644,10 +629,10 @@ void stepCPU(cpu_t* cpu){
 
                 case 2:
                 val16 = *(uint16_t*)cpu->readMemory(*cpu->PC+1);
-                old_PC = *cpu->PC;
                 switch(y){
                     case 0:
                     *cpu->PC += 3;
+                    old_PC = *cpu->PC;
                     JPNZ(cpu, val16);
                     if(old_PC == *cpu->PC)
                         cpu->cycles += 12;
@@ -657,6 +642,7 @@ void stepCPU(cpu_t* cpu){
 
                     case 1:
                     *cpu->PC += 3;
+                    old_PC = *cpu->PC;
                     JPZ(cpu, val16);
                     if(old_PC == *cpu->PC)
                         cpu->cycles += 12;
@@ -666,6 +652,7 @@ void stepCPU(cpu_t* cpu){
 
                     case 2:
                     *cpu->PC += 3;
+                    old_PC = *cpu->PC;
                     JPNC(cpu, val16);
                     if(old_PC == *cpu->PC)
                         cpu->cycles += 12;
@@ -675,6 +662,7 @@ void stepCPU(cpu_t* cpu){
 
                     case 3:
                     *cpu->PC += 3;
+                    old_PC = *cpu->PC;
                     JPC(cpu, val16);
                     if(old_PC == *cpu->PC)
                         cpu->cycles += 12;
@@ -833,23 +821,31 @@ void JR(cpu_t* cpu, int8_t d){
 }
 
 void JRNZ(cpu_t* cpu, int8_t d){
-    if(!cpu->Z_FLAG)
+    if(!cpu->Z_FLAG){
         JR(cpu, d);
+        cpu->cycles += 4;
+    }
 }
 
 void JRZ(cpu_t* cpu, int8_t d){
-    if(cpu->Z_FLAG)
+    if(cpu->Z_FLAG){
         JR(cpu, d);
+        cpu->cycles += 4;
+    }
 }
 
 void JRNC(cpu_t* cpu, int8_t d){
-    if(!cpu->C_FLAG)
+    if(!cpu->C_FLAG){
         JR(cpu, d);
+        cpu->cycles += 4;
+    }
 }
 
 void JRC(cpu_t* cpu, int8_t d){
-    if(cpu->C_FLAG)
+    if(cpu->C_FLAG){
         JR(cpu, d);
+        cpu->cycles += 4;
+    }
 }
 
 void LD_8(cpu_t* cpu, uint8_t* reg, uint8_t val){

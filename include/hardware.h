@@ -8,6 +8,7 @@
 #include <dma.h>
 #include <mbc.h>
 #include <apu.h>
+#include <gb_timer.h>
 
 #define CYCLES_PER_FRAME 70224
 #define SCALINE_CYCLES 456

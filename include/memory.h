@@ -8,21 +8,14 @@
 #define BOOTROM_DISABLE_ADDR 0xFF50
 #define IF_ADDR 0xFF0F
 #define IE_ADDR 0xFFFF
-#define TIMA_ADDR 0xFF05
-#define TMA_ADDR 0xFF06
-#define TAC_ADDR 0xFF07
 #define SB_ADDR 0xFF01
 #define SC_ADDR  0xFF02
-#define DIV_ADDR 0xFF04
 
 #define VBLANK_IRQ                0b00000001
 #define STAT_IRQ                  0b00000010
 #define TIMER_IRQ                 0b00000100
 #define SERIAL_IRQ                0b00001000
 #define JOYPAD_IRQ                0b00010000
-
-#define TIMER_ENABLE_MASK         0b00000100
-#define TIMER_CLOCK_MASK          0b00000011
 
 #define BOOTROM_SIZE 0x100
 #define VRAM_SIZE 0x2000
@@ -41,12 +34,8 @@
 extern uint8_t BOOTROM_DISABLE_REG;
 extern uint8_t IE_REG;
 extern uint8_t IF_REG;
-extern uint8_t TIMA_REG;
-extern uint8_t TMA_REG;
-extern uint8_t TAC_REG;
 extern uint8_t SB_REG;
 extern uint8_t SC_REG;
-extern uint8_t DIV_REG;
 
 extern uint8_t NOT_MAPPED[0x10000];
 extern uint8_t TEMP_REG;

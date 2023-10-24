@@ -83,11 +83,6 @@ void loop(){
     }
     #endif
 
-    avg += 1000.0f / deltaTime;
-    char str[100];
-    sprintf(str, "%d\n", (int)(avg / frameCount));
-    setTitle(str);
-
     if(frameCount == 1)
         initPaletteRGB();
     
