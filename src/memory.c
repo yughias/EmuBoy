@@ -132,8 +132,7 @@ uint8_t* getReadAddress(uint16_t address){
     MAP_MEMORY(WAVE_RAM);
 
     if(address == SB_ADDR){
-        TEMP_REG = 0xFF;
-        return &TEMP_REG;
+        return &SB_REG;
     }
 
     if(address == STAT_ADDR){
@@ -171,7 +170,7 @@ uint8_t* getWriteAddress(uint16_t address){
     MAP_REG(LCDC);
 
     if(address == STAT_ADDR){
-        if(!stat_irq)
+        if(!stat_irq && ppu_mode != OAM_SCAN_MODE)
             IF_REG |= STAT_IRQ;
         stat_irq = true;
         return &STAT_REG;

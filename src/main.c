@@ -13,6 +13,7 @@ void closeEmulator(){
     freeGameShark();
     freeMemory();
     freeAudio();
+    freeSerial();
 }
 
 float avg = 0;
@@ -43,6 +44,7 @@ void setup(){
     initCPU(&cpu);
     initMemory();
     initAudio();
+    initSerial();
 
     char bootromName[FILENAME_MAX];
     getAbsoluteDir(bootromName);
@@ -82,6 +84,10 @@ void loop(){
         exit(0);
     }
     #endif
+
+    char str[50];
+    sprintf(str, "%d\n", (int)(1000.0f / deltaTime + 0.5f));
+    setTitle(str);
 
     if(frameCount == 1)
         initPaletteRGB();

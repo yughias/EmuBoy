@@ -204,7 +204,7 @@ void stepCPU(cpu_t* cpu){
         cpu->EI_DELAY = false;
 
     if(cpu->HALTED){
-        cpu->cycles += 4;
+        cpu->cycles += 1;
         return;
     }
 
