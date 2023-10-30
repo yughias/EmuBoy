@@ -225,7 +225,6 @@ void stepCPU(cpu_t* cpu){
     uint8_t  val8;
     uint16_t val16;
     uint16_t nn;
-    uint16_t old_PC;
 
     switch(opcode){
         case 0xCB:
@@ -527,38 +526,25 @@ void stepCPU(cpu_t* cpu){
             switch(z){
                 case 0:
                 *cpu->PC += 1;
-                old_PC = *cpu->PC;
                 switch(y){
                     case 0:
                     RETNZ(cpu);
-                    if(*cpu->PC == old_PC)
-                        cpu->cycles += 8;
-                    else
-                        cpu->cycles += 20;
+                    cpu->cycles += 8;
                     break;
 
                     case 1:
                     RETZ(cpu);
-                    if(*cpu->PC == old_PC)
-                        cpu->cycles += 8;
-                    else
-                        cpu->cycles += 20;
+                    cpu->cycles += 8;
                     break;
 
                     case 2:
                     RETNC(cpu);
-                    if(*cpu->PC == old_PC)
-                        cpu->cycles += 8;
-                    else
-                        cpu->cycles += 20;
+                    cpu->cycles += 8;
                     break;
 
                     case 3:
                     RETC(cpu);
-                    if(*cpu->PC == old_PC)
-                        cpu->cycles += 8;
-                    else
-                        cpu->cycles += 20;
+                    cpu->cycles += 8;
                     break;
 
                     case 4:
@@ -632,42 +618,26 @@ void stepCPU(cpu_t* cpu){
                 switch(y){
                     case 0:
                     *cpu->PC += 3;
-                    old_PC = *cpu->PC;
                     JPNZ(cpu, val16);
-                    if(old_PC == *cpu->PC)
-                        cpu->cycles += 12;
-                    else
-                        cpu->cycles += 16;
+                    cpu->cycles += 12;
                     break;
 
                     case 1:
                     *cpu->PC += 3;
-                    old_PC = *cpu->PC;
                     JPZ(cpu, val16);
-                    if(old_PC == *cpu->PC)
-                        cpu->cycles += 12;
-                    else
-                        cpu->cycles += 16;
+                    cpu->cycles += 12;
                     break;
 
                     case 2:
                     *cpu->PC += 3;
-                    old_PC = *cpu->PC;
                     JPNC(cpu, val16);
-                    if(old_PC == *cpu->PC)
-                        cpu->cycles += 12;
-                    else
-                        cpu->cycles += 16;
+                    cpu->cycles += 12;
                     break;
 
                     case 3:
                     *cpu->PC += 3;
-                    old_PC = *cpu->PC;
                     JPC(cpu, val16);
-                    if(old_PC == *cpu->PC)
-                        cpu->cycles += 12;
-                    else
-                        cpu->cycles += 16;
+                    cpu->cycles += 12;
                     break;
                     
                     case 4:
@@ -723,7 +693,6 @@ void stepCPU(cpu_t* cpu){
                 case 4:
                 val16 = *(uint16_t*)cpu->readMemory(*cpu->PC+1);
                 *cpu->PC += 3;
-                old_PC = *cpu->PC;
                 switch(y){
                     case 0:
                     CALLNZ(cpu, val16);
@@ -757,10 +726,7 @@ void stepCPU(cpu_t* cpu){
                     printf("empty opcode\n");
                     break;
                 }
-                if(old_PC == *cpu->PC)
-                    cpu->cycles += 12;
-                else
-                    cpu->cycles += 24;
+                cpu->cycles += 12;
                 break;
 
                 case 5:
@@ -935,23 +901,31 @@ void HLT(cpu_t* cpu){
 }
 
 void RETNZ(cpu_t* cpu){
-    if(!cpu->Z_FLAG)
+    if(!cpu->Z_FLAG){
         POP(cpu, cpu->PC);
+        cpu->cycles += 12;
+    }
 }
 
 void RETZ(cpu_t* cpu){
-    if(cpu->Z_FLAG)
+    if(cpu->Z_FLAG){
         POP(cpu, cpu->PC);
+        cpu->cycles += 12;
+    }
 }
 
 void RETNC(cpu_t* cpu){
-    if(!cpu->C_FLAG)
+    if(!cpu->C_FLAG){
         POP(cpu, cpu->PC);
+        cpu->cycles += 12;
+    }
 }
 
 void RETC(cpu_t* cpu){
-    if(cpu->C_FLAG)
+    if(cpu->C_FLAG){
         POP(cpu, cpu->PC);
+        cpu->cycles += 12;
+    }
 }
 
 void LDH1(cpu_t* cpu, uint8_t n){
@@ -994,23 +968,31 @@ void JP(cpu_t* cpu, uint16_t val){
 }
 
 void JPNZ(cpu_t* cpu, uint16_t val){
-    if(!cpu->Z_FLAG)
+    if(!cpu->Z_FLAG){
         JP(cpu, val);
+        cpu->cycles += 4;
+    }
 }
 
 void JPZ(cpu_t* cpu, uint16_t val){
-    if(cpu->Z_FLAG)
+    if(cpu->Z_FLAG){
         JP(cpu, val);
+        cpu->cycles += 4;
+    }
 }
 
 void JPNC(cpu_t* cpu, uint16_t val){
-    if(!cpu->C_FLAG)
+    if(!cpu->C_FLAG){
         JP(cpu, val);
+        cpu->cycles += 4;
+    }
 }
 
 void JPC(cpu_t* cpu, uint16_t val){
-    if(cpu->C_FLAG)
+    if(cpu->C_FLAG){
         JP(cpu, val);
+        cpu->cycles += 4;
+    }
 }
 
 void DI(cpu_t* cpu){
@@ -1027,23 +1009,31 @@ void CALL(cpu_t* cpu, uint16_t val){
 }
 
 void CALLNZ(cpu_t* cpu, uint16_t val){
-    if(!cpu->Z_FLAG)
+    if(!cpu->Z_FLAG){
         CALL(cpu, val);
+        cpu->cycles += 12;
+    }
 }
 
 void CALLZ(cpu_t* cpu, uint16_t val){
-    if(cpu->Z_FLAG)
+    if(cpu->Z_FLAG){
         CALL(cpu, val);
+        cpu->cycles += 12;
+    }
 }
 
 void CALLNC(cpu_t* cpu, uint16_t val){
-    if(!cpu->C_FLAG)
+    if(!cpu->C_FLAG){
         CALL(cpu, val);
+        cpu->cycles += 12;
+    }
 }
 
 void CALLC(cpu_t* cpu, uint16_t val){
-    if(cpu->C_FLAG)
+    if(cpu->C_FLAG){
         CALL(cpu, val);
+        cpu->cycles += 12;
+    }
 }
 
 void PUSH(cpu_t* cpu, uint16_t val){

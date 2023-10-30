@@ -1,9 +1,11 @@
+#include <SDL_MAINLOOP.h>
 #include "serial.h"
 #include "memory.h"
 #include "p2p.h"
 #include "ini.h"
 
 #include <stdint.h>
+#include <string.h>
 
 P2P_connection p2p;
 
@@ -68,7 +70,11 @@ void updateSerial(){
 }
 
 bool load_network_config(){
-    FILE* ini_ptr = INI_open("data/config.ini");
+    char ini_path[FILENAME_MAX];
+    getAbsoluteDir(ini_path);
+    strcat(ini_path, "data/config.ini");
+
+    FILE* ini_ptr = INI_open(ini_path);
     int input_val;
 
     if(!ini_ptr)

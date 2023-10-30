@@ -16,8 +16,6 @@ void closeEmulator(){
     freeSerial();
 }
 
-float avg = 0;
-
 void setup(){
     size(LCD_WIDTH, LCD_HEIGHT);
     setTitle(u8"ゲーム　ボーイ　ちゃん");
@@ -73,6 +71,7 @@ void setup(){
 
 void loop(){
     #ifdef SPEED_TEST
+    static float avg = 0;
     if(frameCount > 1){
         avg += 1000.0f / deltaTime; 
     }
@@ -81,6 +80,7 @@ void loop(){
         avg /= frameCount - 1;
         printf("%f\n", avg);
         system("pause");
+        closeEmulator();
         exit(0);
     }
     #endif
