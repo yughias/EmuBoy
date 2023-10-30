@@ -767,10 +767,6 @@ void stepCPU(cpu_t* cpu){
         }
         break;
     }
-
-    // 'clean' IE and IF flag highest bit
-    *cpu->writeMemory(IE_ADDR) &= VBLANK_IRQ | STAT_IRQ | TIMER_IRQ | SERIAL_IRQ | JOYPAD_IRQ;
-    *cpu->writeMemory(IF_ADDR) &= VBLANK_IRQ | STAT_IRQ | TIMER_IRQ | SERIAL_IRQ | JOYPAD_IRQ;
 }
 
 // Z80 INSTRUCTIONS

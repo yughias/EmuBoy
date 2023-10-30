@@ -85,8 +85,17 @@ uint8_t* getReadAddress(uint16_t address){
     MAP_REG(SCY);
     MAP_REG(BGP);
     MAP_REG(BOOTROM_DISABLE);
-    MAP_REG(IE);
-    MAP_REG(IF);
+    
+    if(address == IE_ADDR){
+        IE_REG &= VBLANK_IRQ | STAT_IRQ | TIMER_IRQ | SERIAL_IRQ | JOYPAD_IRQ;
+        return &IE_REG;
+    }
+    
+    if(address == IF_ADDR){
+        IF_REG &= VBLANK_IRQ | STAT_IRQ | TIMER_IRQ | SERIAL_IRQ | JOYPAD_IRQ;
+        return &IF_REG;
+    }
+
     MAP_REG(TIMA);
     MAP_REG(TMA);
     
