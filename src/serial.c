@@ -1,6 +1,6 @@
 #include <SDL_MAINLOOP.h>
 #include "serial.h"
-#include "memory.h"
+#include "hardware.h"
 #include "p2p.h"
 #include "ini.h"
 
@@ -41,7 +41,7 @@ void updateSerial(){
             uint8_t out_byte = SB_REG;
             if((SC_REG & 0x80) && !(SC_REG & 0x01) && P2P_no_blocking_recv(&p2p, &SB_REG, 1)){
                 SC_REG &= 0x7F;
-                IF_REG |= SERIAL_IRQ;
+                cpu.IF |= SERIAL_IRQ;
                 P2P_send(&p2p, &out_byte, 1);  
                 return;
             }
@@ -56,7 +56,7 @@ void updateSerial(){
             case MASTER:
             P2P_blocking_recv(&p2p, &SB_REG, 1);
             SC_REG &= 0x7F;
-            IF_REG |= SERIAL_IRQ;
+            cpu.IF |= SERIAL_IRQ;
             serial_mode = SLAVE;  
             break;
         }
@@ -64,7 +64,7 @@ void updateSerial(){
         if((SC_REG & 0x80) && (SC_REG & 0x01)){
             SB_REG = 0xFF;
             SC_REG &= 0x7F;
-            IF_REG |= SERIAL_IRQ;
+            cpu.IF |= SERIAL_IRQ;
         }  
     }      
 }

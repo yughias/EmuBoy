@@ -4,7 +4,17 @@
 #include <stdbool.h>
 #include <stdint.h>
 
+#define IF_ADDR 0xFF0F
+#define IE_ADDR 0xFFFF
+
+#define VBLANK_IRQ                0b00000001
+#define STAT_IRQ                  0b00000010
+#define TIMER_IRQ                 0b00000100
+#define SERIAL_IRQ                0b00001000
+#define JOYPAD_IRQ                0b00010000
+
 typedef uint8_t* (*busFunc)(uint16_t);
+typedef void (*tickFunc)(int);
 typedef enum { NONE, PUSH_1, PUSH_2, PC_JMP } INT_PHASE;
 
 typedef struct cpu_t {
@@ -13,6 +23,8 @@ typedef struct cpu_t {
     bool     IME;
     bool     EI_DELAY;
     INT_PHASE INTERRUPT_DISPATCH;
+    uint8_t IE;
+    uint8_t IF;
 
     // 16 bit regs 
     uint16_t AF[1];
@@ -42,9 +54,11 @@ typedef struct cpu_t {
     busFunc readMemory;
     busFunc writeMemory;
 
+    // tickFunc: used to update system and cpu cycles
+    tickFunc tickSystem;
+
     uint64_t cycles;
 } cpu_t;
-
 
 void initCPU(cpu_t*);
 void infoCPU(cpu_t*);

@@ -16,13 +16,15 @@ void closeEmulator(){
     freeSerial();
 }
 
+float avg = 0;
+
 void setup(){
     size(LCD_WIDTH, LCD_HEIGHT);
     setTitle(u8"ゲーム　ボーイ　ちゃん");
     #ifndef SPEED_TEST
     frameRate(REFRESH_RATE);
     #else
-    frameRate(1000);
+    frameRate(2000);
     #endif
 
     char logoPath[FILENAME_MAX];
@@ -71,7 +73,6 @@ void setup(){
 
 void loop(){
     #ifdef SPEED_TEST
-    static float avg = 0;
     if(frameCount > 1){
         avg += 1000.0f / deltaTime; 
     }

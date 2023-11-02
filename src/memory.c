@@ -5,8 +5,6 @@
 #include <string.h>
 
 uint8_t BOOTROM_DISABLE_REG;
-uint8_t IE_REG;
-uint8_t IF_REG;
 uint8_t SB_REG;
 uint8_t SC_REG;
 
@@ -33,8 +31,6 @@ char romName[FILENAME_MAX];
 char savName[FILENAME_MAX];
 
 void initMemory(){
-    IF_REG = 0;
-    IE_REG = 0;
     LY_REG = 0;
     STAT_REG = 0;
     TIMA_REG = 0;
@@ -87,13 +83,13 @@ uint8_t* getReadAddress(uint16_t address){
     MAP_REG(BOOTROM_DISABLE);
     
     if(address == IE_ADDR){
-        IE_REG &= VBLANK_IRQ | STAT_IRQ | TIMER_IRQ | SERIAL_IRQ | JOYPAD_IRQ;
-        return &IE_REG;
+        cpu.IE &= VBLANK_IRQ | STAT_IRQ | TIMER_IRQ | SERIAL_IRQ | JOYPAD_IRQ;
+        return &cpu.IE;
     }
     
     if(address == IF_ADDR){
-        IF_REG &= VBLANK_IRQ | STAT_IRQ | TIMER_IRQ | SERIAL_IRQ | JOYPAD_IRQ;
-        return &IF_REG;
+        cpu.IF &= VBLANK_IRQ | STAT_IRQ | TIMER_IRQ | SERIAL_IRQ | JOYPAD_IRQ;
+        return &cpu.IF;
     }
 
     MAP_REG(TIMA);
@@ -180,7 +176,7 @@ uint8_t* getWriteAddress(uint16_t address){
 
     if(address == STAT_ADDR){
         if(!stat_irq && ppu_mode != OAM_SCAN_MODE)
-            IF_REG |= STAT_IRQ;
+            cpu.IF |= STAT_IRQ;
         stat_irq = true;
         return &STAT_REG;
     }
@@ -188,8 +184,12 @@ uint8_t* getWriteAddress(uint16_t address){
     MAP_REG(SCX);
     MAP_REG(SCY);
     MAP_REG(BGP);
-    MAP_REG(IE);
-    MAP_REG(IF);
+
+    if(address == IE_ADDR)
+        return &cpu.IE;
+
+    if(address == IF_ADDR)
+        return &cpu.IF;
     
     if(address == TIMA_ADDR){
         gb_timer.delay = 0;

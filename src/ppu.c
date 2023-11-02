@@ -293,7 +293,7 @@ void updatePPU(){
 
     // search more about exact ppu_counter
     if(internal_ly == 144 && ppu_counter == 4){
-        IF_REG |= VBLANK_IRQ;
+        cpu.IF |= VBLANK_IRQ;
 
         if(STAT_REG & (1 << 5))
             stat_irq = true;
@@ -306,14 +306,7 @@ void updatePPU(){
     }
 
     // old stat mode timing
-    if(!internal_ly){
-        if(ppu_counter < 80)
-            ppu_mode = HBLANK_MODE;
-        else if(ppu_counter < 80 + 172)
-            ppu_mode = DRAW_MODE;
-        else
-            ppu_mode = HBLANK_MODE;
-    } else if(internal_ly < LCD_HEIGHT){
+    if(internal_ly < LCD_HEIGHT){
         if(ppu_counter < 80)
             ppu_mode = OAM_SCAN_MODE;
         else if(ppu_counter < 80 + 172)
@@ -336,7 +329,7 @@ void updatePPU(){
         stat_irq = true;
 
     if(!old_stat_irq && stat_irq)
-        IF_REG |= STAT_IRQ;
+        cpu.IF |= STAT_IRQ;
 
     if(ppu_counter == SCANLINE_CYCLE){        
         internal_ly = (internal_ly + 1) % SCANLINE_NUMBER;

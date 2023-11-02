@@ -1,5 +1,5 @@
 #include <gb_timer.h>
-#include <memory.h>
+#include <hardware.h>
 
 uint8_t TIMA_REG;
 uint8_t TMA_REG;
@@ -16,7 +16,7 @@ void updateTimer(){
     gb_timer.ignore_write = false;
 
     if(gb_timer.delay && !(--gb_timer.delay)){
-        IF_REG |= TIMER_IRQ;
+        cpu.IF |= TIMER_IRQ;
         TIMA_REG = TMA_REG;
         gb_timer.ignore_write = true;
     }
