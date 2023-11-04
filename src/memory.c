@@ -8,7 +8,7 @@ uint8_t BOOTROM_DISABLE_REG;
 uint8_t SB_REG;
 uint8_t SC_REG;
 
-uint8_t NOT_MAPPED[0x10000];
+uint8_t NOT_MAPPED;
 uint8_t TEMP_REG;
 
 #define READ_REG(name) if(address == name ## _ADDR) return name ## _REG
@@ -155,7 +155,7 @@ uint8_t readByte(uint16_t address){
 
     READ_MEMORY(HRAM);
 
-    return NOT_MAPPED[0];
+    return NOT_MAPPED;
 }
 
 void writeByte(uint16_t address, uint8_t byte){

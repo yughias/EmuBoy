@@ -27,7 +27,7 @@ extern uint8_t BOOTROM_DISABLE_REG;
 extern uint8_t SB_REG;
 extern uint8_t SC_REG;
 
-extern uint8_t NOT_MAPPED[0x10000];
+extern uint8_t NOT_MAPPED;
 extern uint8_t TEMP_REG;
 
 extern uint8_t BOOTROM[BOOTROM_SIZE];

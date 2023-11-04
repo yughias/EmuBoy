@@ -27,7 +27,7 @@ bool hasBattery;
 
 #define MAP_RTC(addr) case 0x ## addr: return &RTC_ ## addr
 
-uint8_t* noMappedAdress(uint16_t addr){ return NOT_MAPPED; }
+uint8_t* noMappedAdress(uint16_t addr){ return &NOT_MAPPED; }
 uint8_t* noMbcAddress(uint16_t addr){ return ROM + addr; }
 
 uint8_t* mbc1_0000_3FFF(uint16_t addr){
@@ -54,9 +54,8 @@ uint8_t* mbc1_4000_7FFF(uint16_t addr){
 
 uint8_t* mbc1_ram(uint16_t addr){
     if((MBC_0000_1FFF & 0x0F) != 0x0A){
-        NOT_MAPPED[0] = 0xFF;
-        NOT_MAPPED[1] = 0xFF;
-        return NOT_MAPPED;
+        NOT_MAPPED = 0xFF;
+        return &NOT_MAPPED;
     }
 
     addr &= (1 << 13) - 1;
@@ -76,9 +75,8 @@ uint8_t* mbc2_4000_7FFF(uint16_t addr){
 
 uint8_t* mbc2_ram(uint16_t addr){
     if((MBC_0000_1FFF & 0x0F) != 0x0A){
-        NOT_MAPPED[0] = 0xFF;
-        NOT_MAPPED[1] = 0xFF;
-        return NOT_MAPPED;
+        NOT_MAPPED = 0xFF;
+        return &NOT_MAPPED;
     }
 
     uint16_t ram_addr = addr & (1 << 9) - 1;
@@ -97,9 +95,8 @@ uint8_t* mbc3_4000_7FFF(uint16_t addr){
 
 uint8_t* mbc3_ram(uint16_t addr){
     if((MBC_0000_1FFF & 0x0F) != 0x0A){
-        NOT_MAPPED[0] = 0xFF;
-        NOT_MAPPED[1] = 0xFF;
-        return NOT_MAPPED;
+        NOT_MAPPED = 0xFF;
+        return &NOT_MAPPED;
     }
 
     switch(MBC_4000_5FFF){
@@ -128,9 +125,8 @@ uint8_t* mbc5_4000_7FFF(uint16_t addr){
 
 uint8_t* mbc5_ram(uint16_t addr){
     if((MBC_0000_1FFF & 0x0F) != 0x0A){
-        NOT_MAPPED[0] = 0xFF;
-        NOT_MAPPED[1] = 0xFF;
-        return NOT_MAPPED;
+        NOT_MAPPED = 0xFF;
+        return &NOT_MAPPED;
     }
 
     addr &= (1 << 13) - 1;
@@ -148,7 +144,7 @@ uint8_t* mbc_standard_registers(uint16_t addr){
     else
         return &MBC_6000_7FFF;
 
-    return NOT_MAPPED;
+    return &NOT_MAPPED;
 }
 
 uint8_t* mbc2_registers(uint16_t addr){
@@ -158,7 +154,7 @@ uint8_t* mbc2_registers(uint16_t addr){
         else
             return &MBC_2000_3FFF;
 
-    return NOT_MAPPED;
+    return &NOT_MAPPED;
 }
 
 
@@ -174,7 +170,7 @@ uint8_t* mbc_advanced_registers(uint16_t addr){
     else
         return &MBC_6000_7FFF;
     
-    return NOT_MAPPED;
+    return &NOT_MAPPED;
 }
 
 void detectMBC(){
