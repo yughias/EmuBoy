@@ -13,16 +13,15 @@
 #define SERIAL_IRQ                0b00001000
 #define JOYPAD_IRQ                0b00010000
 
-typedef uint8_t* (*busFunc)(uint16_t);
+typedef uint8_t (*readFunc)(uint16_t);
+typedef void (*writeFunc)(uint16_t, uint8_t);
 typedef void (*tickFunc)(int);
-typedef enum { NONE, PUSH_1, PUSH_2, PC_JMP } INT_PHASE;
 
 typedef struct cpu_t {
     // interrupt vars
     bool     HALTED;
     bool     IME;
     bool     EI_DELAY;
-    INT_PHASE INTERRUPT_DISPATCH;
     uint8_t IE;
     uint8_t IF;
 
@@ -51,8 +50,8 @@ typedef struct cpu_t {
     bool C_FLAG;
 
     // busFunc
-    busFunc readMemory;
-    busFunc writeMemory;
+    readFunc readByte;
+    writeFunc writeByte;
 
     // tickFunc: used to update system and cpu cycles
     tickFunc tickSystem;

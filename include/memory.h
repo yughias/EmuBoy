@@ -55,7 +55,7 @@ void freeMemory();
 
 void setFilename(const char*);
 
-uint8_t* getReadAddress(uint16_t);
-uint8_t* getWriteAddress(uint16_t);
+uint8_t readByte(uint16_t);
+void writeByte(uint16_t, uint8_t);
 
 #endif

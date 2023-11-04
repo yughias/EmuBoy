@@ -1,6 +1,5 @@
 #include <cpu.h>
 #include <stdio.h>
-#include <memory.h>
 
 //cpu NEW INSTRUCTION
 static inline void STOP(cpu_t*);
@@ -82,42 +81,41 @@ static inline void RETI(cpu_t*);
 #define CLEAR_C 0b11101111
 
 #define pc_inc(x) *cpu->PC += x
-#define cyc_inc(x) cpu->cycles += x
-#define ld_r16_im(r)  pc_inc(2); *r = readShort(cpu, *cpu->PC - 2); cyc_inc(12)
-#define ld_ind_r(r1, r2) writeByte(cpu, *r1, *r2); cyc_inc(8)
-#define ld_r_ind(r1, r2) *r1 = readByte(cpu, *r2); cyc_inc(8)
-#define ld_ind_r_inc(r1, r2) writeByte(cpu, *r1, *r2); *r1 += 1; cyc_inc(8)
-#define ld_r_ind_inc(r1, r2) *r1 = readByte(cpu, *r2); *r2 += 1; cyc_inc(8)
-#define ld_ind_r_dec(r1, r2) writeByte(cpu, *r1, *r2); *r1 -= 1; cyc_inc(8)
-#define ld_r_ind_dec(r1, r2) *r1 = readByte(cpu, *r2); *r2 -= 1; cyc_inc(8)
-#define inc8(r) INC_8(cpu, r); cyc_inc(4)
-#define inc16(r) INC_16(cpu, r); cyc_inc(8)
-#define dec8(r) DEC_8(cpu, r); cyc_inc(4)
-#define dec16(r) DEC_16(cpu, r); cyc_inc(8)
-#define ld_rr(r1, r2) *r1 = *r2; cyc_inc(4)
-#define ld_r8_im(r) pc_inc(1); *r = readByte(cpu, *cpu->PC - 1); cyc_inc(8)
-#define add16(r1, r2) ADD_16(cpu, r1, r2); cyc_inc(8);
-#define jr(CC) pc_inc(1); JR ## CC (cpu, readByte(cpu, *cpu->PC - 1)); cyc_inc(8);
-#define inc8_ind(r) { uint8_t tmp = readByte(cpu, *r); INC_8(cpu, &tmp); writeByte(cpu, *r, tmp); } cyc_inc(12)
-#define dec8_ind(r) { uint8_t tmp = readByte(cpu, *r); DEC_8(cpu, &tmp); writeByte(cpu, *r, tmp); } cyc_inc(12)
-#define ld_ind_im(r) pc_inc(1); writeByte(cpu, *r, readByte(cpu, *cpu->PC - 1)); cyc_inc(12);
-#define alu_rr(fun, r1, r2) fun(cpu, r1, *r2); cyc_inc(4) 
-#define alu_hl(fun) fun(cpu, cpu->A, readByte(cpu, *cpu->HL)); cyc_inc(8)  
-#define alu_im(fun) pc_inc(1); fun(cpu, cpu->A, readByte(cpu, *cpu->PC - 1)); cyc_inc(8)  
-#define ret(CC) RET ## CC (cpu); cyc_inc(8)
-#define pop(r) POP(cpu, r); cyc_inc(12)
-#define push(r) PUSH(cpu, *r); cyc_inc(16);
-#define jp(CC) pc_inc(2); JP ## CC (cpu, readShort(cpu, *cpu->PC - 2)); cyc_inc(12)
-#define call(CC) pc_inc(2); CALL ## CC (cpu, readShort(cpu, *cpu->PC - 2)); cyc_inc(12)
-#define rst(idx) RST(cpu, idx); cyc_inc(16)
-#define ld_u16_A() pc_inc(2); writeByte(cpu, readShort(cpu, *cpu->PC - 2), *cpu->A); cyc_inc(16)
-#define ld_A_u16() pc_inc(2); *cpu->A = readByte(cpu, readShort(cpu, *cpu->PC - 2)); cyc_inc(16)
+#define ld_r16_im(r)  pc_inc(2); *r = readShortAndTick(cpu, *cpu->PC - 2); 
+#define ld_ind_r(r1, r2) writeByteAndTick(cpu, *r1, *r2); 
+#define ld_r_ind(r1, r2) *r1 = readByteAndTick(cpu, *r2); 
+#define ld_ind_r_inc(r1, r2) writeByteAndTick(cpu, *r1, *r2); *r1 += 1; 
+#define ld_r_ind_inc(r1, r2) *r1 = readByteAndTick(cpu, *r2); *r2 += 1; 
+#define ld_ind_r_dec(r1, r2) writeByteAndTick(cpu, *r1, *r2); *r1 -= 1; 
+#define ld_r_ind_dec(r1, r2) *r1 = readByteAndTick(cpu, *r2); *r2 -= 1; 
+#define inc8(r) INC_8(cpu, r); 
+#define inc16(r) cpu->tickSystem(4); INC_16(cpu, r); 
+#define dec8(r) DEC_8(cpu, r); 
+#define dec16(r) cpu->tickSystem(4); DEC_16(cpu, r); 
+#define ld_rr(r1, r2) *r1 = *r2; 
+#define ld_r8_im(r) pc_inc(1); *r = readByteAndTick(cpu, *cpu->PC - 1); 
+#define add16(r1, r2) cpu->tickSystem(4); ADD_16(cpu, r1, r2);
+#define jr(CC) pc_inc(1); JR ## CC (cpu, readByteAndTick(cpu, *cpu->PC - 1));
+#define inc8_ind(r) { uint8_t tmp = readByteAndTick(cpu, *r); INC_8(cpu, &tmp); writeByteAndTick(cpu, *r, tmp); } 
+#define dec8_ind(r) { uint8_t tmp = readByteAndTick(cpu, *r); DEC_8(cpu, &tmp); writeByteAndTick(cpu, *r, tmp); } 
+#define ld_ind_im(r) pc_inc(1); writeByteAndTick(cpu, *r, readByteAndTick(cpu, *cpu->PC - 1));
+#define alu_rr(fun, r1, r2) fun(cpu, r1, *r2);  
+#define alu_hl(fun) fun(cpu, cpu->A, readByteAndTick(cpu, *cpu->HL));   
+#define alu_im(fun) pc_inc(1); fun(cpu, cpu->A, readByteAndTick(cpu, *cpu->PC - 1));   
+#define ret(CC) cpu->tickSystem(4); RET ## CC (cpu); 
+#define pop(r) POP(cpu, r); 
+#define push(r) cpu->tickSystem(4); PUSH(cpu, *r);
+#define jp(CC) pc_inc(2); JP ## CC (cpu, readShortAndTick(cpu, *cpu->PC - 2)); 
+#define call(CC) pc_inc(2); CALL ## CC (cpu, readShortAndTick(cpu, *cpu->PC - 2)); 
+#define rst(idx) cpu->tickSystem(4); RST(cpu, idx); 
+#define ld_u16_A() pc_inc(2); writeByteAndTick(cpu, readShortAndTick(cpu, *cpu->PC - 2), *cpu->A); 
+#define ld_A_u16() pc_inc(2); *cpu->A = readByteAndTick(cpu, readShortAndTick(cpu, *cpu->PC - 2)); 
 
-#define cb_no_bit(op, r) op (cpu, r); cyc_inc(8)
-#define cb_no_bit_hl(op) { uint8_t tmp = readByte(cpu, *cpu->HL); op (cpu, &tmp); writeByte(cpu, *cpu->HL, tmp); } cyc_inc(16)
-#define cb_bit(op, bit, r) op (cpu, bit, r); cyc_inc(8)
-#define cb_bit_hl(op, bit) { uint8_t tmp = readByte(cpu, *cpu->HL); op (cpu, bit, &tmp); writeByte(cpu, *cpu->HL, tmp); } cyc_inc(16)
-#define cb_bit_hl_fast(op, bit) { uint8_t tmp = readByte(cpu, *cpu->HL); op (cpu, bit, &tmp); writeByte(cpu, *cpu->HL, tmp); } cyc_inc(12)
+#define cb_no_bit(op, r) op (cpu, r); 
+#define cb_no_bit_hl(op) { uint8_t tmp = readByteAndTick(cpu, *cpu->HL); op (cpu, &tmp); writeByteAndTick(cpu, *cpu->HL, tmp); } 
+#define cb_bit(op, bit, r) op (cpu, bit, r); 
+#define cb_bit_hl(op, bit) { uint8_t tmp = readByteAndTick(cpu, *cpu->HL); op (cpu, bit, &tmp); writeByteAndTick(cpu, *cpu->HL, tmp); } 
+#define cb_bit_hl_fast(op, bit) { uint8_t tmp = readByteAndTick(cpu, *cpu->HL); op (cpu, bit, &tmp); } 
 
 
 // cpu utility function
@@ -126,10 +124,10 @@ static inline void composeFlagReg(cpu_t*);
 static inline void splitFlagReg(cpu_t*);
 static inline void prefix_CB(cpu_t*, uint8_t opcode);
 
-static inline uint8_t readByte(cpu_t*, uint16_t);
-static inline uint16_t readShort(cpu_t*, uint16_t);
-static inline void writeByte(cpu_t*, uint16_t, uint8_t);
-static inline void writeShort(cpu_t*, uint16_t, uint16_t);
+uint8_t readByteAndTick(cpu_t*, uint16_t);
+uint16_t readShortAndTick(cpu_t*, uint16_t);
+void writeByteAndTick(cpu_t*, uint16_t, uint8_t);
+void writeShortAndTick(cpu_t*, uint16_t, uint16_t);
 
 void initCPU(cpu_t* cpu){
     cpu->cycles = 0;
@@ -161,7 +159,6 @@ void initCPU(cpu_t* cpu){
     cpu->HALTED = false;
     cpu->IME = false;
     cpu->EI_DELAY = false;
-    cpu->INTERRUPT_DISPATCH = NONE;
     cpu->IE = 0x00;
     cpu->IF = 0x00;
 }
@@ -175,60 +172,44 @@ void infoCPU(cpu_t* cpu){
             cpu->cycles, *cpu->A, *cpu->F, *cpu->B, *cpu->C, *cpu->D, *cpu->E, *cpu->H, *cpu->L);
 
     fprintf(stderr, "SP: %04X PC: 00:%04X (%02X %02X %02X %02X)\n",
-            *cpu->SP, *cpu->PC, *cpu->readMemory(*cpu->PC), *cpu->readMemory(*cpu->PC+1), *cpu->readMemory(*cpu->PC+2), *cpu->readMemory(*cpu->PC+3));
+            *cpu->SP, *cpu->PC, cpu->readByte(*cpu->PC), cpu->readByte(*cpu->PC+1), cpu->readByte(*cpu->PC+2), cpu->readByte(*cpu->PC+3));
 
     *cpu->F = old_F;
 }
 
 static inline void dispatchInterrupt(cpu_t* cpu){
-    static uint8_t ie_val;
-    static uint8_t if_val;
-    cpu->cycles += 4;
-    switch(cpu->INTERRUPT_DISPATCH){
-        case PUSH_1:
-        *cpu->SP -= 1;
-        *cpu->writeMemory(*cpu->SP) = *cpu->PC >> 8;
-        cpu->INTERRUPT_DISPATCH = PUSH_2;
-        return;
+    cpu->tickSystem(8);
 
-        case PUSH_2:
-        ie_val = cpu->IE;
-        if_val = cpu->IF;
-        *cpu->SP -= 1;
-        *cpu->writeMemory(*cpu->SP) = *cpu->PC & 0xFF;
-        cpu->INTERRUPT_DISPATCH = PC_JMP;
-        return;
+    *cpu->SP -= 1;
+    writeByteAndTick(cpu, *cpu->SP, *cpu->PC >> 8);
+    
+    cpu->tickSystem(4);
 
-        case PC_JMP:
-        uint8_t mask = ie_val & if_val;
-        uint16_t jmp_addr = 0;
-        for(int i = 0; i < 5; i++){
-            bool bit = mask & 1;
-            mask >>= 1;
-            if(bit){
-                cpu->IF &= ~(uint8_t)(1 << i);
-                jmp_addr = 0x40 + 0x08*i;
-                break;
-            }
+    uint8_t mask = cpu->IE & cpu->IF;
+
+    *cpu->SP -= 1;
+    cpu->writeByte(*cpu->SP, *cpu->PC & 0xFF); 
+    
+    uint16_t jmp_addr = 0;
+    for(int i = 0; i < 5; i++){
+        bool bit = mask & 1;
+        mask >>= 1;
+        if(bit){
+            cpu->IF &= ~(uint8_t)(1 << i);
+            jmp_addr = 0x40 + 0x08*i;
+            break;
         }
-        JP(cpu, jmp_addr);
-        cpu->INTERRUPT_DISPATCH = NONE;
-        return;
     }
+    JP(cpu, jmp_addr);
+    cpu->tickSystem(4);
 }
 
 void stepCPU(cpu_t* cpu){
-    if(cpu->INTERRUPT_DISPATCH != NONE){
-        dispatchInterrupt(cpu);
-        return;
-    }
-
     if(cpu->IE & cpu->IF){
         cpu->HALTED = false;
         if(cpu->IME & !cpu->EI_DELAY){
             cpu->IME = false;
-            cpu->INTERRUPT_DISPATCH = PUSH_1;
-            cpu->cycles += 8;
+            dispatchInterrupt(cpu);
             return;
         }
     }
@@ -237,11 +218,11 @@ void stepCPU(cpu_t* cpu){
         cpu->EI_DELAY = false;
 
     if(cpu->HALTED){
-        cpu->cycles += 1;
+        cpu->tickSystem(4);
         return;
     }
 
-    uint8_t opcode = readByte(cpu, *cpu->PC);
+    uint8_t opcode = readByteAndTick(cpu, *cpu->PC);
     pc_inc(1);
 
     static void* opcode_table[256] = {
@@ -266,39 +247,39 @@ void stepCPU(cpu_t* cpu){
     goto *opcode_table[opcode];
 
     {
-        op_00: cyc_inc(4); return;
+        op_00: return;
         op_01: ld_r16_im(cpu->BC); return;
         op_02: ld_ind_r(cpu->BC, cpu->A); return;
         op_03: inc16(cpu->BC); return;
         op_04: inc8(cpu->B); return;
         op_05: dec8(cpu->B); return;
         op_06: ld_r8_im(cpu->B); return;
-        op_07: RLCA(cpu); cyc_inc(4); return;
-        op_08: pc_inc(2); writeShort(cpu, readShort(cpu, *cpu->PC - 2), *cpu->SP); cyc_inc(20); return;
+        op_07: RLCA(cpu); return;
+        op_08: pc_inc(2); writeShortAndTick(cpu, readShortAndTick(cpu, *cpu->PC - 2), *cpu->SP); return;
         op_09: add16(cpu->HL, cpu->BC); return;
         op_0A: ld_r_ind(cpu->A, cpu->BC); return;
         op_0B: dec16(cpu->BC); return;
         op_0C: inc8(cpu->C); return;
         op_0D: dec8(cpu->C); return;
         op_0E: ld_r8_im(cpu->C); return;
-        op_0F: RRCA(cpu); cyc_inc(4); return;
+        op_0F: RRCA(cpu); return;
 
-        op_10: pc_inc(1); STOP(cpu); cyc_inc(4); return;
+        op_10: pc_inc(1); STOP(cpu); return;
         op_11: ld_r16_im(cpu->DE); return;
         op_12: ld_ind_r(cpu->DE, cpu->A); return;
         op_13: inc16(cpu->DE); return;
         op_14: inc8(cpu->D); return;
         op_15: dec8(cpu->D); return;
         op_16: ld_r8_im(cpu->D); return;
-        op_17: RLA(cpu); cyc_inc(4); return;
-        op_18: pc_inc(1); JR(cpu, readByte(cpu, *cpu->PC - 1)); cyc_inc(12); return;
+        op_17: RLA(cpu); return;
+        op_18: pc_inc(1); JR(cpu, readByteAndTick(cpu, *cpu->PC - 1)); return;
         op_19: add16(cpu->HL, cpu->DE); return;
         op_1A: ld_r_ind(cpu->A, cpu->DE); return;
         op_1B: dec16(cpu->DE); return;
         op_1C: inc8(cpu->E); return;
         op_1D: dec8(cpu->E); return;
         op_1E: ld_r8_im(cpu->E); return;
-        op_1F: RRA(cpu); cyc_inc(4); return;
+        op_1F: RRA(cpu); return;
 
         op_20: jr(NZ); return;
         op_21: ld_r16_im(cpu->HL); return;
@@ -307,7 +288,7 @@ void stepCPU(cpu_t* cpu){
         op_24: inc8(cpu->H); return;
         op_25: dec8(cpu->H); return;
         op_26: ld_r8_im(cpu->H); return;
-        op_27: DAA(cpu); cyc_inc(4); return;
+        op_27: DAA(cpu); return;
         op_28: jr(Z); return;
         op_29: add16(cpu->HL, cpu->HL); return;
         op_2A: ld_r_ind_inc(cpu->A, cpu->HL); return;
@@ -315,7 +296,7 @@ void stepCPU(cpu_t* cpu){
         op_2C: inc8(cpu->L); return;
         op_2D: dec8(cpu->L); return;
         op_2E: ld_r8_im(cpu->L); return;
-        op_2F: CPL(cpu); cyc_inc(4); return;
+        op_2F: CPL(cpu); return;
 
         op_30: jr(NC); return;
         op_31: ld_r16_im(cpu->SP); return;
@@ -324,7 +305,7 @@ void stepCPU(cpu_t* cpu){
         op_34: inc8_ind(cpu->HL); return;
         op_35: dec8_ind(cpu->HL); return;
         op_36: ld_ind_im(cpu->HL); return;
-        op_37: SCF(cpu); cyc_inc(4); return;
+        op_37: SCF(cpu); return;
         op_38: jr(C); return;
         op_39: add16(cpu->HL, cpu->SP); return;
         op_3A: ld_r_ind_dec(cpu->A, cpu->HL); return;
@@ -332,7 +313,7 @@ void stepCPU(cpu_t* cpu){
         op_3C: inc8(cpu->A); return;
         op_3D: dec8(cpu->A); return;
         op_3E: ld_r8_im(cpu->A); return;
-        op_3F: CCF(cpu); cyc_inc(4); return;
+        op_3F: CCF(cpu); return;
 
         op_40: ld_rr(cpu->B, cpu->B); return;
         op_41: ld_rr(cpu->B, cpu->C); return;
@@ -391,7 +372,7 @@ void stepCPU(cpu_t* cpu){
         op_73: ld_ind_r(cpu->HL, cpu->E); return;
         op_74: ld_ind_r(cpu->HL, cpu->H); return;
         op_75: ld_ind_r(cpu->HL, cpu->L); return;
-        op_76: HLT(cpu); cyc_inc(4); return;
+        op_76: HLT(cpu); return;
         op_77: ld_ind_r(cpu->HL, cpu->A); return;
         op_78: ld_rr(cpu->A, cpu->B); return;
         op_79: ld_rr(cpu->A, cpu->C); return;
@@ -473,17 +454,17 @@ void stepCPU(cpu_t* cpu){
         op_C0: ret(NZ); return;
         op_C1: pop(cpu->BC); return;
         op_C2: jp(NZ); return;
-        op_C3: pc_inc(1); JP(cpu, readShort(cpu, *cpu->PC - 1)); cyc_inc(16); return;
+        op_C3: pc_inc(1); JP(cpu, readShortAndTick(cpu, *cpu->PC - 1)); cpu->tickSystem(4); return;
         op_C4: call(NZ); return;
         op_C5: push(cpu->BC); return;
         op_C6: alu_im(ADD); return;
         op_C7: rst(0x00); return;
         op_C8: ret(Z); return;
-        op_C9: RET(cpu); cyc_inc(16); return;
+        op_C9: RET(cpu); return;
         op_CA: jp(Z); return;
-        op_CB: pc_inc(1); prefix_CB(cpu, readByte(cpu, *cpu->PC - 1)); return;
+        op_CB: pc_inc(1); prefix_CB(cpu, readByteAndTick(cpu, *cpu->PC - 1)); return;
         op_CC: call(Z); return;
-        op_CD: pc_inc(2); CALL(cpu, readShort(cpu, *cpu->PC - 2)); cyc_inc(24); return;
+        op_CD: pc_inc(2); cpu->tickSystem(4); CALL(cpu, readShortAndTick(cpu, *cpu->PC - 2)); return;
         op_CE: alu_im(ADC); return;
         op_CF: rst(0x08); return;
 
@@ -496,7 +477,7 @@ void stepCPU(cpu_t* cpu){
         op_D6: alu_im(SUB); return;
         op_D7: rst(0x10); return;
         op_D8: ret(C); return;
-        op_D9: RETI(cpu); cyc_inc(16); return;
+        op_D9: RETI(cpu); return;
         op_DA: jp(C); return;
         op_DB: printf("empty opcode\n"); return;
         op_DC: call(C); return;
@@ -504,16 +485,16 @@ void stepCPU(cpu_t* cpu){
         op_DE: alu_im(SBC); return;
         op_DF: rst(0x18); return;
 
-        op_E0: pc_inc(1); LDH1(cpu, readByte(cpu, *cpu->PC - 1)); cyc_inc(12); return;
+        op_E0: pc_inc(1); LDH1(cpu, readByteAndTick(cpu, *cpu->PC - 1)); return;
         op_E1: pop(cpu->HL); return;
-        op_E2: LDH1(cpu, *cpu->C); cyc_inc(8); return;
+        op_E2: LDH1(cpu, *cpu->C); return;
         op_E3: printf("empty opcode!\n"); return;
         op_E4: printf("empty opcode!\n"); return;
         op_E5: push(cpu->HL); return;
         op_E6: alu_im(AND); return;
         op_E7: rst(0x20); return;
-        op_E8: pc_inc(1); ADD_SP(cpu, readByte(cpu, *cpu->PC - 1)); cyc_inc(16); return;
-        op_E9: JP(cpu, *cpu->HL); cyc_inc(4); return;
+        op_E8: pc_inc(1); ADD_SP(cpu, readByteAndTick(cpu, *cpu->PC - 1)); cpu->tickSystem(4); cpu->tickSystem(4); return;
+        op_E9: JP(cpu, *cpu->HL); return;
         op_EA: ld_u16_A(); return;
         op_EB: printf("empty opcode\n"); return;
         op_EC: printf("empty opcode!\n"); return;
@@ -521,18 +502,18 @@ void stepCPU(cpu_t* cpu){
         op_EE: alu_im(XOR); return;
         op_EF: rst(0x28); return;
 
-        op_F0: pc_inc(1); LDH2(cpu, readByte(cpu, *cpu->PC - 1)); cyc_inc(12); return;
+        op_F0: pc_inc(1); LDH2(cpu, readByteAndTick(cpu, *cpu->PC - 1)); return;
         op_F1: pop(cpu->AF); splitFlagReg(cpu); return;
-        op_F2: LDH2(cpu, *cpu->C); cyc_inc(8); return;
-        op_F3: DI(cpu); cyc_inc(4); return;
+        op_F2: LDH2(cpu, *cpu->C); return;
+        op_F3: DI(cpu); return;
         op_F4: printf("empty opcode!\n"); return;
         op_F5: composeFlagReg(cpu); push(cpu->AF); return;
         op_F6: alu_im(OR); return;
         op_F7: rst(0x30); return;
-        op_F8: pc_inc(1); LD_SP(cpu, readByte(cpu, *cpu->PC - 1)); cyc_inc(12); return;
-        op_F9: *cpu->SP = *cpu->HL; cyc_inc(8); return;
+        op_F8: pc_inc(1); LD_SP(cpu, readByteAndTick(cpu, *cpu->PC - 1)); cpu->tickSystem(4); return;
+        op_F9: cpu->tickSystem(4); *cpu->SP = *cpu->HL; return;
         op_FA: ld_A_u16(); return;
-        op_FB: EI(cpu); cpu->EI_DELAY = true; cyc_inc(4); return;
+        op_FB: EI(cpu); cpu->EI_DELAY = true; return;
         op_FC: printf("empty opcode!\n"); return;
         op_FD: printf("empty opcode!\n"); return;
         op_FE: alu_im(CP); return;
@@ -840,38 +821,35 @@ static inline void prefix_CB(cpu_t* cpu, uint8_t opcode){
 // Z80 INSTRUCTIONS
 
 static inline void STOP(cpu_t* cpu){
-    printf("entered stop opcode\n");     
+    printf("entered stop opcode\n");    
 }
 
 static inline void JR(cpu_t* cpu, int8_t d){
     *cpu->PC += d;
+    cpu->tickSystem(4);
 }
 
 static inline void JRNZ(cpu_t* cpu, int8_t d){
     if(!cpu->Z_FLAG){
         JR(cpu, d);
-        cpu->cycles += 4;
     }
 }
 
 static inline void JRZ(cpu_t* cpu, int8_t d){
     if(cpu->Z_FLAG){
         JR(cpu, d);
-        cpu->cycles += 4;
     }
 }
 
 static inline void JRNC(cpu_t* cpu, int8_t d){
     if(!cpu->C_FLAG){
         JR(cpu, d);
-        cpu->cycles += 4;
     }
 }
 
 static inline void JRC(cpu_t* cpu, int8_t d){
     if(cpu->C_FLAG){
         JR(cpu, d);
-        cpu->cycles += 4;
     }
 }
 
@@ -955,38 +933,38 @@ static inline void HLT(cpu_t* cpu){
 
 static inline void RETNZ(cpu_t* cpu){
     if(!cpu->Z_FLAG){
+        cpu->tickSystem(4);
         POP(cpu, cpu->PC);
-        cpu->cycles += 12;
     }
 }
 
 static inline void RETZ(cpu_t* cpu){
     if(cpu->Z_FLAG){
+        cpu->tickSystem(4);
         POP(cpu, cpu->PC);
-        cpu->cycles += 12;
     }
 }
 
 static inline void RETNC(cpu_t* cpu){
     if(!cpu->C_FLAG){
+        cpu->tickSystem(4);
         POP(cpu, cpu->PC);
-        cpu->cycles += 12;
     }
 }
 
 static inline void RETC(cpu_t* cpu){
     if(cpu->C_FLAG){
+        cpu->tickSystem(4);
         POP(cpu, cpu->PC);
-        cpu->cycles += 12;
     }
 }
 
 static inline void LDH1(cpu_t* cpu, uint8_t n){
-    writeByte(cpu, 0xFF00 + n, *cpu->A);
+    writeByteAndTick(cpu, 0xFF00 + n, *cpu->A);
 }
 
 static inline void LDH2(cpu_t* cpu, uint8_t n){
-    *cpu->A = readByte(cpu, 0xFF00 + n);
+    *cpu->A = readByteAndTick(cpu, 0xFF00 + n);
 }
 
 
@@ -1008,12 +986,13 @@ static inline void LD_SP(cpu_t* cpu, int8_t n){
 }
 
 static inline void POP(cpu_t* cpu, uint16_t* reg){
-    *reg = readShort(cpu, *cpu->SP);
+    *reg = readShortAndTick(cpu, *cpu->SP);
     *cpu->SP = *cpu->SP + 2; 
 }
 
 static inline void RET(cpu_t* cpu){
     POP(cpu, cpu->PC);
+    cpu->tickSystem(4);
 }
 
 static inline void JP(cpu_t* cpu, uint16_t val){
@@ -1023,28 +1002,28 @@ static inline void JP(cpu_t* cpu, uint16_t val){
 static inline void JPNZ(cpu_t* cpu, uint16_t val){
     if(!cpu->Z_FLAG){
         JP(cpu, val);
-        cpu->cycles += 4;
+        cpu->tickSystem(4);
     }
 }
 
 static inline void JPZ(cpu_t* cpu, uint16_t val){
     if(cpu->Z_FLAG){
         JP(cpu, val);
-        cpu->cycles += 4;
+        cpu->tickSystem(4);
     }
 }
 
 static inline void JPNC(cpu_t* cpu, uint16_t val){
     if(!cpu->C_FLAG){
         JP(cpu, val);
-        cpu->cycles += 4;
+        cpu->tickSystem(4);
     }
 }
 
 static inline void JPC(cpu_t* cpu, uint16_t val){
     if(cpu->C_FLAG){
         JP(cpu, val);
-        cpu->cycles += 4;
+        cpu->tickSystem(4);
     }
 }
 
@@ -1063,35 +1042,35 @@ static inline void CALL(cpu_t* cpu, uint16_t val){
 
 static inline void CALLNZ(cpu_t* cpu, uint16_t val){
     if(!cpu->Z_FLAG){
+        cpu->tickSystem(4);
         CALL(cpu, val);
-        cpu->cycles += 12;
     }
 }
 
 static inline void CALLZ(cpu_t* cpu, uint16_t val){
     if(cpu->Z_FLAG){
+        cpu->tickSystem(4);
         CALL(cpu, val);
-        cpu->cycles += 12;
     }
 }
 
 static inline void CALLNC(cpu_t* cpu, uint16_t val){
     if(!cpu->C_FLAG){
+        cpu->tickSystem(4);
         CALL(cpu, val);
-        cpu->cycles += 12;
     }
 }
 
 static inline void CALLC(cpu_t* cpu, uint16_t val){
     if(cpu->C_FLAG){
+        cpu->tickSystem(4);
         CALL(cpu, val);
-        cpu->cycles += 12;
     }
 }
 
 static inline void PUSH(cpu_t* cpu, uint16_t val){
-    writeByte(cpu, *cpu->SP - 1, val >> 8);
-    writeByte(cpu, *cpu->SP - 2, val & 0xFF);
+    writeByteAndTick(cpu, *cpu->SP - 1, val >> 8);
+    writeByteAndTick(cpu, *cpu->SP - 2, val & 0xFF);
     *cpu->SP = *cpu->SP - 2;
 }
 
@@ -1343,19 +1322,24 @@ static inline void splitFlagReg(cpu_t* cpu){
     cpu->C_FLAG = *cpu->F & SET_C;
 }
 
-uint8_t readByte(cpu_t* cpu, uint16_t addr){
-    return *cpu->readMemory(addr);
+uint8_t readByteAndTick(cpu_t* cpu, uint16_t addr){
+    cpu->tickSystem(3);
+    uint8_t byte = cpu->readByte(addr);
+    cpu->tickSystem(1);
+    return byte;
 }
 
-uint16_t readShort(cpu_t* cpu, uint16_t addr){
-    return (readByte(cpu, addr+1) << 8) | readByte(cpu, addr);
+uint16_t readShortAndTick(cpu_t* cpu, uint16_t addr){
+    return (readByteAndTick(cpu, addr+1) << 8) | readByteAndTick(cpu, addr);
 }
 
-static inline void writeByte(cpu_t* cpu, uint16_t addr, uint8_t byte){
-    *cpu->writeMemory(addr) = byte;
+void writeByteAndTick(cpu_t* cpu, uint16_t addr, uint8_t byte){
+    cpu->tickSystem(3);
+    cpu->writeByte(addr, byte);
+    cpu->tickSystem(1);
 }
 
-static inline void writeShort(cpu_t* cpu, uint16_t addr, uint16_t val){
-    *cpu->writeMemory(addr) = val & 0xff;
-    *cpu->writeMemory(addr+1) = val >> 8;
+void writeShortAndTick(cpu_t* cpu, uint16_t addr, uint16_t val){
+    writeByteAndTick(cpu, addr, val & 0xFF);
+    writeByteAndTick(cpu, addr+1, val >> 8);
 }

@@ -41,7 +41,7 @@ void emulateGameShark(){
     for(size_t i = 0; i < n_code; i++){
         switch(codes[i].type){
             case 0x01:
-            *cpu.writeMemory(codes[i].addr) = codes[i].byte;
+            cpu.writeByte(codes[i].addr, codes[i].byte);
             break;
         }
     }

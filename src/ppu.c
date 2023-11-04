@@ -84,14 +84,14 @@ void drawWinRamAt(int screenX, int screenY){
 }
 
 uint8_t* getTileMap(bool addressMode){
-    return addressMode ? cpu.readMemory(0x9C00) : cpu.readMemory(0x9800);
+    return addressMode ? VRAM + 0x1C00 : VRAM + 0x1800;
 }
 
 uint8_t* getTileData(uint8_t tileIdx){
     if(LCDC_REG & BG_WIN_TILE_DATA_AREA_MASK){
-        return cpu.readMemory(0x8000) + (tileIdx*16);
+        return VRAM + (tileIdx*16);
     } else {
-        return cpu.readMemory(0x9000) + ((int8_t)tileIdx)*16;
+        return VRAM + 0x1000 + ((int8_t)tileIdx)*16;
     }
 }
 
@@ -200,7 +200,7 @@ void renderLine(uint8_t y){
                 uint8_t tileIdx = spriteData[2];
                 if(bigSprite)
                     tileIdx &= 0b11111110;
-                uint8_t* tilePtr = cpu.readMemory(0x8000 + tileIdx*16);
+                uint8_t* tilePtr = VRAM + tileIdx*16;
 
                 col = getSpritePixelRGB(tilePtr, spriteX, spriteY, palette, flipX, flipY, bigSprite);
                 if(col != -1)
@@ -243,7 +243,7 @@ void drawOAMAt(int screenX, int screenY, uint8_t spriteIdx){
     bool flipY = spriteData[3] & 0b1000000;
     uint8_t palette = spriteData[3] & 0b10000 ? OBP1_REG : OBP0_REG; 
     uint8_t tileIdx = spriteData[2];
-    uint8_t* tilePtr = cpu.readMemory(0x8000 + tileIdx*16);
+    uint8_t* tilePtr = VRAM + tileIdx*16;
     uint8_t height = bigSprite ? 16 : 8;
     for(uint8_t y = 0; y < height; y++)
         for(uint8_t x = 0; x < 8; x++)
