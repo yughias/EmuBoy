@@ -260,11 +260,13 @@ int getSpriteRealY(uint8_t spriteIdx){
     return y - 16;
 }
 
-void composeStatRegister(){
-    TEMP_REG = STAT_REG & 0b11111000;
-    TEMP_REG |= ppu_mode;
-    TEMP_REG |= lyc_compare << 2;
-    TEMP_REG |= 0b10000000;
+uint8_t getStatRegister(){
+    uint8_t output_val;
+    output_val = STAT_REG & 0b11111000;
+    output_val |= ppu_mode;
+    output_val |= lyc_compare << 2;
+    output_val |= 0b10000000;
+    return output_val;
 }
 
 void updatePPU(){

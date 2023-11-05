@@ -28,7 +28,6 @@ extern uint8_t SB_REG;
 extern uint8_t SC_REG;
 
 extern uint8_t NOT_MAPPED;
-extern uint8_t TEMP_REG;
 
 extern uint8_t BOOTROM[BOOTROM_SIZE];
 extern uint8_t* ROM;

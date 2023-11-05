@@ -16,7 +16,7 @@
 
 extern uint8_t JOYP_REG;
 
-void composeJoypadRegister();
+uint8_t getJoypadRegister();
 void emulateJoypad(const Uint8*);
 
 #endif

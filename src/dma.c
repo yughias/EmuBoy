@@ -1,7 +1,6 @@
 #include <hardware.h>
 
 uint8_t DMA_REG;
-bool writeToDMA;
 
 void startDMA(){
     uint16_t hi8 = DMA_REG << 8;

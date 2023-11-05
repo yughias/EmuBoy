@@ -9,7 +9,6 @@ uint8_t SB_REG;
 uint8_t SC_REG;
 
 uint8_t NOT_MAPPED;
-uint8_t TEMP_REG;
 
 #define READ_REG(name) if(address == name ## _ADDR) return name ## _REG
 #define READ_MEMORY(name) if(address >= name ## _START_ADDR && address < name ## _START_ADDR + name ## _SIZE) return name[address - name ## _START_ADDR]
@@ -41,7 +40,6 @@ void initMemory(){
     TAC_REG = 0xF8;
     JOYP_REG = 0xFF;
     ppu_mode = OAM_SCAN_MODE;
-    writeToDMA = false;
     lyc_compare = false;
     internal_ly = 0;
     stat_irq = false;
@@ -50,7 +48,6 @@ void initMemory(){
     gb_timer.old_state = false;
     gb_timer.delay = 0x00;
     gb_timer.ignore_write = false;
-    gb_timer.tma_overwritten = false;
 }
 
 void freeMemory(){
@@ -143,15 +140,11 @@ uint8_t readByte(uint16_t address){
         return SB_REG;
     }
 
-    if(address == STAT_ADDR){
-        composeStatRegister();
-        return TEMP_REG;
-    }
+    if(address == STAT_ADDR)
+        return getStatRegister();
 
-    if(address == JOYP_ADDR){
-        composeJoypadRegister();
-        return TEMP_REG;
-    }
+    if(address == JOYP_ADDR)
+        return getJoypadRegister();
 
     READ_MEMORY(HRAM);
 
@@ -187,7 +180,7 @@ void writeByte(uint16_t address, uint8_t byte){
         if(!stat_irq && ppu_mode != OAM_SCAN_MODE)
             cpu.IF |= STAT_IRQ;
         stat_irq = true;
-        STAT_REG = byte;
+        STAT_REG = byte & 0b01111000;
         return;
     }
 
@@ -206,17 +199,16 @@ void writeByte(uint16_t address, uint8_t byte){
     }
     
     if(address == TIMA_ADDR){
+        if(!gb_timer.ignore_write)
+            TIMA_REG = byte;
         gb_timer.delay = 0;
-        if(gb_timer.ignore_write)
-            return;
-        TIMA_REG = byte;
         return;
     }
 
     if(address == TMA_ADDR){
-        if(gb_timer.ignore_write)
-            gb_timer.tma_overwritten = true;
         TMA_REG = byte;
+        if(gb_timer.ignore_write)
+            TIMA_REG = TMA_REG;
         return;
     }
 
@@ -284,8 +276,8 @@ void writeByte(uint16_t address, uint8_t byte){
     }
 
     if(address == DMA_ADDR){
-        writeToDMA = true;
         DMA_REG = byte;
+        startDMA();
         return;
     }
 

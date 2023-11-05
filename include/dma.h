@@ -6,7 +6,6 @@
 #define DMA_ADDR 0xFF46
 
 extern uint8_t DMA_REG;
-extern bool writeToDMA;
 
 void startDMA();
 

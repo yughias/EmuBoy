@@ -178,18 +178,19 @@ void infoCPU(cpu_t* cpu){
 }
 
 static inline void dispatchInterrupt(cpu_t* cpu){
-    cpu->tickSystem(8);
+    *cpu->PC -= 1;
+    cpu->tickSystem(4);
 
     *cpu->SP -= 1;
     writeByteAndTick(cpu, *cpu->SP, *cpu->PC >> 8);
-    
-    cpu->tickSystem(4);
 
-    uint8_t mask = cpu->IE & cpu->IF;
+    uint8_t ie_flag = cpu->IE;
 
     *cpu->SP -= 1;
-    cpu->writeByte(*cpu->SP, *cpu->PC & 0xFF); 
+    writeByteAndTick(cpu, *cpu->SP, *cpu->PC & 0xFF);
     
+    cpu->tickSystem(4);
+    uint8_t mask = ie_flag & cpu->IF;
     uint16_t jmp_addr = 0;
     for(int i = 0; i < 5; i++){
         bool bit = mask & 1;
@@ -201,10 +202,12 @@ static inline void dispatchInterrupt(cpu_t* cpu){
         }
     }
     JP(cpu, jmp_addr);
-    cpu->tickSystem(4);
 }
 
 void stepCPU(cpu_t* cpu){
+    uint8_t opcode = readByteAndTick(cpu, *cpu->PC);
+    pc_inc(1);
+
     if(cpu->IE & cpu->IF){
         cpu->HALTED = false;
         if(cpu->IME & !cpu->EI_DELAY){
@@ -218,12 +221,9 @@ void stepCPU(cpu_t* cpu){
         cpu->EI_DELAY = false;
 
     if(cpu->HALTED){
-        cpu->tickSystem(4);
+        *cpu->PC -= 1;
         return;
     }
-
-    uint8_t opcode = readByteAndTick(cpu, *cpu->PC);
-    pc_inc(1);
 
     static void* opcode_table[256] = {
         &&op_00, &&op_01, &&op_02, &&op_03, &&op_04, &&op_05, &&op_06, &&op_07, &&op_08, &&op_09, &&op_0A, &&op_0B, &&op_0C, &&op_0D, &&op_0E, &&op_0F,

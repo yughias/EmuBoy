@@ -14,7 +14,6 @@ typedef struct {
     };
     bool old_state;
     bool ignore_write;
-    bool tma_overwritten;
     uint8_t delay;
 } gb_timer_t;
 

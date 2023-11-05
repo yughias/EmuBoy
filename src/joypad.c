@@ -37,21 +37,25 @@ void emulateJoypad(const Uint8* keystate){
     ACTION_BTN = new_action_btn;
 }
 
-void composeJoypadRegister(){
+uint8_t getJoypadRegister(){
+    uint8_t output_val;
+
     uint8_t chosen = JOYP_REG >> 4;
 
-    TEMP_REG = JOYP_REG & 0b110000;
-    TEMP_REG |= 0b11000000;
+    output_val = JOYP_REG & 0b110000;
+    output_val |= 0b11000000;
 
     if(chosen == 0b10){
-        TEMP_REG |= ARROW_BTN;
+        output_val |= ARROW_BTN;
     }
     
     if(chosen == 0b01){
-        TEMP_REG |= ACTION_BTN;
+        output_val |= ACTION_BTN;
     }
 
     if(chosen == 0b11){
-        TEMP_REG = 0xFF;
+        output_val = 0xFF;
     }
+
+    return output_val;
 }

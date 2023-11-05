@@ -70,7 +70,7 @@ int getWindowPixelRGB(uint8_t, uint8_t);
 void renderLine(uint8_t);
 
 void updatePPU();
-void composeStatRegister();
+uint8_t getStatRegister();
 
 extern int vblank_counter;
 
