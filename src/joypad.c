@@ -1,11 +1,18 @@
-#include <hardware.h>
+#include <SDL2/SDL.h>
+#include "joypad.h"
 
 uint8_t JOYP_REG;
 
 uint8_t ARROW_BTN;
 uint8_t ACTION_BTN;
 
-void emulateJoypad(const Uint8* keystate){
+const Uint8* keystate;
+
+void initJoypad(){
+    keystate = SDL_GetKeyboardState(NULL);
+}
+
+void emulateJoypad(){
     uint8_t new_arrow_btn = 0x0F;
     uint8_t new_action_btn = 0x0F;
 
@@ -39,6 +46,8 @@ void emulateJoypad(const Uint8* keystate){
 
 uint8_t getJoypadRegister(){
     uint8_t output_val;
+
+    emulateJoypad();
 
     uint8_t chosen = JOYP_REG >> 4;
 

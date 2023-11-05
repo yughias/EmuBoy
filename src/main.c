@@ -45,6 +45,7 @@ void setup(){
     initMemory();
     initAudio();
     initSerial();
+    initJoypad();
 
     char bootromName[FILENAME_MAX];
     getAbsoluteDir(bootromName);
@@ -92,10 +93,8 @@ void loop(){
 
     if(frameCount == 1)
         initPaletteRGB();
-    
-    const Uint8* keystate = SDL_GetKeyboardState(NULL);
-    emulateJoypad(keystate);
 
+    const Uint8* keystate = SDL_GetKeyboardState(NULL);
     int speed = keystate[SDL_SCANCODE_TAB] ? 8 : 1;
     for(int i = 0; i < speed; i++)
         emulateHardware(&cpu);
