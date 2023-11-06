@@ -6,8 +6,6 @@
 #include <stdbool.h>
 
 #define BOOTROM_DISABLE_ADDR 0xFF50
-#define SB_ADDR 0xFF01
-#define SC_ADDR  0xFF02
 
 #define BOOTROM_SIZE 0x100
 #define VRAM_SIZE 0x2000
@@ -24,8 +22,6 @@
 #define HRAM_START_ADDR 0xFF80
 
 extern uint8_t BOOTROM_DISABLE_REG;
-extern uint8_t SB_REG;
-extern uint8_t SC_REG;
 
 extern uint8_t NOT_MAPPED;
 

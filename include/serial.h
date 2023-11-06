@@ -3,6 +3,12 @@
 
 #include <stdbool.h>
 
+#define SB_ADDR 0xFF01
+#define SC_ADDR  0xFF02
+
+extern uint8_t SB_REG;
+extern uint8_t SC_REG;
+
 void initSerial();
 void updateSerial();
 void freeSerial();

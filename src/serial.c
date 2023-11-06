@@ -7,6 +7,9 @@
 #include <stdint.h>
 #include <string.h>
 
+uint8_t SB_REG;
+uint8_t SC_REG;
+
 P2P_connection p2p;
 
 size_t serial_counter = 0;

@@ -5,8 +5,6 @@
 #include <string.h>
 
 uint8_t BOOTROM_DISABLE_REG;
-uint8_t SB_REG;
-uint8_t SC_REG;
 
 uint8_t NOT_MAPPED;
 
