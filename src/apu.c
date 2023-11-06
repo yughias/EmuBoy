@@ -72,7 +72,7 @@ size_t length_timer_counter;
 bool ch1_check_timer;
 bool ch1_on;
 uint16_t ch1_period_val;
-uint8_t ch1_length_timer;
+uint16_t ch1_length_timer;
 uint8_t ch1_volume;
 bool ch1_envelope_dir;
 uint8_t ch1_envelope_pace;
@@ -90,7 +90,7 @@ int8_t ch1_sample;
 bool ch2_check_timer;
 bool ch2_on;
 uint16_t ch2_period_val;
-uint8_t ch2_length_timer;
+uint16_t ch2_length_timer;
 uint8_t ch2_volume;
 bool ch2_envelope_dir;
 uint8_t ch2_envelope_pace;
@@ -104,7 +104,7 @@ int8_t ch2_sample;
 bool ch3_check_timer;
 bool ch3_on;
 uint16_t ch3_period_val;
-uint8_t ch3_length_timer;
+uint16_t ch3_length_timer;
 int8_t ch3_sample;
 size_t ch3_wave_idx;
 
@@ -113,7 +113,7 @@ bool ch4_check_timer;
 bool ch4_on;
 uint16_t ch4_lfsr = 0xFFFF;
 size_t ch4_shift_counter;
-uint8_t ch4_length_timer;
+uint16_t ch4_length_timer;
 uint8_t ch4_volume;
 bool ch4_envelope_dir;
 uint8_t ch4_envelope_pace;
@@ -131,6 +131,9 @@ ch ## n ## _volume = getInitialVolume(NR ## n ## 2_REG); \
 ch ## n ## _envelope_dir = getEnvelopeDirection(NR ## n ## 2_REG); \
 ch ## n ## _envelope_pace = getEnvelopePace(NR ## n ## 2_REG); \
 ch ## n ## _envelope_counter = 65536 * ch ## n ## _envelope_pace; \
+if(!ch ## n ## _length_timer) \
+    ch ## n ## _length_timer = 64; \
+
 
 #define trigger_sweep() \
 ch1_sweep_pace = getSweepPace(NR10_REG); \
@@ -145,17 +148,15 @@ ch ## n ## _volume = getInitialVolume(NR ## n ## 2_REG); \
 ch ## n ## _envelope_dir = getEnvelopeDirection(NR ## n ## 2_REG); \
 ch ## n ## _envelope_pace = getEnvelopePace(NR ## n ## 2_REG); \
 ch ## n ## _envelope_counter = 65536 * ch ## n ## _envelope_pace; \
+if(!ch ## n ## _length_timer) \
+    ch ## n ## _length_timer = 64; \
 
 #define trigger_wave_ch(n) \
 ch ## n ## _period_val = getPeriodValue(NR ## n ## 3_REG, NR ## n ## 4_REG); \
 ch ## n ## _on = true; \
 ch ## n ## _wave_idx = 1; \
-
-#define timer_check_ch(n) \
-if(ch ## n ## _check_timer){ \
-    ch ## n ## _check_timer = false; \
-    ch ## n ## _length_timer = getLengthTimer(NR ## n ## 1_REG); \
-}
+if(!ch ## n ## _length_timer) \
+    ch ## n ## _length_timer = 256; \
 
 #define pulse_wave_ch(n) \
 if(ch ## n ## _on){ \
@@ -188,12 +189,18 @@ if(ch ## n ## _on){ \
     } \
 } \
 
+#define timer_check_ch(n, timer_speed, getLength) \
+if(ch ## n ## _check_timer){ \
+    ch ## n ## _check_timer = false; \
+    ch ## n ## _length_timer = timer_speed - getLength; \
+} \
+
 #define timer_update_ch(n) \
 if(NR ## n ## 4_REG & 0x40){ \
-    ch ## n ## _length_timer++; \
-    if(ch ## n ## _length_timer == 64){ \
+    if(ch ## n ## _length_timer) \
+        ch ## n ## _length_timer--; \
+    if(!ch ## n ## _length_timer){ \
         ch ## n ## _on = false; \
-        ch ## n ## _length_timer = 0; \
     } \
 } \
 
@@ -233,57 +240,17 @@ void emulateApu(){
     // APU DISABLED CHECK
 
     if(!(NR52_REG & 0x80)){
+        resetApuRegisters();
         ch1_on = false;
         ch2_on = false;
         ch4_on = false;
         return;
     }
 
-    // DAC DISABLED CHECK
-
-    if(!(NR12_REG >> 3)){
-        ch1_on = false;
-    }
-
-    if(!(NR22_REG) >> 3){
-        ch2_on = false;
-    }
-
-    if(!(NR30_REG & 0x80)){
-        ch3_on = false;
-    }
-
-    if(!(NR42_REG) >> 3){
-        ch4_on = false;
-    }
-
-    // TRIGGER CHECK
-
-    if(NR14_REG & 0x80){
-        NR14_REG &= 0x7F;
-        trigger_pulse_ch(1);
-        trigger_sweep();
-    }
-
-    if(NR24_REG & 0x80){
-        NR24_REG &= 0x7F;
-        trigger_pulse_ch(2);
-    }
-
-    if(NR34_REG & 0x80){
-        NR34_REG &= 0x7F;
-        trigger_wave_ch(3);
-    }
-
-    if(NR44_REG & 0x80){
-        NR44_REG &= 0x7F;
-        trigger_noise_ch(4);
-    }
-
-    timer_check_ch(1);
-    timer_check_ch(2);
-    timer_check_ch(3);
-    timer_check_ch(4);
+    timer_check_ch(1, 64, getLengthTimer(NR11_REG));
+    timer_check_ch(2, 64, getLengthTimer(NR21_REG));
+    timer_check_ch(3, 256, NR31_REG);
+    timer_check_ch(4, 64, getLengthTimer(NR41_REG));
 
     if(pulse_wave_counter % 2 == 0){
         ram_wave_ch(3);
@@ -462,4 +429,99 @@ void apuMixer(int16_t* samples){
 
     samples[0] *= 64;
     samples[1] *= 64;
+}
+
+uint8_t getNR52(){ 
+    return (NR52_REG & 0x80) | 0x70 | (ch4_on << 3) | (ch3_on << 2) | (ch2_on << 1) | (ch1_on); 
+}
+
+uint8_t getNR10(){ return NR10_REG | 0x80; }
+uint8_t getNR11(){ return NR11_REG | 0x3F; }
+uint8_t getNR14(){ return NR14_REG | 0xBF; }
+
+uint8_t getNR21(){ return NR21_REG | 0x3F; }
+uint8_t getNR24(){ return NR24_REG | 0xBF; }
+
+uint8_t getNR30(){ return NR30_REG | 0x7F; }
+uint8_t getNR32(){ return NR32_REG | 0x9F; }
+uint8_t getNR34(){ return NR34_REG | 0xBF; }
+
+uint8_t getNR44(){ return NR44_REG | 0xBF; } 
+
+void resetApuRegisters(){
+    NR52_REG = 0x00;
+    NR51_REG = 0x00;
+    NR50_REG = 0x00;
+    NR10_REG = 0x00;
+    NR11_REG = 0x00;
+    NR12_REG = 0x00;
+    NR13_REG = 0x00;
+    NR14_REG = 0x00;
+    NR21_REG = 0x00;
+    NR22_REG = 0x00;
+    NR23_REG = 0x00;
+    NR24_REG = 0x00;
+    NR30_REG = 0x00;
+    NR31_REG = 0x00;
+    NR32_REG = 0x00;
+    NR33_REG = 0x00;
+    NR34_REG = 0x00;
+    NR41_REG = 0x00;
+    NR42_REG = 0x00;
+    NR43_REG = 0x00;
+    NR44_REG = 0x00;   
+}
+
+void checkDAC1(){ if(!(NR12_REG >> 3)) ch1_on = false; }
+void checkDAC2(){ if(!(NR22_REG >> 3)) ch2_on = false; }
+void checkDAC3(){ if(!(NR30_REG & 0x80)) ch3_on = false; }
+void checkDAC4(){ if(!(NR42_REG >> 3)) ch4_on = false; }
+
+void triggerChannel1(){
+    if(!(NR52_REG & 0x80))
+        return;
+
+    if(NR14_REG & 0x80){
+        NR14_REG &= 0x7F;
+        if(NR12_REG >> 3){
+            trigger_pulse_ch(1);
+            trigger_sweep();
+        }
+    }
+}
+
+void triggerChannel2(){
+    if(!(NR52_REG & 0x80))
+        return;
+
+    if(NR24_REG & 0x80){
+        NR24_REG &= 0x7F;
+        if(NR22_REG >> 3){
+            trigger_pulse_ch(2);
+        }
+    }
+}
+
+void triggerChannel3(){
+    if(!(NR52_REG & 0x80))
+        return;
+    
+    if(NR34_REG & 0x80){
+        NR34_REG &= 0x7F;
+        if(NR30_REG & 0x80){
+            trigger_wave_ch(3);
+        }
+    }
+}
+
+void triggerChannel4(){
+    if(!(NR52_REG & 0x80))
+        return;
+
+    if(NR44_REG & 0x80){
+        NR44_REG &= 0x7F;
+        if(NR42_REG >> 3){
+            trigger_noise_ch(4);
+        }
+    }
 }

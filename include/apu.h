@@ -73,4 +73,26 @@ void freeAudio();
 void convertAudio();
 void emulateApu();
 
+uint8_t getNR52();
+uint8_t getNR10();
+uint8_t getNR11();
+uint8_t getNR14();
+uint8_t getNR21();
+uint8_t getNR24();
+uint8_t getNR30();
+uint8_t getNR32();
+uint8_t getNR34();
+uint8_t getNR44();
+void resetApuRegisters();
+
+void checkDAC1();
+void checkDAC2();
+void checkDAC3();
+void checkDAC4();
+
+void triggerChannel1();
+void triggerChannel2();
+void triggerChannel3();
+void triggerChannel4();
+
 #endif

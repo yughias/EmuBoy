@@ -454,7 +454,7 @@ void stepCPU(cpu_t* cpu){
         op_C0: ret(NZ); return;
         op_C1: pop(cpu->BC); return;
         op_C2: jp(NZ); return;
-        op_C3: pc_inc(1); JP(cpu, readShortAndTick(cpu, *cpu->PC - 1)); cpu->tickSystem(4); return;
+        op_C3: pc_inc(2); JP(cpu, readShortAndTick(cpu, *cpu->PC - 2)); cpu->tickSystem(4); return;
         op_C4: call(NZ); return;
         op_C5: push(cpu->BC); return;
         op_C6: alu_im(ADD); return;

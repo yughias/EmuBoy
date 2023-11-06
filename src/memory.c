@@ -112,27 +112,60 @@ uint8_t readByte(uint16_t address){
     READ_REG(WX);
     READ_REG(WY);
 
-    READ_REG(NR52);
+    if(address == NR52_ADDR)
+        return getNR52();
+
     READ_REG(NR51);
     READ_REG(NR50);
-    READ_REG(NR10);
-    READ_REG(NR11);
+    
+    if(address == NR10_ADDR)
+        return getNR10();
+
+    if(address == NR11_ADDR)
+        return getNR11();
+
     READ_REG(NR12);
-    READ_REG(NR13);
-    READ_REG(NR14);
-    READ_REG(NR21);
+    
+    if(address == NR13_ADDR)
+        return 0xFF;
+
+    if(address == NR14_ADDR)
+        return getNR14();
+
+    if(address == NR21_ADDR)
+        return getNR21();
+
     READ_REG(NR22);
-    READ_REG(NR23);
-    READ_REG(NR24);
-    READ_REG(NR30);
-    READ_REG(NR31);
-    READ_REG(NR32);
-    READ_REG(NR33);
-    READ_REG(NR34);
-    READ_REG(NR41);
+    
+    if(address == NR23_ADDR)
+        return 0xFF;
+
+    if(address == NR24_ADDR)
+        return getNR24();
+
+    if(address == NR30_ADDR)
+        return getNR30();
+
+    if(address == NR31_ADDR)
+        return 0xFF;
+
+    if(address == NR32_ADDR)
+        return getNR32();
+
+    if(address == NR33_ADDR)
+        return 0xFF;
+    
+    if(address == NR34_ADDR)
+        return getNR34();
+
+    if(address == NR41_ADDR)
+        return 0xFF;
+
     READ_REG(NR42);
     READ_REG(NR43);
-    READ_REG(NR44);
+    
+    if(address == NR44_ADDR)
+        return getNR44();
 
     READ_MEMORY(WAVE_RAM);
 
@@ -148,7 +181,7 @@ uint8_t readByte(uint16_t address){
 
     READ_MEMORY(HRAM);
 
-    return NOT_MAPPED;
+    return 0xFF;
 }
 
 void writeByte(uint16_t address, uint8_t byte){
@@ -232,9 +265,19 @@ void writeByte(uint16_t address, uint8_t byte){
         return;
     }
 
-    WRITE_REG(NR12);
+    if(address == NR12_ADDR){
+        NR12_REG = byte;
+        checkDAC1();
+        return;
+    }
+
     WRITE_REG(NR13);
-    WRITE_REG(NR14);
+
+    if(address == NR14_ADDR){
+        NR14_REG = byte;
+        triggerChannel1();
+        return;
+    }
 
     if(address == NR21_ADDR){
         ch2_check_timer = true;
@@ -242,17 +285,26 @@ void writeByte(uint16_t address, uint8_t byte){
         return;
     }
 
-    WRITE_REG(NR22);
-    WRITE_REG(NR23);
-    WRITE_REG(NR24);
-
-    if(address == NR41_ADDR){
-        ch4_check_timer = true;
-        NR41_REG = byte;
+    if(address == NR22_ADDR){
+        NR22_REG = byte;
+        checkDAC2();
         return;
     }
 
-    WRITE_REG(NR30);
+    WRITE_REG(NR22);
+    WRITE_REG(NR23);
+
+    if(address == NR24_ADDR){
+        NR24_REG = byte;
+        triggerChannel2();
+        return;
+    }
+
+    if(address == NR30_ADDR){
+        NR30_REG = byte;
+        checkDAC3();
+        return;
+    }
     
     if(address == NR31_ADDR){
         ch3_check_timer = true;
@@ -262,11 +314,32 @@ void writeByte(uint16_t address, uint8_t byte){
 
     WRITE_REG(NR32);
     WRITE_REG(NR33);
-    WRITE_REG(NR34);
 
-    WRITE_REG(NR42);
+    if(address == NR34_ADDR){
+        NR34_REG = byte;
+        triggerChannel3();
+        return;
+    }
+
+    if(address == NR41_ADDR){
+        ch4_check_timer = true;
+        NR41_REG = byte;
+        return;
+    }
+
+    if(address == NR42_ADDR){
+        NR42_REG = byte;
+        checkDAC4();
+        return;
+    }
+
     WRITE_REG(NR43);
-    WRITE_REG(NR44);
+
+    if(address == NR44_ADDR){
+        NR44_REG = byte;
+        triggerChannel4();
+        return;
+    }
 
     WRITE_MEMORY(WAVE_RAM);
 
