@@ -12,7 +12,7 @@
 #define WRAM_SIZE 0x2000
 #define OAM_SIZE  0xA0
 #define HRAM_SIZE 0x7F
-#define ERAM_SIZE 0x80000
+#define MAX_ERAM_SIZE 0x80000
 
 #define BOOTROM_START_ADDR 0x0000
 #define ROM_START_ADDR 0x0000
@@ -29,7 +29,8 @@ extern uint8_t BOOTROM[BOOTROM_SIZE];
 extern uint8_t* ROM;
 extern size_t ROM_SIZE;
 
-extern uint8_t ERAM[ERAM_SIZE];
+extern size_t ERAM_SIZE;
+extern uint8_t ERAM[MAX_ERAM_SIZE];
 
 extern bool bootromEnabled;
 
@@ -41,9 +42,9 @@ extern uint8_t HRAM[HRAM_SIZE];
 extern char romName[FILENAME_MAX];
 extern char savName[FILENAME_MAX];
 
-void initMemory();
+void initMemory(const char*);
 void loadRom(const char*);
-void loadBootRom(const char*);
+bool loadBootRom(const char*);
 void loadSav(const char*);
 void saveSav(const char*);
 void freeMemory();

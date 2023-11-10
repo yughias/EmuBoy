@@ -42,7 +42,7 @@ void setup(){
     setFilename(getArgv(1));
 
     initCPU(&cpu);
-    initMemory();
+    initMemory(romName);
     initAudio();
     initSerial();
     initJoypad();
@@ -50,9 +50,9 @@ void setup(){
     char bootromName[FILENAME_MAX];
     getAbsoluteDir(bootromName);
     strcat(bootromName, "data/dmg_boot.bin");
-    loadBootRom(bootromName);
+    if(!loadBootRom(bootromName))
+        skipBootrom();
 
-    loadRom(romName);
     detectMBC();
     if(hasBattery)
         loadSav(savName);

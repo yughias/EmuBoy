@@ -18,11 +18,10 @@
 
 extern cpu_t cpu;
 
-extern size_t master_cycle;
-
 void emulateCpu(cpu_t*);
 void emulateHardware(cpu_t*);
 void updateTimer();
 void tickHardware(int);
+void skipBootrom();
 
 #endif

@@ -1,4 +1,5 @@
 #include <hardware.h>
+#include <info.h>
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -18,7 +19,8 @@ uint8_t BOOTROM[BOOTROM_SIZE];
 uint8_t* ROM;
 size_t ROM_SIZE;
 
-uint8_t ERAM[ERAM_SIZE];
+size_t ERAM_SIZE;
+uint8_t ERAM[MAX_ERAM_SIZE];
 
 bool bootromEnabled;
 
@@ -30,7 +32,8 @@ uint8_t HRAM[HRAM_SIZE];
 char romName[FILENAME_MAX];
 char savName[FILENAME_MAX];
 
-void initMemory(){
+void initMemory(const char* romName){
+    loadRom(romName);
     LY_REG = 0;
     STAT_REG = 0;
     TIMA_REG = 0;
@@ -46,6 +49,8 @@ void initMemory(){
     gb_timer.old_state = false;
     gb_timer.delay = 0x00;
     gb_timer.ignore_write = false;
+
+    ERAM_SIZE = getRamSize(ROM);
 }
 
 void freeMemory(){
@@ -371,10 +376,13 @@ void loadRom(const char* filename){
     fclose(fptr);
 }
 
-void loadBootRom(const char* filename){
+bool loadBootRom(const char* filename){
     FILE* fptr = fopen(filename, "rb");
+    if(!fptr)
+        return false;
     fread(BOOTROM, 1, BOOTROM_SIZE, fptr);
     fclose(fptr);
+    return true;
 }
 
 void loadSav(const char* filename){

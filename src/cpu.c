@@ -168,8 +168,8 @@ void infoCPU(cpu_t* cpu){
 
     composeFlagReg(cpu);
 
-    fprintf(stderr, "%d A: %02X F: %02X B: %02X C: %02X D: %02X E: %02X H: %02X L: %02X ",
-            cpu->cycles, *cpu->A, *cpu->F, *cpu->B, *cpu->C, *cpu->D, *cpu->E, *cpu->H, *cpu->L);
+    fprintf(stderr, "A: %02X F: %02X B: %02X C: %02X D: %02X E: %02X H: %02X L: %02X ",
+            *cpu->A, *cpu->F, *cpu->B, *cpu->C, *cpu->D, *cpu->E, *cpu->H, *cpu->L);
 
     fprintf(stderr, "SP: %04X PC: 00:%04X (%02X %02X %02X %02X)\n",
             *cpu->SP, *cpu->PC, cpu->readByte(*cpu->PC), cpu->readByte(*cpu->PC+1), cpu->readByte(*cpu->PC+2), cpu->readByte(*cpu->PC+3));

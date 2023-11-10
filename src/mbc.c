@@ -1,5 +1,6 @@
 #include <mbc.h>
 #include <memory.h>
+
 #include <stdio.h>
 
 mbcFunc mbc_mapper_0000_3FFF;
@@ -59,8 +60,10 @@ uint8_t* mbc1_ram(uint16_t addr){
     }
 
     addr &= (1 << 13) - 1;
-    if(MBC_6000_7FFF & 0b1)
+    if(MBC_6000_7FFF & 0b1){
         addr |= (MBC_4000_5FFF & 0b11) << 13;
+        addr &= ERAM_SIZE - 1;
+    }
     return ERAM + addr;
 }
 
@@ -108,8 +111,10 @@ uint8_t* mbc3_ram(uint16_t addr){
 
         default:
         addr &= (1 << 13) - 1;
-        if(MBC_6000_7FFF & 0b1)
+        if(MBC_6000_7FFF & 0b1){
             addr |= (MBC_4000_5FFF & 0b11) << 13;
+            addr &= ERAM_SIZE;
+        }
         return ERAM + addr;
     }
 }
@@ -131,6 +136,7 @@ uint8_t* mbc5_ram(uint16_t addr){
 
     addr &= (1 << 13) - 1;
     addr |= (MBC_4000_5FFF & 0b1111) << 13;
+    addr &= ERAM_SIZE;
     return ERAM + addr;
 }
 
