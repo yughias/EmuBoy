@@ -18,7 +18,7 @@ void closeEmulator(){
 
 void setup(){
     size(LCD_WIDTH, LCD_HEIGHT);
-    setTitle(u8"ゲーム　ボーイ　ちゃん");
+    setTitle(u8"エミュボーイ");
     #ifndef SPEED_TEST
     frameRate(REFRESH_RATE);
     #else
@@ -85,10 +85,6 @@ void loop(){
         exit(0);
     }
     #endif
-
-    char str[50];
-    sprintf(str, "%d\n", (int)(1000.0f / deltaTime + 0.5f));
-    setTitle(str);
 
     if(frameCount == 1)
         initPaletteRGB();
