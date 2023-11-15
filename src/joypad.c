@@ -49,22 +49,19 @@ uint8_t getJoypadRegister(){
 
     emulateJoypad();
 
-    uint8_t chosen = JOYP_REG >> 4;
+    uint8_t chosen = (JOYP_REG >> 4) & 0b11;
 
     output_val = JOYP_REG & 0b110000;
     output_val |= 0b11000000;
 
-    if(chosen == 0b10){
+    if(chosen == 0b10)
         output_val |= ARROW_BTN;
-    }
     
-    if(chosen == 0b01){
+    if(chosen == 0b01)
         output_val |= ACTION_BTN;
-    }
 
-    if(chosen == 0b11){
+    if(chosen == 0b11)
         output_val = 0xFF;
-    }
 
     return output_val;
 }

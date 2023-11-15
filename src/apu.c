@@ -295,15 +295,15 @@ void emulateApu(){
         trigger_sweep();
     }
 
-    if(!ch4_shift_counter && ch4_on){
-        bool sample = !(ch4_lfsr & 0b1);
-        ch4_sample = sample * ch4_volume;
+    if(!ch4_shift_counter){
+        if(ch4_on){
+            bool sample = !(ch4_lfsr & 0b1);
+            ch4_sample = sample * ch4_volume;
 
-        bool xor = (ch4_lfsr & 0b1) ^ ((ch4_lfsr & 0b10) >> 1);
-        ch4_lfsr = (xor << 14) | (ch4_lfsr >> 1);
-        if(NR43_REG & 0b1000){
-            ch4_lfsr &= 0xFFDF;
-            ch4_lfsr |= xor << 7;
+            bool xor = (ch4_lfsr & 0b1) ^ ((ch4_lfsr & 0b10) >> 1);
+            ch4_lfsr = (xor << 14) | (ch4_lfsr >> 1);
+            if(NR43_REG & 0b1000)
+                ch4_lfsr |= xor << 7;
         }
 
         ch4_shift_counter = getShiftCounter(NR43_REG);

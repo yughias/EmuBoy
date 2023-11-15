@@ -32,8 +32,6 @@ extern size_t ROM_SIZE;
 extern size_t ERAM_SIZE;
 extern uint8_t ERAM[MAX_ERAM_SIZE];
 
-extern bool bootromEnabled;
-
 extern uint8_t VRAM[VRAM_SIZE];
 extern uint8_t WRAM[WRAM_SIZE];
 extern uint8_t OAM[OAM_SIZE];

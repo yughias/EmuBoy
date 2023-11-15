@@ -47,7 +47,6 @@ void skipBootrom(){
     cpu.IME = false;
     cpu.EI_DELAY = false;
     
-    bootromEnabled = false;
     SB_REG = 0x00;
     SC_REG = 0x7E;
     gb_timer.div = 0xAB;
