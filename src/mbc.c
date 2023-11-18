@@ -3,11 +3,11 @@
 
 #include <stdio.h>
 
-mbcFunc mbc_mapper_0000_3FFF;
-mbcFunc mbc_mapper_4000_7FFF;
+readFunc mbc_mapper_0000_3FFF;
+readFunc mbc_mapper_4000_7FFF;
 mbcFunc mbc_mapper_A000_BFFF;
 
-mbcFunc mbc_rom_write;
+writeFunc mbc_rom_write;
 
 uint8_t MBC_0000_1FFF;
 uint8_t MBC_2000_3FFF;
@@ -29,28 +29,28 @@ bool hasBattery;
 #define MAP_RTC(addr) case 0x ## addr: return &RTC_ ## addr
 
 uint8_t* noMappedAdress(uint16_t addr){ return &NOT_MAPPED; }
-uint8_t* noMbcAddress(uint16_t addr){ return ROM + addr; }
+uint8_t noMbcAddress(uint16_t addr){ return ROM[addr]; }
 
-uint8_t* mbc1_0000_3FFF(uint16_t addr){
+uint8_t mbc1_0000_3FFF(uint16_t addr){
     addr &= (1 << 14) - 1;
     if(MBC_6000_7FFF & 0b1){
         size_t real_addr = addr;
         real_addr |= (MBC_4000_5FFF & 0b11) << 19;
         real_addr &= ROM_SIZE - 1;  
-        return ROM + real_addr;
+        return ROM[real_addr];
     } 
     
-    return ROM + addr;
+    return ROM[addr];
 }
 
-uint8_t* mbc1_4000_7FFF(uint16_t addr){
+uint8_t mbc1_4000_7FFF(uint16_t addr){
     size_t real_addr = addr;
     real_addr &= (1 << 14) - 1;
     uint8_t bank = (MBC_2000_3FFF & 0b11111) == 0x00 ? 0x01 : (MBC_2000_3FFF & 0b11111); 
     real_addr |= bank << 14;
     real_addr |= (MBC_4000_5FFF & 0b11) << 19;
     real_addr &= ROM_SIZE - 1;
-    return ROM + real_addr;
+    return ROM[real_addr];
 }
 
 uint8_t* mbc1_ram(uint16_t addr){
@@ -67,13 +67,13 @@ uint8_t* mbc1_ram(uint16_t addr){
     return ERAM + addr;
 }
 
-uint8_t* mbc2_4000_7FFF(uint16_t addr){
+uint8_t mbc2_4000_7FFF(uint16_t addr){
     size_t real_addr = addr;
     real_addr &= (1 << 14) - 1;
     uint8_t bank = (MBC_2000_3FFF & 0b1111) == 0x00 ? 0x01 : (MBC_2000_3FFF & 0b1111); 
     real_addr |= bank << 14;
     real_addr &= ROM_SIZE - 1;
-    return ROM + real_addr;
+    return ROM[real_addr];
 }
 
 uint8_t* mbc2_ram(uint16_t addr){
@@ -87,13 +87,13 @@ uint8_t* mbc2_ram(uint16_t addr){
     return ERAM + ram_addr;
 }
 
-uint8_t* mbc3_4000_7FFF(uint16_t addr){
+uint8_t mbc3_4000_7FFF(uint16_t addr){
     size_t real_addr = addr;
     real_addr &= (1 << 14) - 1;
-    uint8_t bank = MBC_2000_3FFF == 0x00 ? 0x01 : MBC_2000_3FFF; 
-    real_addr |= (bank & 0b1111111) << 14;
+    uint8_t bank = MBC_2000_3FFF == 0x00 ? 0x01 : (MBC_2000_3FFF & 0b1111111); 
+    real_addr |= bank << 14;
     real_addr &= ROM_SIZE - 1;
-    return ROM + real_addr;
+    return ROM[real_addr];
 }
 
 uint8_t* mbc3_ram(uint16_t addr){
@@ -119,13 +119,13 @@ uint8_t* mbc3_ram(uint16_t addr){
     }
 }
 
-uint8_t* mbc5_4000_7FFF(uint16_t addr){
+uint8_t mbc5_4000_7FFF(uint16_t addr){
     size_t real_addr = addr;
     real_addr &= (1 << 14) - 1;
     uint16_t bank = ((MBC_3000_3FFF & 0b1) << 8) | MBC_2000_2FFF;
     real_addr |= (bank & 0x1FF) << 14;
     real_addr &= ROM_SIZE - 1;
-    return ROM + real_addr;
+    return ROM[real_addr];
 }
 
 uint8_t* mbc5_ram(uint16_t addr){
@@ -140,43 +140,38 @@ uint8_t* mbc5_ram(uint16_t addr){
     return ERAM + addr;
 }
 
-uint8_t* mbc_standard_registers(uint16_t addr){
-    if(addr < 0x2000)
-        return &MBC_0000_1FFF;
-    else if(addr < 0x4000)
-        return &MBC_2000_3FFF;
-    else if(addr < 0x6000)
-        return &MBC_4000_5FFF;
-    else
-        return &MBC_6000_7FFF;
-
-    return &NOT_MAPPED;
+void mbc_standard_registers(uint16_t addr, uint8_t byte){
+    if(addr < 0x2000){
+        MBC_0000_1FFF = byte;
+    } else if(addr < 0x4000) {
+        MBC_2000_3FFF = byte;
+    } else if(addr < 0x6000) {
+        MBC_4000_5FFF = byte;
+    } else {
+        MBC_6000_7FFF = byte;
+    }
 }
 
-uint8_t* mbc2_registers(uint16_t addr){
+void mbc2_registers(uint16_t addr, uint8_t byte){
     if(addr < 0x4000)
         if(!(addr & 0x100))
-            return &MBC_0000_1FFF;
+            MBC_0000_1FFF = byte;
         else
-            return &MBC_2000_3FFF;
-
-    return &NOT_MAPPED;
+            MBC_2000_3FFF = byte;
 }
 
 
-uint8_t* mbc_advanced_registers(uint16_t addr){
+void mbc_advanced_registers(uint16_t addr, uint8_t byte){
     if(addr < 0x2000)
-        return &MBC_0000_1FFF;
+        MBC_0000_1FFF = byte;
     else if(addr < 0x3000)
-        return &MBC_2000_2FFF;
+        MBC_2000_2FFF = byte;
     else if(addr < 0x4000)
-        return &MBC_3000_3FFF;
+        MBC_3000_3FFF = byte;
     else if(addr < 0x6000)
-        return &MBC_4000_5FFF;
+        MBC_4000_5FFF = byte;
     else
-        return &MBC_6000_7FFF;
-    
-    return &NOT_MAPPED;
+        MBC_6000_7FFF = byte;
 }
 
 void detectMBC(){

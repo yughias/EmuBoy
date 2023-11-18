@@ -13,8 +13,6 @@ void fillReadTable(uint8_t, uint8_t, readFunc);
 void fillWriteTable(uint8_t, uint8_t, writeFunc);
 
 uint8_t readBootrom(uint16_t);
-uint8_t readLowerRom(uint16_t);
-uint8_t readUpperRom(uint16_t);
 uint8_t readVram(uint16_t);
 uint8_t readWram(uint16_t);
 uint8_t readEram(uint16_t);
@@ -22,7 +20,6 @@ uint8_t readOam(uint16_t);
 uint8_t readIO(uint16_t);
 
 void writeBootrom(uint16_t, uint8_t);
-void writeRom(uint16_t, uint8_t);
 void writeVram(uint16_t, uint8_t);
 void writeWram(uint16_t, uint8_t);
 void writeEram(uint16_t, uint8_t);

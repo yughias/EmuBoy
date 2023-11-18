@@ -19,11 +19,7 @@ void closeEmulator(){
 void setup(){
     size(LCD_WIDTH, LCD_HEIGHT);
     setTitle(u8"エミュボーイ");
-    #ifndef SPEED_TEST
     frameRate(REFRESH_RATE);
-    #else
-    frameRate(2000);
-    #endif
 
     char logoPath[FILENAME_MAX];
     getAbsoluteDir(logoPath);
@@ -51,10 +47,6 @@ void setup(){
     if(!loadBootRom(bootromName))
         skipBootrom();
 
-    detectMBC();
-    if(hasBattery)
-        loadSav(savName);
-
     char gamesharkName[FILENAME_MAX];
     getAbsoluteDir(gamesharkName);
     strcat(gamesharkName, "data/gameshark.txt");
@@ -73,13 +65,16 @@ void setup(){
 void loop(){
     #ifdef SPEED_TEST
     static float avg = 0.0f;
-    if(frameCount > 1){
+    if(frameCount > 5){
         avg += 1000.0f / deltaTime; 
     }
 
     if(*cpu.PC >= 0x100){
-        avg /= frameCount - 1;
-        printf("%f\n", avg);
+        avg /= frameCount - 5;
+        printf("SPEED TEST FINISHED\n");
+        printf("ideal speedup: x%d\n", SPEED_TEST);
+        printf("real speedup: x%f\n", avg / REFRESH_RATE * SPEED_TEST);
+        printf("average fps: %f\n", avg * SPEED_TEST);
         system("pause");
         closeEmulator();
         exit(0);
@@ -90,7 +85,11 @@ void loop(){
         initPaletteRGB();
 
     const Uint8* keystate = SDL_GetKeyboardState(NULL);
+    #ifndef SPEED_TEST
     int speed = keystate[SDL_SCANCODE_TAB] ? 8 : 1;
+    #else
+    int speed = SPEED_TEST;
+    #endif
     for(int i = 0; i < speed; i++)
         emulateHardware(&cpu);
 

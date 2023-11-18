@@ -5,11 +5,13 @@
 #include <stdbool.h>
 
 typedef uint8_t* (*mbcFunc)(uint16_t);
+typedef uint8_t (*readFunc)(uint16_t);
+typedef void (*writeFunc)(uint16_t, uint8_t);
 
-extern mbcFunc mbc_rom_write;
+extern writeFunc mbc_rom_write;
 
-extern mbcFunc mbc_mapper_0000_3FFF;
-extern mbcFunc mbc_mapper_4000_7FFF;
+extern readFunc mbc_mapper_0000_3FFF;
+extern readFunc mbc_mapper_4000_7FFF;
 extern mbcFunc mbc_mapper_A000_BFFF;
 
 extern bool hasBattery;

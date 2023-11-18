@@ -25,14 +25,6 @@ uint8_t readBootrom(uint16_t address){
     return BOOTROM[address];
 }
 
-uint8_t readLowerRom(uint16_t address){
-    return *(*mbc_mapper_0000_3FFF)(address);
-}
-
-uint8_t readUpperRom(uint16_t address){
-    return *(*mbc_mapper_4000_7FFF)(address);
-}
-
 uint8_t readEram(uint16_t address){
     return *(*mbc_mapper_A000_BFFF)(address);
 }
@@ -151,10 +143,6 @@ uint8_t readIO(uint16_t address){
 
 // write callbacks
 
-void writeRom(uint16_t address, uint8_t byte){
-    *(*mbc_rom_write)(address) = byte;
-}
-
 void writeVram(uint16_t address, uint8_t byte){
     VRAM[address - 0x8000] = byte;
 }
@@ -257,7 +245,7 @@ void writeIO(uint16_t address, uint8_t byte){
         w_4A: WRITE(WY);
         w_4B: WRITE(WX);
         w_4C: w_4D: w_4E: w_4F:
-        w_50: fillReadTable(0x00, 0x00, readLowerRom); return;
+        w_50: fillReadTable(0x00, 0x00, mbc_mapper_0000_3FFF); return;
         w_51: w_52: w_53: w_54: w_55: w_56: w_57:
         w_58: w_59: w_5A: w_5B: w_5C: w_5D: w_5E: w_5F:
         w_60: w_61: w_62: w_63: w_64: w_65: w_66: w_67:

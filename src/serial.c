@@ -78,6 +78,8 @@ bool load_network_config(){
     strcat(ini_path, "data/config.ini");
 
     FILE* ini_ptr = INI_open(ini_path);
+    if(!ini_ptr)
+        return false;
     int input_val;
 
     if(!ini_ptr)

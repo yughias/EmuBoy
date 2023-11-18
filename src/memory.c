@@ -43,16 +43,19 @@ void initMemory(const char* romName){
     gb_timer.ignore_write = false;
 
     ERAM_SIZE = getRamSize(ROM);
+    detectMBC();
+    if(hasBattery)
+        loadSav(savName);
 
-    fillReadTable(0x00, 0x40, readLowerRom);
-    fillReadTable(0x40, 0x80, readUpperRom);
+    fillReadTable(0x00, 0x40, mbc_mapper_0000_3FFF);
+    fillReadTable(0x40, 0x80, mbc_mapper_4000_7FFF);
     fillReadTable(0x80, 0xA0, readVram);
     fillReadTable(0xA0, 0xC0, readEram);
     fillReadTable(0xC0, 0xFE, readWram);
     fillReadTable(0xFE, 0xFE, readOam);
     fillReadTable(0xFF, 0xFF, readIO);
 
-    fillWriteTable(0x00, 0x80, writeRom);
+    fillWriteTable(0x00, 0x80, mbc_rom_write);
     fillWriteTable(0x80, 0xA0, writeVram);
     fillWriteTable(0xA0, 0xC0, writeEram);
     fillWriteTable(0xC0, 0xFE, writeWram);
