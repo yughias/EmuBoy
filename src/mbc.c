@@ -176,12 +176,7 @@ void mbc_advanced_registers(uint16_t addr, uint8_t byte){
         MBC_6000_7FFF = byte;
 }
 
-uint8_t m161_0000_3FFF(uint16_t addr){
-    size_t real_addr = addr | (MBC_0000_1FFF << 15);
-    return ROM[real_addr];
-}
-
-uint8_t m161_4000_7FFF(uint16_t addr){
+uint8_t m161_rom(uint16_t addr){
     size_t real_addr = addr | (MBC_0000_1FFF << 15);
     return ROM[real_addr];
 }
@@ -213,8 +208,8 @@ void detectMBC(){
         printf("M161 DETECTED!\n");
         firstWrite = false;
         mbc_rom_write = m161_registers;
-        mbc_mapper_0000_3FFF = m161_0000_3FFF;
-        mbc_mapper_4000_7FFF = m161_4000_7FFF;
+        mbc_mapper_0000_3FFF = m161_rom;
+        mbc_mapper_4000_7FFF = m161_rom;
         mbc_mapper_A000_BFFF = noMappedAdress;
         return;
     }
