@@ -25,23 +25,41 @@ typedef struct cpu_t {
     uint8_t IE;
     uint8_t IF;
 
-    // 16 bit regs 
-    uint16_t AF[1];
-    uint16_t BC[1];
-    uint16_t DE[1];
-    uint16_t HL[1];
-    uint16_t SP[1];
-    uint16_t PC[1];
+    // registers
+    union {
+        uint16_t AF;
+        struct {
+            uint8_t F;
+            uint8_t A;
+        };
+    };
 
-    // 8 bit regs
-    uint8_t* A;
-    uint8_t* F;
-    uint8_t* B;
-    uint8_t* C;
-    uint8_t* D;
-    uint8_t* E;
-    uint8_t* H;
-    uint8_t* L;
+    union {
+        uint16_t BC;
+        struct {
+            uint8_t C;
+            uint8_t B;
+        };
+    };
+
+    union {
+        uint16_t DE;
+        struct {
+            uint8_t E;
+            uint8_t D;
+        };
+    };
+
+    union {
+        uint16_t HL;
+        struct {
+            uint8_t L;
+            uint8_t H;
+        };
+    };
+
+    uint16_t SP;
+    uint16_t PC;
 
     // bool flags
     bool Z_FLAG;

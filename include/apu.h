@@ -95,4 +95,9 @@ void triggerChannel2();
 void triggerChannel3();
 void triggerChannel4();
 
+void setChannel1Timer();
+void setChannel2Timer();
+void setChannel3Timer();
+void setChannel4Timer();
+
 #endif

@@ -69,7 +69,7 @@ void loop(){
         avg += 1000.0f / deltaTime; 
     }
 
-    if(*cpu.PC >= 0x100){
+    if(cpu.PC >= 0x100){
         avg /= frameCount - 5;
         printf("SPEED TEST FINISHED\n");
         printf("ideal speedup: x%d\n", SPEED_TEST);
@@ -86,7 +86,7 @@ void loop(){
 
     const Uint8* keystate = SDL_GetKeyboardState(NULL);
     #ifndef SPEED_TEST
-    int speed = keystate[SDL_SCANCODE_TAB] ? 8 : 1;
+    int speed = keystate[SDL_SCANCODE_TAB] ? 16 : 1;
     #else
     int speed = SPEED_TEST;
     #endif

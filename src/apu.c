@@ -69,7 +69,6 @@ size_t pulse_wave_counter;
 size_t length_timer_counter;
 
 // channel 1: pulse with sweep pace
-bool ch1_check_timer;
 bool ch1_on;
 uint16_t ch1_period_val;
 uint16_t ch1_length_timer;
@@ -87,7 +86,6 @@ bool ch1_wave_level;
 int8_t ch1_sample;
 
 // channel 2: pulse
-bool ch2_check_timer;
 bool ch2_on;
 uint16_t ch2_period_val;
 uint16_t ch2_length_timer;
@@ -101,7 +99,6 @@ bool ch2_wave_level;
 int8_t ch2_sample;
 
 // channel 3: wave sound
-bool ch3_check_timer;
 bool ch3_on;
 uint16_t ch3_period_val;
 uint16_t ch3_length_timer;
@@ -109,7 +106,6 @@ int8_t ch3_sample;
 size_t ch3_wave_idx;
 
 // channel 4: noise
-bool ch4_check_timer;
 bool ch4_on;
 uint16_t ch4_lfsr = 0xFFFF;
 size_t ch4_shift_counter;
@@ -189,12 +185,6 @@ if(ch ## n ## _on){ \
     } \
 } \
 
-#define timer_check_ch(n, timer_speed, getLength) \
-if(ch ## n ## _check_timer){ \
-    ch ## n ## _check_timer = false; \
-    ch ## n ## _length_timer = timer_speed - getLength; \
-} \
-
 #define timer_update_ch(n) \
 if(NR ## n ## 4_REG & 0x40){ \
     if(ch ## n ## _length_timer) \
@@ -246,11 +236,6 @@ void emulateApu(){
         ch4_on = false;
         return;
     }
-
-    timer_check_ch(1, 64, getLengthTimer(NR11_REG));
-    timer_check_ch(2, 64, getLengthTimer(NR21_REG));
-    timer_check_ch(3, 256, NR31_REG);
-    timer_check_ch(4, 64, getLengthTimer(NR41_REG));
 
     if(pulse_wave_counter % 2 == 0){
         ram_wave_ch(3);
@@ -525,3 +510,11 @@ void triggerChannel4(){
         }
     }
 }
+
+void setChannel1Timer(){ ch1_length_timer = 64 - getLengthTimer(NR11_REG); }
+
+void setChannel2Timer(){ ch2_length_timer = 64 - getLengthTimer(NR21_REG); }
+
+void setChannel3Timer(){ ch3_length_timer = 256 - NR31_REG; }
+
+void setChannel4Timer(){ ch4_length_timer = 64 - getLengthTimer(NR41_REG); }

@@ -8,7 +8,7 @@ static inline void JRNZ(cpu_t*, int8_t);
 static inline void JRZ(cpu_t*, int8_t);
 static inline void JRNC(cpu_t*, int8_t);
 static inline void JRC(cpu_t*, int8_t);
-static inline void ADD_16(cpu_t*, uint16_t*, uint16_t*);
+static inline void ADD_16(cpu_t*, uint16_t*, uint16_t);
 static inline void INC_16(cpu_t*, uint16_t*);
 static inline void DEC_16(cpu_t*, uint16_t*);
 static inline void INC_8(cpu_t*, uint8_t*);
@@ -80,42 +80,42 @@ static inline void RETI(cpu_t*);
 #define CLEAR_H 0b11011111
 #define CLEAR_C 0b11101111
 
-#define pc_inc(x) *cpu->PC += x
-#define ld_r16_im(r)  pc_inc(2); *r = readShortAndTick(cpu, *cpu->PC - 2); 
-#define ld_ind_r(r1, r2) writeByteAndTick(cpu, *r1, *r2); 
-#define ld_r_ind(r1, r2) *r1 = readByteAndTick(cpu, *r2); 
-#define ld_ind_r_inc(r1, r2) writeByteAndTick(cpu, *r1, *r2); *r1 += 1; 
-#define ld_r_ind_inc(r1, r2) *r1 = readByteAndTick(cpu, *r2); *r2 += 1; 
-#define ld_ind_r_dec(r1, r2) writeByteAndTick(cpu, *r1, *r2); *r1 -= 1; 
-#define ld_r_ind_dec(r1, r2) *r1 = readByteAndTick(cpu, *r2); *r2 -= 1; 
-#define inc8(r) INC_8(cpu, r); 
-#define inc16(r) cpu->tickSystem(4); INC_16(cpu, r); 
-#define dec8(r) DEC_8(cpu, r); 
-#define dec16(r) cpu->tickSystem(4); DEC_16(cpu, r); 
-#define ld_rr(r1, r2) *r1 = *r2; 
-#define ld_r8_im(r) pc_inc(1); *r = readByteAndTick(cpu, *cpu->PC - 1); 
-#define add16(r1, r2) cpu->tickSystem(4); ADD_16(cpu, r1, r2);
-#define jr(CC) pc_inc(1); JR ## CC (cpu, readByteAndTick(cpu, *cpu->PC - 1));
-#define inc8_ind(r) { uint8_t tmp = readByteAndTick(cpu, *r); INC_8(cpu, &tmp); writeByteAndTick(cpu, *r, tmp); } 
-#define dec8_ind(r) { uint8_t tmp = readByteAndTick(cpu, *r); DEC_8(cpu, &tmp); writeByteAndTick(cpu, *r, tmp); } 
-#define ld_ind_im(r) pc_inc(1); writeByteAndTick(cpu, *r, readByteAndTick(cpu, *cpu->PC - 1));
-#define alu_rr(fun, r1, r2) fun(cpu, r1, *r2);  
-#define alu_hl(fun) fun(cpu, cpu->A, readByteAndTick(cpu, *cpu->HL));   
-#define alu_im(fun) pc_inc(1); fun(cpu, cpu->A, readByteAndTick(cpu, *cpu->PC - 1));   
+#define pc_inc(x) cpu->PC += x
+#define ld_r16_im(r)  pc_inc(2); r = readShortAndTick(cpu, cpu->PC - 2); 
+#define ld_ind_r(r1, r2) writeByteAndTick(cpu, r1, r2); 
+#define ld_r_ind(r1, r2) r1 = readByteAndTick(cpu, r2); 
+#define ld_ind_r_inc(r1, r2) writeByteAndTick(cpu, r1, r2); r1 += 1; 
+#define ld_r_ind_inc(r1, r2) r1 = readByteAndTick(cpu, r2); r2 += 1; 
+#define ld_ind_r_dec(r1, r2) writeByteAndTick(cpu, r1, r2); r1 -= 1; 
+#define ld_r_ind_dec(r1, r2) r1 = readByteAndTick(cpu, r2); r2 -= 1; 
+#define inc8(r) INC_8(cpu, &r); 
+#define inc16(r) cpu->tickSystem(4); INC_16(cpu, &r); 
+#define dec8(r) DEC_8(cpu, &r); 
+#define dec16(r) cpu->tickSystem(4); DEC_16(cpu, &r); 
+#define ld_rr(r1, r2) r1 = r2; 
+#define ld_r8_im(r) pc_inc(1); r = readByteAndTick(cpu, cpu->PC - 1); 
+#define add16(r1, r2) cpu->tickSystem(4); ADD_16(cpu, &r1, r2);
+#define jr(CC) pc_inc(1); JR ## CC (cpu, readByteAndTick(cpu, cpu->PC - 1));
+#define inc8_ind(r) { uint8_t tmp = readByteAndTick(cpu, r); INC_8(cpu, &tmp); writeByteAndTick(cpu, r, tmp); } 
+#define dec8_ind(r) { uint8_t tmp = readByteAndTick(cpu, r); DEC_8(cpu, &tmp); writeByteAndTick(cpu, r, tmp); } 
+#define ld_ind_im(r) pc_inc(1); writeByteAndTick(cpu, r, readByteAndTick(cpu, cpu->PC - 1));
+#define alu_rr(fun, r1, r2) fun(cpu, &r1, r2);  
+#define alu_hl(fun) fun(cpu, &cpu->A, readByteAndTick(cpu, cpu->HL));   
+#define alu_im(fun) pc_inc(1); fun(cpu, &cpu->A, readByteAndTick(cpu, cpu->PC - 1));   
 #define ret(CC) cpu->tickSystem(4); RET ## CC (cpu); 
-#define pop(r) POP(cpu, r); 
-#define push(r) cpu->tickSystem(4); PUSH(cpu, *r);
-#define jp(CC) pc_inc(2); JP ## CC (cpu, readShortAndTick(cpu, *cpu->PC - 2)); 
-#define call(CC) pc_inc(2); CALL ## CC (cpu, readShortAndTick(cpu, *cpu->PC - 2)); 
+#define pop(r) POP(cpu, &r); 
+#define push(r) cpu->tickSystem(4); PUSH(cpu, r);
+#define jp(CC) pc_inc(2); JP ## CC (cpu, readShortAndTick(cpu, cpu->PC - 2)); 
+#define call(CC) pc_inc(2); CALL ## CC (cpu, readShortAndTick(cpu, cpu->PC - 2)); 
 #define rst(idx) cpu->tickSystem(4); RST(cpu, idx); 
-#define ld_u16_A() pc_inc(2); writeByteAndTick(cpu, readShortAndTick(cpu, *cpu->PC - 2), *cpu->A); 
-#define ld_A_u16() pc_inc(2); *cpu->A = readByteAndTick(cpu, readShortAndTick(cpu, *cpu->PC - 2)); 
+#define ld_u16_A() pc_inc(2); writeByteAndTick(cpu, readShortAndTick(cpu, cpu->PC - 2), cpu->A); 
+#define ld_A_u16() pc_inc(2); cpu->A = readByteAndTick(cpu, readShortAndTick(cpu, cpu->PC - 2)); 
 
-#define cb_no_bit(op, r) op (cpu, r); 
-#define cb_no_bit_hl(op) { uint8_t tmp = readByteAndTick(cpu, *cpu->HL); op (cpu, &tmp); writeByteAndTick(cpu, *cpu->HL, tmp); } 
-#define cb_bit(op, bit, r) op (cpu, bit, r); 
-#define cb_bit_hl(op, bit) { uint8_t tmp = readByteAndTick(cpu, *cpu->HL); op (cpu, bit, &tmp); writeByteAndTick(cpu, *cpu->HL, tmp); } 
-#define cb_bit_hl_fast(op, bit) { uint8_t tmp = readByteAndTick(cpu, *cpu->HL); op (cpu, bit, &tmp); } 
+#define cb_no_bit(op, r) op (cpu, &r); 
+#define cb_no_bit_hl(op) { uint8_t tmp = readByteAndTick(cpu, cpu->HL); op (cpu, &tmp); writeByteAndTick(cpu, cpu->HL, tmp); } 
+#define cb_bit(op, bit, r) op (cpu, bit, &r); 
+#define cb_bit_hl(op, bit) { uint8_t tmp = readByteAndTick(cpu, cpu->HL); op (cpu, bit, &tmp); writeByteAndTick(cpu, cpu->HL, tmp); } 
+#define cb_bit_hl_fast(op, bit) { uint8_t tmp = readByteAndTick(cpu, cpu->HL); op (cpu, bit, &tmp); } 
 
 
 // cpu utility function
@@ -131,28 +131,13 @@ void writeShortAndTick(cpu_t*, uint16_t, uint16_t);
 
 void initCPU(cpu_t* cpu){
     cpu->cycles = 0;
-    cpu->F = (uint8_t*)cpu->AF;
-    cpu->A = cpu->F + 1;
-    cpu->C = (uint8_t*)cpu->BC;
-    cpu->B = cpu->C + 1;
-    cpu->E = (uint8_t*)cpu->DE;
-    cpu->D = cpu->E + 1;
-    cpu->L = (uint8_t*)cpu->HL;
-    cpu->H = cpu->L + 1;
 
-    *cpu->AF = 0x0000;
-    *cpu->BC = 0x0000;
-    *cpu->DE = 0x0000;
-    *cpu->HL = 0x0000;
-    *cpu->SP = 0x0000;
-    *cpu->PC = 0x0000;
-
-    //*cpu->AF = 0x01B0;
-    //*cpu->BC = 0x0013;
-    //*cpu->DE = 0x00D8;
-    //*cpu->HL = 0x014D;
-    //*cpu->SP = 0xFFFE;
-    //*cpu->PC = 0x0101;
+    cpu->AF = 0x0000;
+    cpu->BC = 0x0000;
+    cpu->DE = 0x0000;
+    cpu->HL = 0x0000;
+    cpu->SP = 0x0000;
+    cpu->PC = 0x0000;
     
     splitFlagReg(cpu);
 
@@ -164,30 +149,30 @@ void initCPU(cpu_t* cpu){
 }
 
 void infoCPU(cpu_t* cpu){
-    uint8_t old_F = *cpu->F;
+    uint8_t old_F = cpu->F;
 
     composeFlagReg(cpu);
 
     fprintf(stderr, "A: %02X F: %02X B: %02X C: %02X D: %02X E: %02X H: %02X L: %02X ",
-            *cpu->A, *cpu->F, *cpu->B, *cpu->C, *cpu->D, *cpu->E, *cpu->H, *cpu->L);
+            cpu->A, cpu->F, cpu->B, cpu->C, cpu->D, cpu->E, cpu->H, cpu->L);
 
     fprintf(stderr, "SP: %04X PC: 00:%04X (%02X %02X %02X %02X)\n",
-            *cpu->SP, *cpu->PC, cpu->readByte(*cpu->PC), cpu->readByte(*cpu->PC+1), cpu->readByte(*cpu->PC+2), cpu->readByte(*cpu->PC+3));
+            cpu->SP, cpu->PC, cpu->readByte(cpu->PC), cpu->readByte(cpu->PC+1), cpu->readByte(cpu->PC+2), cpu->readByte(cpu->PC+3));
 
-    *cpu->F = old_F;
+    cpu->F = old_F;
 }
 
 static inline void dispatchInterrupt(cpu_t* cpu){
-    *cpu->PC -= 1;
+    cpu->PC -= 1;
     cpu->tickSystem(4);
 
-    *cpu->SP -= 1;
-    writeByteAndTick(cpu, *cpu->SP, *cpu->PC >> 8);
+    cpu->SP -= 1;
+    writeByteAndTick(cpu, cpu->SP, cpu->PC >> 8);
 
     uint8_t ie_flag = cpu->IE;
 
-    *cpu->SP -= 1;
-    writeByteAndTick(cpu, *cpu->SP, *cpu->PC & 0xFF);
+    cpu->SP -= 1;
+    writeByteAndTick(cpu, cpu->SP, cpu->PC & 0xFF);
     
     cpu->tickSystem(4);
     uint8_t mask = ie_flag & cpu->IF;
@@ -205,7 +190,7 @@ static inline void dispatchInterrupt(cpu_t* cpu){
 }
 
 void stepCPU(cpu_t* cpu){
-    uint8_t opcode = readByteAndTick(cpu, *cpu->PC);
+    uint8_t opcode = readByteAndTick(cpu, cpu->PC);
     pc_inc(1);
 
     if(cpu->IE & cpu->IF){
@@ -221,7 +206,7 @@ void stepCPU(cpu_t* cpu){
         cpu->EI_DELAY = false;
 
     if(cpu->HALTED){
-        *cpu->PC -= 1;
+        cpu->PC -= 1;
         return;
     }
 
@@ -255,7 +240,7 @@ void stepCPU(cpu_t* cpu){
         op_05: dec8(cpu->B); return;
         op_06: ld_r8_im(cpu->B); return;
         op_07: RLCA(cpu); return;
-        op_08: pc_inc(2); writeShortAndTick(cpu, readShortAndTick(cpu, *cpu->PC - 2), *cpu->SP); return;
+        op_08: pc_inc(2); writeShortAndTick(cpu, readShortAndTick(cpu, cpu->PC - 2), cpu->SP); return;
         op_09: add16(cpu->HL, cpu->BC); return;
         op_0A: ld_r_ind(cpu->A, cpu->BC); return;
         op_0B: dec16(cpu->BC); return;
@@ -272,7 +257,7 @@ void stepCPU(cpu_t* cpu){
         op_15: dec8(cpu->D); return;
         op_16: ld_r8_im(cpu->D); return;
         op_17: RLA(cpu); return;
-        op_18: pc_inc(1); JR(cpu, readByteAndTick(cpu, *cpu->PC - 1)); return;
+        op_18: pc_inc(1); JR(cpu, readByteAndTick(cpu, cpu->PC - 1)); return;
         op_19: add16(cpu->HL, cpu->DE); return;
         op_1A: ld_r_ind(cpu->A, cpu->DE); return;
         op_1B: dec16(cpu->DE); return;
@@ -454,7 +439,7 @@ void stepCPU(cpu_t* cpu){
         op_C0: ret(NZ); return;
         op_C1: pop(cpu->BC); return;
         op_C2: jp(NZ); return;
-        op_C3: pc_inc(2); JP(cpu, readShortAndTick(cpu, *cpu->PC - 2)); cpu->tickSystem(4); return;
+        op_C3: pc_inc(2); JP(cpu, readShortAndTick(cpu, cpu->PC - 2)); cpu->tickSystem(4); return;
         op_C4: call(NZ); return;
         op_C5: push(cpu->BC); return;
         op_C6: alu_im(ADD); return;
@@ -462,9 +447,9 @@ void stepCPU(cpu_t* cpu){
         op_C8: ret(Z); return;
         op_C9: RET(cpu); return;
         op_CA: jp(Z); return;
-        op_CB: pc_inc(1); prefix_CB(cpu, readByteAndTick(cpu, *cpu->PC - 1)); return;
+        op_CB: pc_inc(1); prefix_CB(cpu, readByteAndTick(cpu, cpu->PC - 1)); return;
         op_CC: call(Z); return;
-        op_CD: pc_inc(2); cpu->tickSystem(4); CALL(cpu, readShortAndTick(cpu, *cpu->PC - 2)); return;
+        op_CD: pc_inc(2); cpu->tickSystem(4); CALL(cpu, readShortAndTick(cpu, cpu->PC - 2)); return;
         op_CE: alu_im(ADC); return;
         op_CF: rst(0x08); return;
 
@@ -485,16 +470,16 @@ void stepCPU(cpu_t* cpu){
         op_DE: alu_im(SBC); return;
         op_DF: rst(0x18); return;
 
-        op_E0: pc_inc(1); LDH1(cpu, readByteAndTick(cpu, *cpu->PC - 1)); return;
+        op_E0: pc_inc(1); LDH1(cpu, readByteAndTick(cpu, cpu->PC - 1)); return;
         op_E1: pop(cpu->HL); return;
-        op_E2: LDH1(cpu, *cpu->C); return;
+        op_E2: LDH1(cpu, cpu->C); return;
         op_E3: printf("empty opcode!\n"); return;
         op_E4: printf("empty opcode!\n"); return;
         op_E5: push(cpu->HL); return;
         op_E6: alu_im(AND); return;
         op_E7: rst(0x20); return;
-        op_E8: pc_inc(1); ADD_SP(cpu, readByteAndTick(cpu, *cpu->PC - 1)); cpu->tickSystem(4); cpu->tickSystem(4); return;
-        op_E9: JP(cpu, *cpu->HL); return;
+        op_E8: pc_inc(1); ADD_SP(cpu, readByteAndTick(cpu, cpu->PC - 1)); cpu->tickSystem(8); return;
+        op_E9: JP(cpu, cpu->HL); return;
         op_EA: ld_u16_A(); return;
         op_EB: printf("empty opcode\n"); return;
         op_EC: printf("empty opcode!\n"); return;
@@ -502,16 +487,16 @@ void stepCPU(cpu_t* cpu){
         op_EE: alu_im(XOR); return;
         op_EF: rst(0x28); return;
 
-        op_F0: pc_inc(1); LDH2(cpu, readByteAndTick(cpu, *cpu->PC - 1)); return;
+        op_F0: pc_inc(1); LDH2(cpu, readByteAndTick(cpu, cpu->PC - 1)); return;
         op_F1: pop(cpu->AF); splitFlagReg(cpu); return;
-        op_F2: LDH2(cpu, *cpu->C); return;
+        op_F2: LDH2(cpu, cpu->C); return;
         op_F3: DI(cpu); return;
         op_F4: printf("empty opcode!\n"); return;
         op_F5: composeFlagReg(cpu); push(cpu->AF); return;
         op_F6: alu_im(OR); return;
         op_F7: rst(0x30); return;
-        op_F8: pc_inc(1); LD_SP(cpu, readByteAndTick(cpu, *cpu->PC - 1)); cpu->tickSystem(4); return;
-        op_F9: cpu->tickSystem(4); *cpu->SP = *cpu->HL; return;
+        op_F8: pc_inc(1); LD_SP(cpu, readByteAndTick(cpu, cpu->PC - 1)); cpu->tickSystem(4); return;
+        op_F9: cpu->tickSystem(4); cpu->SP = cpu->HL; return;
         op_FA: ld_A_u16(); return;
         op_FB: EI(cpu); cpu->EI_DELAY = true; return;
         op_FC: printf("empty opcode!\n"); return;
@@ -825,7 +810,7 @@ static inline void STOP(cpu_t* cpu){
 }
 
 static inline void JR(cpu_t* cpu, int8_t d){
-    *cpu->PC += d;
+    cpu->PC += d;
     cpu->tickSystem(4);
 }
 
@@ -853,12 +838,12 @@ static inline void JRC(cpu_t* cpu, int8_t d){
     }
 }
 
-static inline void ADD_16(cpu_t* cpu, uint16_t* regDst, uint16_t* regSrc){
+static inline void ADD_16(cpu_t* cpu, uint16_t* regDst, uint16_t regSrc){
     cpu->N_FLAG = false;
-    cpu->C_FLAG = calculateCarry(16, *regDst, *regSrc, 0);
-    cpu->H_FLAG = calculateCarry(12, *regDst, *regSrc, 0);
+    cpu->C_FLAG = calculateCarry(16, *regDst, regSrc, 0);
+    cpu->H_FLAG = calculateCarry(12, *regDst, regSrc, 0);
 
-    *regDst += *regSrc;
+    *regDst += regSrc;
 }
 
 static inline void INC_16(cpu_t* cpu, uint16_t* reg){
@@ -890,27 +875,27 @@ static inline void DAA(cpu_t* cpu){
     //      https://forums.nesdev.org/viewtopic.php?t=15944
 
     if(!cpu->N_FLAG){  // after an addition, adjust if (half-)carry occurred or if result is out of bounds
-        if(cpu->C_FLAG || *cpu->A > 0x99){
-            *cpu->A += 0x60;
+        if(cpu->C_FLAG || cpu->A > 0x99){
+            cpu->A += 0x60;
             cpu->C_FLAG = true;
         }
         
-        if(cpu->H_FLAG || (*cpu->A & 0x0f) > 0x09)
-            *cpu->A += 0x6;
+        if(cpu->H_FLAG || (cpu->A & 0x0f) > 0x09)
+            cpu->A += 0x6;
     } else {  // after a subtraction, only adjust if (half-)carry occurred
         if(cpu->C_FLAG)
-            *cpu->A -= 0x60;
+            cpu->A -= 0x60;
         
         if(cpu->H_FLAG)
-            *cpu->A -= 0x6;
+            cpu->A -= 0x6;
     }
 
-    cpu->Z_FLAG = *cpu->A == 0;
+    cpu->Z_FLAG = cpu->A == 0;
     cpu->H_FLAG = false;
 }
 
 static inline void CPL(cpu_t* cpu){
-    *cpu->A = ~(*cpu->A);
+    cpu->A = ~(cpu->A);
     cpu->N_FLAG = true;
     cpu->H_FLAG = true;
 }
@@ -934,69 +919,69 @@ static inline void HLT(cpu_t* cpu){
 static inline void RETNZ(cpu_t* cpu){
     if(!cpu->Z_FLAG){
         cpu->tickSystem(4);
-        POP(cpu, cpu->PC);
+        POP(cpu, &cpu->PC);
     }
 }
 
 static inline void RETZ(cpu_t* cpu){
     if(cpu->Z_FLAG){
         cpu->tickSystem(4);
-        POP(cpu, cpu->PC);
+        POP(cpu, &cpu->PC);
     }
 }
 
 static inline void RETNC(cpu_t* cpu){
     if(!cpu->C_FLAG){
         cpu->tickSystem(4);
-        POP(cpu, cpu->PC);
+        POP(cpu, &cpu->PC);
     }
 }
 
 static inline void RETC(cpu_t* cpu){
     if(cpu->C_FLAG){
         cpu->tickSystem(4);
-        POP(cpu, cpu->PC);
+        POP(cpu, &cpu->PC);
     }
 }
 
 static inline void LDH1(cpu_t* cpu, uint8_t n){
-    writeByteAndTick(cpu, 0xFF00 + n, *cpu->A);
+    writeByteAndTick(cpu, 0xFF00 + n, cpu->A);
 }
 
 static inline void LDH2(cpu_t* cpu, uint8_t n){
-    *cpu->A = readByteAndTick(cpu, 0xFF00 + n);
+    cpu->A = readByteAndTick(cpu, 0xFF00 + n);
 }
 
 
 static inline void ADD_SP(cpu_t* cpu, int8_t n){
-    uint16_t res = *cpu->SP + n;
-    cpu->C_FLAG = calculateCarry(8, *cpu->SP, n, 0);
-    cpu->H_FLAG = calculateCarry(4, *cpu->SP, n, 0);
+    uint16_t res = cpu->SP + n;
+    cpu->C_FLAG = calculateCarry(8, cpu->SP, n, 0);
+    cpu->H_FLAG = calculateCarry(4, cpu->SP, n, 0);
 
-    *cpu->SP = res;
+    cpu->SP = res;
     cpu->Z_FLAG = false;
     cpu->N_FLAG = false;
 }
 
 static inline void LD_SP(cpu_t* cpu, int8_t n){
-    uint16_t tmp = *cpu->SP;
+    uint16_t tmp = cpu->SP;
     ADD_SP(cpu, n);
-    *cpu->HL = *cpu->SP;
-    *cpu->SP = tmp;
+    cpu->HL = cpu->SP;
+    cpu->SP = tmp;
 }
 
 static inline void POP(cpu_t* cpu, uint16_t* reg){
-    *reg = readShortAndTick(cpu, *cpu->SP);
-    *cpu->SP = *cpu->SP + 2; 
+    *reg = readShortAndTick(cpu, cpu->SP);
+    cpu->SP += 2; 
 }
 
 static inline void RET(cpu_t* cpu){
-    POP(cpu, cpu->PC);
+    POP(cpu, &cpu->PC);
     cpu->tickSystem(4);
 }
 
 static inline void JP(cpu_t* cpu, uint16_t val){
-    *cpu->PC = val;
+    cpu->PC = val;
 }
 
 static inline void JPNZ(cpu_t* cpu, uint16_t val){
@@ -1036,8 +1021,8 @@ static inline void EI(cpu_t* cpu){
 }
 
 static inline void CALL(cpu_t* cpu, uint16_t val){
-    PUSH(cpu, *cpu->PC);
-    *cpu->PC = val;
+    PUSH(cpu, cpu->PC);
+    cpu->PC = val;
 }
 
 static inline void CALLNZ(cpu_t* cpu, uint16_t val){
@@ -1069,9 +1054,9 @@ static inline void CALLC(cpu_t* cpu, uint16_t val){
 }
 
 static inline void PUSH(cpu_t* cpu, uint16_t val){
-    writeByteAndTick(cpu, *cpu->SP - 1, val >> 8);
-    writeByteAndTick(cpu, *cpu->SP - 2, val & 0xFF);
-    *cpu->SP = *cpu->SP - 2;
+    writeByteAndTick(cpu, cpu->SP - 1, val >> 8);
+    writeByteAndTick(cpu, cpu->SP - 2, val & 0xFF);
+    cpu->SP -= 2;
 }
 
 static inline void RST(cpu_t* cpu, uint8_t addr){
@@ -1079,38 +1064,38 @@ static inline void RST(cpu_t* cpu, uint8_t addr){
 }
 
 static inline void RLCA(cpu_t* cpu){
-    cpu->C_FLAG = *cpu->A & 0b10000000;
+    cpu->C_FLAG = cpu->A & 0b10000000;
     cpu->H_FLAG = false;
     cpu->N_FLAG = false;
     cpu->Z_FLAG = false;
 
-    *cpu->A = (*cpu->A << 1) | (cpu->C_FLAG);
+    cpu->A = (cpu->A << 1) | (cpu->C_FLAG);
 }
 
 static inline void RRCA(cpu_t* cpu){
-    cpu->C_FLAG = *cpu->A & 0b1;
+    cpu->C_FLAG = cpu->A & 0b1;
     cpu->H_FLAG = false;
     cpu->N_FLAG = false;
     cpu->Z_FLAG = false;
-    *cpu->A = (*cpu->A >> 1) | (cpu->C_FLAG << 7);
+    cpu->A = (cpu->A >> 1) | (cpu->C_FLAG << 7);
 }
 
 static inline void RLA(cpu_t* cpu){
     bool old_carry = cpu->C_FLAG;
-    cpu->C_FLAG = *cpu->A & 0b10000000;
+    cpu->C_FLAG = cpu->A & 0b10000000;
     cpu->H_FLAG = false;
     cpu->N_FLAG = false;
     cpu->Z_FLAG = false;
-    *cpu->A = (*cpu->A << 1) | old_carry;
+    cpu->A = (cpu->A << 1) | old_carry;
 }
 
 static inline void RRA(cpu_t* cpu){
     bool old_carry = cpu->C_FLAG;
-    cpu->C_FLAG = *cpu->A & 0b1;
+    cpu->C_FLAG = cpu->A & 0b1;
     cpu->H_FLAG = false;
     cpu->N_FLAG = false;
     cpu->Z_FLAG = false;
-    *cpu->A = (*cpu->A >> 1) | (old_carry << 7);
+    cpu->A = (cpu->A >> 1) | (old_carry << 7);
 }
 
 static inline void RLC(cpu_t* cpu, uint8_t* reg){
@@ -1308,18 +1293,18 @@ static inline bool calculateCarry(int bit, uint16_t a, uint16_t b, bool cy) {
 }
 
 static inline void composeFlagReg(cpu_t* cpu){
-    *cpu->F = 0;
-    *cpu->F |= cpu->Z_FLAG << 7;
-    *cpu->F |= cpu->N_FLAG << 6;
-    *cpu->F |= cpu->H_FLAG << 5;
-    *cpu->F |= cpu->C_FLAG << 4;
+    cpu->F = 0;
+    cpu->F |= cpu->Z_FLAG << 7;
+    cpu->F |= cpu->N_FLAG << 6;
+    cpu->F |= cpu->H_FLAG << 5;
+    cpu->F |= cpu->C_FLAG << 4;
 }
 
 static inline void splitFlagReg(cpu_t* cpu){
-    cpu->Z_FLAG = *cpu->F & SET_Z;
-    cpu->N_FLAG = *cpu->F & SET_N;
-    cpu->H_FLAG = *cpu->F & SET_H;
-    cpu->C_FLAG = *cpu->F & SET_C;
+    cpu->Z_FLAG = cpu->F & SET_Z;
+    cpu->N_FLAG = cpu->F & SET_N;
+    cpu->H_FLAG = cpu->F & SET_H;
+    cpu->C_FLAG = cpu->F & SET_C;
 }
 
 uint8_t readByteAndTick(cpu_t* cpu, uint16_t addr){

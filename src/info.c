@@ -361,6 +361,8 @@ void printInfo(uint8_t* buffer){
     printf("MANUFACTURER: %s\n", getManufacturerName(buffer));
     printf("CARTRIDGE TYPE: %s\n", getCartridgeType(buffer));
 
+    printf("CGB COMPATIBILITY: 0x%02X\n", buffer[0x143]);
+
     printf("ROM VERSION NUMBER: 0x%02X\n", buffer[0x14C]);
     printf("HEADER CHECKSUM: 0x%02X\n", buffer[0x14D]);
     printf("GLOBAL CHECKSUM: 0x%02X 0x%02X\n", buffer[0x14E], buffer[0x14F]);
