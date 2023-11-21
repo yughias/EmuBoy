@@ -1,5 +1,5 @@
-#include <gb_timer.h>
-#include <hardware.h>
+#include "gb_timer.h"
+#include "hardware.h"
 
 uint8_t TIMA_REG;
 uint8_t TMA_REG;

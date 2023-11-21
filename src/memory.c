@@ -1,5 +1,5 @@
-#include <hardware.h>
-#include <info.h>
+#include "hardware.h"
+#include "info.h"
 
 #include "memory_table.h"
 

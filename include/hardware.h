@@ -1,15 +1,15 @@
 #ifndef __HARDWARE_H__
 #define __HARDWARE_H__
 
-#include <cpu.h>
-#include <ppu.h>
-#include <memory.h>
-#include <joypad.h>
-#include <dma.h>
-#include <mbc.h>
-#include <apu.h>
-#include <gb_timer.h>
-#include <serial.h>
+#include "cpu.h"
+#include "ppu.h"
+#include "memory.h"
+#include "joypad.h"
+#include "dma.h"
+#include "mbc.h"
+#include "apu.h"
+#include "gb_timer.h"
+#include "serial.h"
 
 #define CYCLES_PER_FRAME 70224
 #define SCALINE_CYCLES 456

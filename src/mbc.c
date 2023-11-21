@@ -2,6 +2,7 @@
 #include <memory.h>
 
 #include <stdio.h>
+#include <string.h>
 
 readFunc mbc_mapper_0000_3FFF;
 readFunc mbc_mapper_4000_7FFF;
@@ -25,6 +26,7 @@ uint8_t RTC_0B;
 uint8_t RTC_0C;
 
 bool hasBattery;
+bool firstWrite;
 
 #define MAP_RTC(addr) case 0x ## addr: return &RTC_ ## addr
 
@@ -174,6 +176,24 @@ void mbc_advanced_registers(uint16_t addr, uint8_t byte){
         MBC_6000_7FFF = byte;
 }
 
+uint8_t m161_0000_3FFF(uint16_t addr){
+    size_t real_addr = addr | (MBC_0000_1FFF << 15);
+    return ROM[real_addr];
+}
+
+uint8_t m161_4000_7FFF(uint16_t addr){
+    size_t real_addr = addr | (MBC_0000_1FFF << 15);
+    return ROM[real_addr];
+}
+
+void m161_registers(uint16_t addr, uint8_t byte){
+    if(!firstWrite){
+        firstWrite = true;
+        MBC_0000_1FFF = byte;
+        MBC_0000_1FFF &= (ROM_SIZE - 1) >> 15;
+    }
+}
+
 void detectMBC(){
     mbc_rom_write = mbc_standard_registers;
     MBC_0000_1FFF = 0x00;
@@ -188,6 +208,16 @@ void detectMBC(){
     RTC_0B = 0x00;
     RTC_0C = 0x00;
     hasBattery = false;
+
+    if(detectM161(ROM)){
+        printf("M161 DETECTED!\n");
+        firstWrite = false;
+        mbc_rom_write = m161_registers;
+        mbc_mapper_0000_3FFF = m161_0000_3FFF;
+        mbc_mapper_4000_7FFF = m161_4000_7FFF;
+        mbc_mapper_A000_BFFF = noMappedAdress;
+        return;
+    }
 
     switch(ROM[0x147]){
         case 0x01:
@@ -260,4 +290,12 @@ void detectMBC(){
         mbc_mapper_A000_BFFF = noMappedAdress;
         break;
     }
+}
+
+bool detectM161(const uint8_t* buf){
+    if(!strncmp(&buf[0x134], "TETRIS SET", strlen("TETRIS SET")))
+        if(buf[0x14D] == 0x3F && buf[0x14E] == 0x4C && buf[0x14F] == 0xB7)
+            return true;
+    
+    return false;
 }

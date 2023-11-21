@@ -1,7 +1,7 @@
 #ifndef __JOYPAD_H__
 #define __JOYPAD_H__
 
-#include <SDL_MAINLOOP.h>
+#include "SDL_MAINLOOP.h"
 
 #define LEFT_KEY SDL_SCANCODE_LEFT
 #define RIGHT_KEY SDL_SCANCODE_RIGHT

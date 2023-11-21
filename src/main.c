@@ -1,7 +1,7 @@
-#include <SDL_MAINLOOP.h>
-#include <hardware.h>
-#include <gameshark.h>
-#include <info.h>
+#include "SDL_MAINLOOP.h"
+#include "hardware.h"
+#include "gameshark.h"
+#include "info.h"
 
 #include <stdio.h>
 #include <stdlib.h>

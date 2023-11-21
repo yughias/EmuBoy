@@ -1,4 +1,5 @@
-#include <info.h>
+#include "info.h"
+#include "mbc.h"
 
 #include <string.h>
 #include <stdio.h>
@@ -291,6 +292,9 @@ const char* getManufacturerName(uint8_t* buffer){
 }
 
 const char* getCartridgeType(uint8_t* buffer){
+    if(detectM161(buffer))
+        return "M161";
+
     return cartridge_type[buffer[0x147]];
 }
 

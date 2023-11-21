@@ -1,4 +1,4 @@
-#include <hardware.h>
+#include "hardware.h"
 #include "memory_table.h"
 
 readFunc readTable[0x100];

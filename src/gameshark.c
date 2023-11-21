@@ -1,5 +1,5 @@
 #include "gameshark.h"
-#include <hardware.h>
+#include "hardware.h"
 
 #include <stdio.h>
 #include <stdlib.h>
