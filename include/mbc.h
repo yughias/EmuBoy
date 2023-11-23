@@ -18,5 +18,7 @@ extern bool hasBattery;
 
 void detectMBC();
 bool detectM161(const uint8_t*);
+bool detectMMM01(const uint8_t*);
+bool containNintendoLogo(const uint8_t*);
 
 #endif

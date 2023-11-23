@@ -4,7 +4,6 @@
 #include <stdint.h>
 #include <stdbool.h>
 
-bool containNintendoLogo(uint8_t*);
 bool isNewLinceseeCode(uint8_t*);
 const char* getRomName(uint8_t*);
 const char* getManufacturerName(uint8_t*);

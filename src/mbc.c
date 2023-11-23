@@ -26,7 +26,7 @@ uint8_t RTC_0B;
 uint8_t RTC_0C;
 
 bool hasBattery;
-bool firstWrite;
+bool alreadyWrite;
 
 #define MAP_RTC(addr) case 0x ## addr: return &RTC_ ## addr
 
@@ -182,10 +182,72 @@ uint8_t m161_rom(uint16_t addr){
 }
 
 void m161_registers(uint16_t addr, uint8_t byte){
-    if(!firstWrite){
-        firstWrite = true;
+    if(!alreadyWrite){
+        alreadyWrite = true;
         MBC_0000_1FFF = byte;
         MBC_0000_1FFF &= (ROM_SIZE - 1) >> 15;
+    }
+}
+
+uint8_t mmm01_0000_3FFF(uint16_t addr){
+    size_t real_addr = addr;
+    
+    if(alreadyWrite){
+        real_addr += MBC_2000_2FFF << 14;
+    } else {
+        real_addr += ROM_SIZE - (1 << 15);
+    }
+
+    real_addr &= ROM_SIZE - 1;
+    return ROM[real_addr];
+}
+
+uint8_t mmm01_4000_7FFF(uint16_t addr){
+    size_t real_addr = addr;
+    
+     if(alreadyWrite){
+        real_addr &= 0x3FFF;
+        real_addr += MBC_2000_2FFF << 14;
+        real_addr += MBC_3000_3FFF << 14;
+    } else {
+        real_addr += ROM_SIZE - (1 << 15);
+    }
+
+    real_addr &= ROM_SIZE - 1;
+    return ROM[real_addr];
+}
+
+uint8_t* mmm01_ram(uint16_t addr){
+    if((MBC_0000_1FFF & 0b1111) != 0xA){
+        NOT_MAPPED = 0xFF;
+        return &NOT_MAPPED;
+    }
+
+    size_t real_addr = (MBC_4000_5FFF << 13) + (addr & 0x1FFF);
+    real_addr &= ERAM_SIZE - 1;
+    return ERAM + real_addr;
+}
+
+void mmm01_registers(uint16_t addr, uint8_t byte){
+    if(addr < 0x2000){
+        // MBC_0000_1FFF : ram_enable
+        if(!alreadyWrite)
+            alreadyWrite = true;
+        else 
+            MBC_0000_1FFF = byte;
+    } else if(addr < 0x4000){
+        // MBC_2000_2FFF : rom_base
+        // MBC_3000_3FFF : rom_select
+        if(!alreadyWrite){
+            MBC_2000_2FFF = byte & 0x3F;
+        } else {
+            MBC_3000_3FFF = byte;
+        }
+    } else if(addr < 0x6000){
+        // MBC_4000_5FFF : ram_select
+        if(alreadyWrite){
+            MBC_4000_5FFF = byte;
+        }
     }
 }
 
@@ -203,14 +265,24 @@ void detectMBC(){
     RTC_0B = 0x00;
     RTC_0C = 0x00;
     hasBattery = false;
+    alreadyWrite = false;
 
     if(detectM161(ROM)){
         printf("M161 DETECTED!\n");
-        firstWrite = false;
         mbc_rom_write = m161_registers;
         mbc_mapper_0000_3FFF = m161_rom;
         mbc_mapper_4000_7FFF = m161_rom;
         mbc_mapper_A000_BFFF = noMappedAdress;
+        return;
+    }
+
+    if(detectMMM01(ROM)){
+        printf("MMM01 DETECTED!\n");
+        MBC_3000_3FFF = 0x01;
+        mbc_rom_write = mmm01_registers;
+        mbc_mapper_0000_3FFF = mmm01_0000_3FFF;
+        mbc_mapper_4000_7FFF = mmm01_4000_7FFF;
+        mbc_mapper_A000_BFFF = mmm01_ram;
         return;
     }
 
@@ -293,4 +365,23 @@ bool detectM161(const uint8_t* buf){
             return true;
     
     return false;
+}
+
+bool detectMMM01(const uint8_t* buf){
+    if(containNintendoLogo(buf + ROM_SIZE - (1 << 15)))
+        return true;
+    return false;
+}
+
+bool containNintendoLogo(const uint8_t* buffer){
+    static uint8_t nintendo_logo[48] = {
+        0xCE, 0xED, 0x66, 0x66, 0xCC, 0x0D, 0x00, 0x0B, 
+        0x03, 0x73, 0x00, 0x83, 0x00, 0x0C, 0x00, 0x0D,
+        0x00, 0x08, 0x11, 0x1F, 0x88, 0x89, 0x00, 0x0E, 
+        0xDC, 0xCC, 0x6E, 0xE6, 0xDD, 0xDD, 0xD9, 0x99,
+        0xBB, 0xBB, 0x67, 0x63, 0x6E, 0x0E, 0xEC, 0xCC, 
+        0xDD, 0xDC, 0x99, 0x9F, 0xBB, 0xB9, 0x33, 0x3E
+    };
+
+    return !memcmp(&buffer[0x104], nintendo_logo, sizeof(nintendo_logo)) ? true : false;
 }
