@@ -368,6 +368,10 @@ bool detectM161(const uint8_t* buf){
 }
 
 bool detectMMM01(const uint8_t* buf){
+    if(ROM_SIZE == (1 << 15)){
+        return false;
+    }
+
     if(containNintendoLogo(buf + ROM_SIZE - (1 << 15)))
         return true;
     return false;
