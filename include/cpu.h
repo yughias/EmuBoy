@@ -29,7 +29,16 @@ typedef struct cpu_t {
     union {
         uint16_t AF;
         struct {
-            uint8_t F;
+            union {
+                uint8_t F;
+                struct {
+                    uint8_t UNUSED_FLAG : 4;
+                    bool C_FLAG : 1;
+                    bool H_FLAG : 1;
+                    bool N_FLAG : 1;
+                    bool Z_FLAG : 1;
+                };
+            };
             uint8_t A;
         };
     };
@@ -60,12 +69,6 @@ typedef struct cpu_t {
 
     uint16_t SP;
     uint16_t PC;
-
-    // bool flags
-    bool Z_FLAG;
-    bool N_FLAG;
-    bool H_FLAG;
-    bool C_FLAG;
 
     // busFunc
     readFunc readByte;

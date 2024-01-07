@@ -120,8 +120,6 @@ static inline void RETI(cpu_t*);
 
 // cpu utility function
 static inline bool calculateCarry(int, uint16_t, uint16_t, bool);
-static inline void composeFlagReg(cpu_t*);
-static inline void splitFlagReg(cpu_t*);
 static inline void prefix_CB(cpu_t*, uint8_t opcode);
 
 uint8_t readByteAndTick(cpu_t*, uint16_t);
@@ -138,8 +136,6 @@ void initCPU(cpu_t* cpu){
     cpu->HL = 0x0000;
     cpu->SP = 0x0000;
     cpu->PC = 0x0000;
-    
-    splitFlagReg(cpu);
 
     cpu->HALTED = false;
     cpu->IME = false;
@@ -149,17 +145,11 @@ void initCPU(cpu_t* cpu){
 }
 
 void infoCPU(cpu_t* cpu){
-    uint8_t old_F = cpu->F;
-
-    composeFlagReg(cpu);
-
     fprintf(stderr, "A: %02X F: %02X B: %02X C: %02X D: %02X E: %02X H: %02X L: %02X ",
             cpu->A, cpu->F, cpu->B, cpu->C, cpu->D, cpu->E, cpu->H, cpu->L);
 
     fprintf(stderr, "SP: %04X PC: 00:%04X (%02X %02X %02X %02X)\n",
             cpu->SP, cpu->PC, cpu->readByte(cpu->PC), cpu->readByte(cpu->PC+1), cpu->readByte(cpu->PC+2), cpu->readByte(cpu->PC+3));
-
-    cpu->F = old_F;
 }
 
 static inline void dispatchInterrupt(cpu_t* cpu){
@@ -488,11 +478,11 @@ void stepCPU(cpu_t* cpu){
         op_EF: rst(0x28); return;
 
         op_F0: pc_inc(1); LDH2(cpu, readByteAndTick(cpu, cpu->PC - 1)); return;
-        op_F1: pop(cpu->AF); splitFlagReg(cpu); return;
+        op_F1: pop(cpu->AF); cpu->UNUSED_FLAG = 0; return;
         op_F2: LDH2(cpu, cpu->C); return;
         op_F3: DI(cpu); return;
         op_F4: printf("empty opcode!\n"); return;
-        op_F5: composeFlagReg(cpu); push(cpu->AF); return;
+        op_F5: push(cpu->AF); return;
         op_F6: alu_im(OR); return;
         op_F7: rst(0x30); return;
         op_F8: pc_inc(1); LD_SP(cpu, readByteAndTick(cpu, cpu->PC - 1)); cpu->tickSystem(4); return;
@@ -1290,21 +1280,6 @@ static inline bool calculateCarry(int bit, uint16_t a, uint16_t b, bool cy) {
   int32_t result = a + b + cy;
   int32_t carry = result ^ a ^ b;
   return carry & (1 << bit);
-}
-
-static inline void composeFlagReg(cpu_t* cpu){
-    cpu->F = 0;
-    cpu->F |= cpu->Z_FLAG << 7;
-    cpu->F |= cpu->N_FLAG << 6;
-    cpu->F |= cpu->H_FLAG << 5;
-    cpu->F |= cpu->C_FLAG << 4;
-}
-
-static inline void splitFlagReg(cpu_t* cpu){
-    cpu->Z_FLAG = cpu->F & SET_Z;
-    cpu->N_FLAG = cpu->F & SET_N;
-    cpu->H_FLAG = cpu->F & SET_H;
-    cpu->C_FLAG = cpu->F & SET_C;
 }
 
 uint8_t readByteAndTick(cpu_t* cpu, uint16_t addr){
