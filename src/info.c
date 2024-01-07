@@ -285,6 +285,9 @@ const char* getCartridgeType(uint8_t* buffer){
     if(detectMMM01(buffer))
         return "MMM01";
 
+    if(detectMBC1M(buffer))
+        return "MBC1M";
+
     return cartridge_type[buffer[0x147]];
 }
 

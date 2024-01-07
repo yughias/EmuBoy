@@ -251,6 +251,30 @@ void mmm01_registers(uint16_t addr, uint8_t byte){
     }
 }
 
+uint8_t mbc1m_0000_3FFF(uint16_t addr){
+    addr &= (1 << 14) - 1;
+    if(MBC_6000_7FFF & 0b1){
+        size_t real_addr = addr;
+        uint8_t rom_bank = (MBC_2000_3FFF & 0b1111) | ((MBC_4000_5FFF & 0b11) << 5);
+        rom_bank = ((rom_bank >> 1) & 0x30);
+        real_addr |= rom_bank << 14;
+        real_addr &= ROM_SIZE - 1;  
+        return ROM[real_addr];
+    } 
+    
+    return ROM[addr];
+}
+
+uint8_t mbc1m_4000_7FFF(uint16_t addr){
+    size_t real_addr = addr;
+    real_addr &= (1 << 14) - 1;
+    uint8_t rom_bank = (MBC_2000_3FFF & 0b1111) | ((MBC_4000_5FFF & 0b11) << 5);
+    rom_bank = ((rom_bank >> 1) & 0x30) | (rom_bank & 0x0F);
+    real_addr |= rom_bank << 14;
+    real_addr &= ROM_SIZE - 1;
+    return ROM[real_addr];
+}
+
 void detectMBC(){
     mbc_rom_write = mbc_standard_registers;
     MBC_0000_1FFF = 0x00;
@@ -265,7 +289,7 @@ void detectMBC(){
     RTC_0B = 0x00;
     RTC_0C = 0x00;
     hasBattery = false;
-    alreadyWrite = false;
+    alreadyWrite = false;    
 
     if(detectM161(ROM)){
         printf("M161 DETECTED!\n");
@@ -283,6 +307,14 @@ void detectMBC(){
         mbc_mapper_0000_3FFF = mmm01_0000_3FFF;
         mbc_mapper_4000_7FFF = mmm01_4000_7FFF;
         mbc_mapper_A000_BFFF = mmm01_ram;
+        return;
+    }
+
+    if(detectMBC1M(ROM)){
+        printf("MBC1M DETECTED\n");
+        mbc_mapper_0000_3FFF = mbc1m_0000_3FFF;
+        mbc_mapper_4000_7FFF = mbc1m_4000_7FFF;
+        mbc_mapper_A000_BFFF = noMappedAdress;
         return;
     }
 
@@ -377,8 +409,18 @@ bool detectMMM01(const uint8_t* buf){
     return false;
 }
 
+bool detectMBC1M(const uint8_t* buf){
+    int nintendo_logo_size = 48; 
+    int nintendo_logo_postion = 0x10 << 14;
+    if(ROM_SIZE < nintendo_logo_postion + 0x100 + nintendo_logo_size)
+        return false;
+
+    if(containNintendoLogo(buf + nintendo_logo_postion))
+        return true;
+}
+
 bool containNintendoLogo(const uint8_t* buffer){
-    static uint8_t nintendo_logo[48] = {
+    const uint8_t nintendo_logo[48] = {
         0xCE, 0xED, 0x66, 0x66, 0xCC, 0x0D, 0x00, 0x0B, 
         0x03, 0x73, 0x00, 0x83, 0x00, 0x0C, 0x00, 0x0D,
         0x00, 0x08, 0x11, 0x1F, 0x88, 0x89, 0x00, 0x0E, 
@@ -387,5 +429,8 @@ bool containNintendoLogo(const uint8_t* buffer){
         0xDD, 0xDC, 0x99, 0x9F, 0xBB, 0xB9, 0x33, 0x3E
     };
 
-    return !memcmp(&buffer[0x104], nintendo_logo, sizeof(nintendo_logo)) ? true : false;
+    bool out = memcmp(&buffer[0x104], nintendo_logo, sizeof(nintendo_logo)); 
+    
+
+    return !out;
 }
