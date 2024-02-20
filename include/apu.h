@@ -100,4 +100,6 @@ void setChannel2Timer();
 void setChannel3Timer();
 void setChannel4Timer();
 
+void turnOffAudioChannels();
+
 #endif

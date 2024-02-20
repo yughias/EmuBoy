@@ -1,6 +1,7 @@
 #ifndef __PPU_H__
 #define __PPU_H__
 
+#include <stddef.h>
 #include <stdint.h>
 #include <stdbool.h>
 
@@ -72,6 +73,6 @@ void renderLine(uint8_t);
 void updatePPU();
 uint8_t getStatRegister();
 
-extern int vblank_counter;
+extern int* renderBufferPtr;
 
 #endif

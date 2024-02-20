@@ -1,6 +1,7 @@
 #ifndef __INFO_H__
 #define __INFO_H__
 
+#include <stddef.h>
 #include <stdint.h>
 #include <stdbool.h>
 

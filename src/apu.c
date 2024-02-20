@@ -518,3 +518,10 @@ void setChannel2Timer(){ ch2_length_timer = 64 - getLengthTimer(NR21_REG); }
 void setChannel3Timer(){ ch3_length_timer = 256 - NR31_REG; }
 
 void setChannel4Timer(){ ch4_length_timer = 64 - getLengthTimer(NR41_REG); }
+
+void turnOffAudioChannels(){
+    ch1_on = false;
+    ch2_on = false;
+    ch3_on = false;
+    ch4_on = false;
+}

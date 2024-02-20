@@ -155,11 +155,12 @@ void mbc_standard_registers(uint16_t addr, uint8_t byte){
 }
 
 void mbc2_registers(uint16_t addr, uint8_t byte){
-    if(addr < 0x4000)
+    if(addr < 0x4000){
         if(!(addr & 0x100))
             MBC_0000_1FFF = byte;
         else
             MBC_2000_3FFF = byte;
+    }
 }
 
 
@@ -392,7 +393,7 @@ void detectMBC(){
 }
 
 bool detectM161(const uint8_t* buf){
-    if(!strncmp(&buf[0x134], "TETRIS SET", strlen("TETRIS SET")))
+    if(!strncmp((const char*)&buf[0x134], "TETRIS SET", strlen("TETRIS SET")))
         if(buf[0x14D] == 0x3F && buf[0x14E] == 0x4C && buf[0x14F] == 0xB7)
             return true;
     
@@ -417,6 +418,8 @@ bool detectMBC1M(const uint8_t* buf){
 
     if(containNintendoLogo(buf + nintendo_logo_postion))
         return true;
+
+    return false;
 }
 
 bool containNintendoLogo(const uint8_t* buffer){

@@ -1283,9 +1283,8 @@ static inline bool calculateCarry(int bit, uint16_t a, uint16_t b, bool cy) {
 }
 
 uint8_t readByteAndTick(cpu_t* cpu, uint16_t addr){
-    cpu->tickSystem(3);
     uint8_t byte = cpu->readByte(addr);
-    cpu->tickSystem(1);
+    cpu->tickSystem(4);
     return byte;
 }
 
@@ -1294,9 +1293,8 @@ uint16_t readShortAndTick(cpu_t* cpu, uint16_t addr){
 }
 
 void writeByteAndTick(cpu_t* cpu, uint16_t addr, uint8_t byte){
-    cpu->tickSystem(3);
     cpu->writeByte(addr, byte);
-    cpu->tickSystem(1);
+    cpu->tickSystem(4);
 }
 
 void writeShortAndTick(cpu_t* cpu, uint16_t addr, uint16_t val){

@@ -1,8 +1,11 @@
 #include "SDL_MAINLOOP.h"
 #include "serial.h"
 #include "hardware.h"
+
+#ifndef __EMSCRIPTEN__
 #include "p2p.h"
 #include "ini.h"
+#endif
 
 #include <stdint.h>
 #include <string.h>
@@ -10,12 +13,17 @@
 uint8_t SB_REG;
 uint8_t SC_REG;
 
+#ifndef __EMSCRIPTEN__
 P2P_connection p2p;
+#endif
 
 size_t serial_counter = 0;
 enum SERIAL_MODE { SLAVE, MASTER }  serial_mode;
 
 void initSerial(){
+    #ifdef __EMSCRIPTEN__
+    return;
+    #else
     P2P_init(&p2p);
     if(!load_network_config()){
         return;
@@ -26,10 +34,13 @@ void initSerial(){
     P2P_establishConnection(&p2p);
 
     serial_mode = SLAVE;
+    #endif
 }
 
 void freeSerial(){
+    #ifndef __EMSCRIPTEN__
     P2P_close(&p2p);
+    #endif
 }
 
 void updateSerial(){
@@ -38,6 +49,7 @@ void updateSerial(){
 
     serial_counter = 4096;
 
+    #ifndef __EMSCRIPTEN__
     if(p2p.connection_established){
         switch(serial_mode){
             case SLAVE:
@@ -63,7 +75,9 @@ void updateSerial(){
             serial_mode = SLAVE;  
             break;
         }
-    } else {
+    } else 
+    #endif
+    {
         if((SC_REG & 0x80) && (SC_REG & 0x01)){
             SB_REG = 0xFF;
             SC_REG &= 0x7F;
@@ -71,6 +85,8 @@ void updateSerial(){
         }  
     }      
 }
+
+#ifndef __EMSCRIPTEN__
 
 bool load_network_config(){
     char ini_path[FILENAME_MAX];
@@ -100,3 +116,5 @@ bool load_network_config(){
 
     return true;
 }
+
+#endif

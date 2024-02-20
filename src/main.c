@@ -17,6 +17,7 @@ void closeEmulator(){
 }
 
 void setup(){
+    setScaleMode(NEAREST);
     size(LCD_WIDTH, LCD_HEIGHT);
     setTitle(u8"エミュボーイ");
     frameRate(REFRESH_RATE);
@@ -25,8 +26,6 @@ void setup(){
     getAbsoluteDir(logoPath);
     strcat(logoPath, "data/logo.bmp");
     setWindowIcon(logoPath);
-
-    setScaleMode(NEAREST);
 
     if(getArgc() != 2){
         printf("emulator.exe <rom name>\n");
@@ -40,6 +39,7 @@ void setup(){
     initAudio();
     initSerial();
     initJoypad();
+    initPaletteRGB();
 
     char bootromName[FILENAME_MAX];
     getAbsoluteDir(bootromName);
@@ -59,7 +59,6 @@ void setup(){
     printInfo(ROM);
 
     onExit = closeEmulator;
-    noRender();
 }
 
 void loop(){
@@ -81,9 +80,6 @@ void loop(){
     }
     #endif
 
-    if(frameCount == 1)
-        initPaletteRGB();
-
     const Uint8* keystate = SDL_GetKeyboardState(NULL);
     #ifndef SPEED_TEST
     int speed = keystate[SDL_SCANCODE_TAB] ? 16 : 1;
@@ -93,12 +89,30 @@ void loop(){
     for(int i = 0; i < speed; i++)
         emulateHardware(&cpu);
 
-    //drawBgRamAt(width/2, 0);
-    //drawWinRamAt(width/2, height/2);
+    memcpy(pixels, renderBufferPtr, sizeof(int)*LCD_WIDTH*LCD_HEIGHT);
 
-    bool bigSprite = LCDC_REG && OBJ_SIZE_MASK;
+    /*
+    drawBgRamAt(width/2, 0);
+    drawWinRamAt(width/2, height/2);
+
+    bool bigSprite = LCDC_REG & OBJ_SIZE_MASK;
     int offY = bigSprite ? 16 : 8;
     for(int i = 0; i < 40; i++){
-        //drawOAMAt((i%8)*8, height/2+(i/8)*offY, i);
+        drawOAMAt((i%8)*8, height/2+(i/8)*offY, i);
     }
+    */
 }
+
+#ifdef __EMSCRIPTEN__
+
+void emscripten_loadRom(const char* filename){
+    setFilename(filename);
+
+    turnOffAudioChannels();
+    freeMemory();
+    initMemory(romName);
+    
+    skipBootrom();
+}
+
+#endif

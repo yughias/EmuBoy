@@ -66,7 +66,7 @@ void setTitle(const char*);
 void setWindowIcon(const char*);
 Uint64 millis();
 void fullScreen();
-void background(int, int, int);
+void background(int);
 int color(int, int, int);
 int red(int);
 int green(int);

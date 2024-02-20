@@ -270,7 +270,7 @@ const char* getManufacturerName(uint8_t* buffer){
         return old_licensee_code[idx];
     else {
         for(size_t i = 0; i < new_licensee_list_size; i++){
-            if(!strncmp(&buffer[0x144], new_licensee_list[i].code, 2))
+            if(!strncmp((const char*)&buffer[0x144], new_licensee_list[i].code, 2))
                 return new_licensee_list[i].manufacturer;
         }
     }
@@ -316,6 +316,9 @@ size_t getRamSize(uint8_t* buffer){
         case 0x05:
         return 1 << 16;
     }
+
+    printf("UNKNOWN RAM SIZE\n");
+    return 0;
 }
 
 void printInfo(uint8_t* buffer){
@@ -347,9 +350,9 @@ void printInfo(uint8_t* buffer){
     if(buffer[0x146] == 0x03)
         printf("SGB SUPPORTED\n");
 
-    printf("ROM SIZE: %llu\n", getRomSize(buffer));
+    printf("ROM SIZE: %zu\n", getRomSize(buffer));
 
-    printf("RAM SIZE: %llu ", getRamSize(buffer));
+    printf("RAM SIZE: %zu ", getRamSize(buffer));
     if(buffer[0x147] == 0x05 || buffer[0x147] == 0x06)
         printf("x 4 BITS\n");
     else

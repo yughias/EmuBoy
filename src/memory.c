@@ -42,6 +42,10 @@ void initMemory(const char* romName){
     gb_timer.delay = 0x00;
     gb_timer.ignore_write = false;
 
+    memset(OAM, 0, OAM_SIZE);
+    memset(WRAM, 0, WRAM_SIZE);
+    memset(VRAM, 0, VRAM_SIZE);
+
     ERAM_SIZE = getRamSize(ROM);
     detectMBC();
     if(hasBattery)
@@ -98,6 +102,8 @@ bool loadBootRom(const char* filename){
 
 void loadSav(const char* filename){
     FILE* fptr = fopen(filename, "rb");
+    if(!fptr)
+        return;
     fread(ERAM, 1, ERAM_SIZE, fptr);
     fclose(fptr);
 }

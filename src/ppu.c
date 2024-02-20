@@ -4,6 +4,11 @@
 
 #include <stdlib.h>
 
+int workingBuffer[LCD_WIDTH*LCD_HEIGHT];
+int renderBuffer[LCD_WIDTH*LCD_HEIGHT];
+int* workingBufferPtr = &workingBuffer[0];
+int* renderBufferPtr = &renderBuffer[0];
+
 int colorRGB[4];
 PPU_MODE ppu_mode;
 bool lyc_compare;
@@ -32,6 +37,8 @@ typedef struct {
     int y;
 } sprite_info;
 
+void swapBuffers();
+
 int sprite_order_compare(const void* a, const void* b){
     sprite_info* sprite_a = (sprite_info*)a;
     sprite_info* sprite_b = (sprite_info*)b;
@@ -43,10 +50,10 @@ int sprite_order_compare(const void* a, const void* b){
 }
 
 void initPaletteRGB(){
-    colorRGB[3] = color(8, 24, 32);
-    colorRGB[2] = color(52, 104, 86);
-    colorRGB[1] = color(136, 192, 112);
-    colorRGB[0] = color(224, 248, 208);
+    colorRGB[3] = color(46, 65, 57);
+    colorRGB[2] = color(64, 89, 74);
+    colorRGB[1] = color(95, 120, 66);
+    colorRGB[0] = color(123, 129, 17);
 }
 
 void drawBgRamAt(int screenX, int screenY){
@@ -143,7 +150,7 @@ void renderLine(uint8_t y){
         else
             col = getBackgroundPixelRGB((SCX_REG + x % 256), (SCY_REG + y) % 256);
         
-        pixels[x + y * width] = col;
+        workingBufferPtr[x + y * width] = col;
     }
 
     if((LCDC_REG & LCD_ENABLE_MASK) && (LCDC_REG & WIN_ENABLE_MASK) && (LCDC_REG & BG_WIN_ENABLE_MASK)){
@@ -152,7 +159,7 @@ void renderLine(uint8_t y){
             if(winX < LCD_WIDTH){
                 for(int offX = 0; winX < LCD_WIDTH; offX = (offX + 1) % 256){
                     if(winX >= 0)
-                        pixels[winX + y * width] = getWindowPixelRGB(offX % 256, windowY_counter % 256);
+                        workingBufferPtr[winX + y * width] = getWindowPixelRGB(offX % 256, windowY_counter % 256);
                     winX++;
                 }
                 windowY_counter++;
@@ -204,8 +211,8 @@ void renderLine(uint8_t y){
 
                 col = getSpritePixelRGB(tilePtr, spriteX, spriteY, palette, flipX, flipY, bigSprite);
                 if(col != -1)
-                    if(!backgroundOver || (backgroundOver && pixels[screenX + y*width] == convertGB2RGB(0, BGP_REG)))
-                        pixels[screenX + y*width] = col;
+                    if(!backgroundOver || (backgroundOver && workingBufferPtr[screenX + y*width] == convertGB2RGB(0, BGP_REG)))
+                        workingBufferPtr[screenX + y*width] = col;
 
                 screenX++;
                 spriteX++;
@@ -218,11 +225,12 @@ int getSpritePixelRGB(uint8_t* tilePtr, uint8_t x, uint8_t y, uint8_t palette, b
     if(flipX)
         x = 7 - x;
     
-    if(flipY)
+    if(flipY){
         if(bigSprite)
             y = 15 - y;
         else
             y = 7 - y;
+    }
 
     uint8_t colorGB = 0;
     colorGB = !!(tilePtr[y*2] & (1 << (7 - x)));
@@ -278,8 +286,11 @@ void updatePPU(){
         windowY_counter = 0;
         frameSkip = true;
 
-        if(lastFrameOn)
-            background(224, 248, 208);
+        if(lastFrameOn){
+            for(int i = 0; i < LCD_WIDTH*LCD_HEIGHT; i++)
+                workingBufferPtr[i] = colorRGB[0];
+            swapBuffers();
+        }
 
         lastFrameOn = false;
         return;
@@ -302,7 +313,8 @@ void updatePPU(){
 
         windowY_counter = 0;
         frameSkip = false;
-        renderPixels();
+
+        swapBuffers();
 
         emulateGameShark();
     }
@@ -339,4 +351,10 @@ void updatePPU(){
         ppu_counter = 0;
     }   else
         ppu_counter++;
+}
+
+void swapBuffers(){
+    int* tmp = renderBufferPtr;
+    renderBufferPtr = workingBufferPtr;
+    workingBufferPtr = tmp;
 }

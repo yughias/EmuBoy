@@ -3,6 +3,13 @@
 
 #ifdef __EMSCRIPTEN__
 #include <emscripten.h>
+
+// emscripten doesn't include Mix_LoadWAV and Mix_PlayChannel macros 
+#ifdef MAINLOOP_AUDIO
+#define Mix_LoadWAV(file) Mix_LoadWAV_RW(SDL_RWFromFile(file, "rb"), 1);
+#define Mix_PlayChannel(channel, chunk, loops) Mix_PlayChannelTimed(channel, chunk, loops, -1);
+#endif
+
 #endif
 
 #define MAX_NAME  64
@@ -140,6 +147,39 @@ void updateMenuVect(HMENU, bool);
 void mainloop();
 void render();
 
+// variables used for run loop at correct framerate
+#ifndef __EMSCRIPTEN__
+Uint64 a_clock;
+Uint64 b_clock;
+#else
+double a_clock;
+double b_clock;
+
+void emscripten_mainloop(){
+    float millis_per_frame = 1000.0 / frameRate;
+    float elapsed;
+    b_clock = emscripten_get_now();
+    elapsed = b_clock - a_clock;
+    deltaTime += elapsed;
+    a_clock = b_clock;
+    // cap max deltaTime
+    if(deltaTime >= millis_per_frame * frameRate)
+        deltaTime = millis_per_frame * frameRate;
+    while(deltaTime >= millis_per_frame){
+        b_clock = emscripten_get_now();
+        mainloop();
+        elapsed = b_clock - a_clock;
+        a_clock = b_clock;
+        // if mainloop lasted for more than millis_per_frame
+        // immediately end to avoid infinite lag!
+        if(elapsed > millis_per_frame)
+            deltaTime = 0;
+        else 
+            deltaTime -= millis_per_frame;
+    }   
+}
+#endif
+
 int main(int argc, char* argv[]){
     main_argc = argc;
     main_argv = argv;
@@ -151,7 +191,8 @@ int main(int argc, char* argv[]){
 
     SDL_Init(
         SDL_INIT_VIDEO |
-        SDL_INIT_AUDIO
+        SDL_INIT_AUDIO |
+        SDL_INIT_JOYSTICK
         #ifdef MAINLOOP_GL
         | SDL_VIDEO_OPENGL
         #endif
@@ -168,14 +209,9 @@ int main(int argc, char* argv[]){
     
     setup();
 
-    window = SDL_CreateWindow(windowName, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, width, height, winFlags);
     updateWindowIcon();
 
     #ifdef MAINLOOP_GL
-    SDL_SetHint(SDL_HINT_RENDER_DRIVER, "opengl");
-    renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_TARGETTEXTURE);
-
-    drawBuffer = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_STREAMING, width, height);
 	setScaleMode(scale_mode);
     SDL_SetEventFilter(filterResize, NULL);
 
@@ -215,19 +251,14 @@ int main(int argc, char* argv[]){
 
     SDL_ShowWindow(window);
 
-    #ifndef MAINLOOP_GL
-    surface = SDL_GetWindowSurface(window);
-    pixels = (int*)surface->pixels;
-    width = surface->w;
-    height = surface->h;
-    #endif
-
-    #ifdef __EMSCRIPTEN__
-    emscripten_set_main_loop(mainloop, frameRate, 1);
-    #else 
-    Uint64 a_clock = SDL_GetPerformanceCounter();
-    Uint64 b_clock = SDL_GetPerformanceCounter();
     deltaTime = 0;
+    #ifdef __EMSCRIPTEN__
+    a_clock = emscripten_get_now();
+    b_clock = emscripten_get_now();
+    emscripten_set_main_loop(emscripten_mainloop, 0, 1);
+    #else 
+    a_clock = SDL_GetPerformanceCounter();
+    b_clock = SDL_GetPerformanceCounter();
 
     running = true;
     while(running){
@@ -379,9 +410,21 @@ void render(){
 }
 
 void size(int w, int h){
-    if(!running){
+    if(!window){
         width = w;
         height = h;
+        window = SDL_CreateWindow(windowName, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, width, height, winFlags);
+
+        #ifdef MAINLOOP_GL
+        SDL_SetHint(SDL_HINT_RENDER_DRIVER, "opengl");
+        renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_TARGETTEXTURE);
+        drawBuffer = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_STREAMING, width, height);
+        SDL_LockTextureToSurface(drawBuffer, NULL, &surface);
+        pixels = (int*)surface->pixels;
+        #else
+        surface = SDL_GetWindowSurface(window);
+        pixels = (int*)surface->pixels;
+        #endif
     }
 }
 
@@ -434,8 +477,8 @@ void fullScreen(){
     #endif
 }
 
-void background(int red, int green, int blue){
-    SDL_FillRect(surface, &surface->clip_rect, color(red, green, blue));
+void background(int col){
+    SDL_FillRect(surface, &surface->clip_rect, col);
 }
 
 int color(int red, int green, int blue){
@@ -586,10 +629,9 @@ void setGlobalShader(Shader sh){
 }
 
 void setScaleMode(ScaleMode mode){
-    if(!renderer){
-        scale_mode = mode;
+    scale_mode = mode;
+    if(!renderer)
         return;    
-    }
 
     switch(mode){
         case NEAREST:

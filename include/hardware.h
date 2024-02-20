@@ -12,7 +12,6 @@
 #include "serial.h"
 
 #define CYCLES_PER_FRAME 70224
-#define SCALINE_CYCLES 456
 #define DIV_INCREMENT_RATE 256
 #define REFRESH_RATE 59.73
 
