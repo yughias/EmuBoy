@@ -7,9 +7,8 @@ gcc:
 	del config.res
 
 emcc:
-	emcc -Iinclude $(wildcard src/*.c) -O2 -flto=full \
+	emcc -Iinclude $(wildcard src/*.c) -O3 -flto=full \
 	-sUSE_SDL=2 \
-	-sUSE_SDL_JOYSTICK=2 \
 	-sINVOKE_RUN=0 \
 	-sEXPORTED_FUNCTIONS=[_main,_emscripten_loadRom] \
 	-o website/emulator.js

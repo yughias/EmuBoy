@@ -68,9 +68,8 @@ Uint64 millis();
 void fullScreen();
 void background(int);
 int color(int, int, int);
-int red(int);
-int green(int);
-int blue(int);
+void getRGB(int, Uint8*, Uint8*, Uint8*);
+void rect(int, int, int, int, int);
 
 // Custom callbacks
 extern void (*onExit)();

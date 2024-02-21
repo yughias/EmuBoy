@@ -150,7 +150,7 @@ void renderLine(uint8_t y){
         else
             col = getBackgroundPixelRGB((SCX_REG + x % 256), (SCY_REG + y) % 256);
         
-        workingBufferPtr[x + y * width] = col;
+        workingBufferPtr[x + y * LCD_WIDTH] = col;
     }
 
     if((LCDC_REG & LCD_ENABLE_MASK) && (LCDC_REG & WIN_ENABLE_MASK) && (LCDC_REG & BG_WIN_ENABLE_MASK)){
@@ -159,7 +159,7 @@ void renderLine(uint8_t y){
             if(winX < LCD_WIDTH){
                 for(int offX = 0; winX < LCD_WIDTH; offX = (offX + 1) % 256){
                     if(winX >= 0)
-                        workingBufferPtr[winX + y * width] = getWindowPixelRGB(offX % 256, windowY_counter % 256);
+                        workingBufferPtr[winX + y * LCD_WIDTH] = getWindowPixelRGB(offX % 256, windowY_counter % 256);
                     winX++;
                 }
                 windowY_counter++;
@@ -211,8 +211,8 @@ void renderLine(uint8_t y){
 
                 col = getSpritePixelRGB(tilePtr, spriteX, spriteY, palette, flipX, flipY, bigSprite);
                 if(col != -1)
-                    if(!backgroundOver || (backgroundOver && workingBufferPtr[screenX + y*width] == convertGB2RGB(0, BGP_REG)))
-                        workingBufferPtr[screenX + y*width] = col;
+                    if(!backgroundOver || (backgroundOver && workingBufferPtr[screenX + y * LCD_WIDTH] == convertGB2RGB(0, BGP_REG)))
+                        workingBufferPtr[screenX + y * LCD_WIDTH] = col;
 
                 screenX++;
                 spriteX++;

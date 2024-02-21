@@ -2,6 +2,7 @@
 #include "hardware.h"
 #include "gameshark.h"
 #include "info.h"
+#include "post_rendering.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -17,8 +18,7 @@ void closeEmulator(){
 }
 
 void setup(){
-    setScaleMode(NEAREST);
-    size(LCD_WIDTH, LCD_HEIGHT);
+    setupWindow();
     setTitle(u8"エミュボーイ");
     frameRate(REFRESH_RATE);
 
@@ -40,6 +40,7 @@ void setup(){
     initSerial();
     initJoypad();
     initPaletteRGB();
+    background(colorRGB[0]);
 
     char bootromName[FILENAME_MAX];
     getAbsoluteDir(bootromName);
@@ -89,7 +90,7 @@ void loop(){
     for(int i = 0; i < speed; i++)
         emulateHardware(&cpu);
 
-    memcpy(pixels, renderBufferPtr, sizeof(int)*LCD_WIDTH*LCD_HEIGHT);
+    (*renderDisplay)();
 
     /*
     drawBgRamAt(width/2, 0);

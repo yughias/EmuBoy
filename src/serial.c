@@ -101,17 +101,17 @@ bool load_network_config(){
     if(!ini_ptr)
         return false;
 
-    if(INI_getInt(ini_ptr, "listen_port=", &input_val))
+    if(INI_getInt(ini_ptr, "listen_port", &input_val))
         p2p.my_server_port = input_val;
     else
         return false;
 
-    if(INI_getInt(ini_ptr, "connect_port=", &input_val))
+    if(INI_getInt(ini_ptr, "connect_port", &input_val))
         p2p.peer_server_port = input_val;
     else
         return false;
 
-    if(!INI_getString(ini_ptr, "connect_ip=", p2p.peer_server_ip))
+    if(!INI_getString(ini_ptr, "connect_ip", p2p.peer_server_ip))
         return false;
 
     return true;

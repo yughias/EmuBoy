@@ -14,11 +14,6 @@ SDL_Joystick* joystick;
 void initJoypad(){
     keystate = SDL_GetKeyboardState(NULL);
     joystick = SDL_JoystickOpen(0);
-    if(joystick)
-        printf("JOYSTICK CONNESSO!\n");
-    else
-        printf("JOYSTICK NON CONNESSO!\n");
-    printf("%d\n", SDL_NumJoysticks());
 }
 
 void emulateJoypad(){

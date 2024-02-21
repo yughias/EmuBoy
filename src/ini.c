@@ -15,9 +15,9 @@ bool INI_getString(FILE* ini_ptr, const char* var_name, char* dst){
     
     char search_buf[FILENAME_MAX];
     
-    while(fscanf(ini_ptr, "%s", search_buf)){
+    while(fscanf(ini_ptr, "%s", search_buf) != EOF){
         if(!strncmp(var_name, search_buf, strlen(var_name))){
-            return sscanf(search_buf + strlen(var_name), "%s", dst) > 0 ? true : false;
+            return sscanf(search_buf + strlen(var_name) + 1, "%s", dst) > 0 ? true : false;
         }
     }
     return false;
@@ -30,7 +30,7 @@ bool INI_getInt(FILE* ini_ptr, const char* var_name, int* dst){
 
     while(fscanf(ini_ptr, "%s", search_buf)){
         if(!strncmp(var_name, search_buf, strlen(var_name))){
-            return sscanf(search_buf + strlen(var_name), "%d", dst) > 0 ? true : false;
+            return sscanf(search_buf + strlen(var_name) + 1, "%d", dst) > 0 ? true : false;
         }
     }
     return false;

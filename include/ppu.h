@@ -74,5 +74,6 @@ void updatePPU();
 uint8_t getStatRegister();
 
 extern int* renderBufferPtr;
+extern int colorRGB[4];
 
 #endif

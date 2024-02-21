@@ -485,16 +485,13 @@ int color(int red, int green, int blue){
     return SDL_MapRGB(surface->format, red, green, blue);
 }
 
-int red(int col){
-    return col >> 16 & 0xFF;
+void getRGB(int pixel, Uint8* red, Uint8* green, Uint8* blue){
+    SDL_GetRGB(pixel, surface->format, red, green, blue);
 }
 
-int green(int col){
-    return col >> 8 & 0xFF;
-}
-
-int blue(int col){
-    return col & 0xFF;
+void rect(int x, int y, int w, int h, int col){
+    SDL_Rect rect = {x, y, w, h};
+    SDL_FillRect(surface, &rect, col);
 }
 
 int getArgc(){
