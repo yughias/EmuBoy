@@ -316,8 +316,7 @@ size_t getRamSize(uint8_t* buffer){
         case 0x05:
         return 1 << 16;
     }
-
-    printf("UNKNOWN RAM SIZE\n");
+    
     return 0;
 }
 
@@ -325,8 +324,10 @@ void printInfo(uint8_t* buffer){
     printf("NINTENDO LOGO ");
     if(containNintendoLogo(buffer))
         printf("PRESENT\n");
-    else
+    else {
         printf("ABSENT\n");
+        return;
+    }
 
     if(isNewLicenseeCode(buffer)){
         if(buffer[0x143] == 0x80)
@@ -366,4 +367,25 @@ void printInfo(uint8_t* buffer){
     printf("ROM VERSION NUMBER: 0x%02X\n", buffer[0x14C]);
     printf("HEADER CHECKSUM: 0x%02X\n", buffer[0x14D]);
     printf("GLOBAL CHECKSUM: 0x%02X 0x%02X\n", buffer[0x14E], buffer[0x14F]);
+}
+
+uint16_t calculateRomChecksum(uint8_t* buff, size_t len){
+    // classic internet checksum algo
+    uint32_t sum = 0;
+
+    while(len > 1) {
+        sum += *((uint16_t*)buff);
+        buff += 2;
+        len -= 2;
+    }
+
+    // Add left-over byte, if any
+    if(len > 0)
+        sum += *buff;
+
+    // Fold 32-bit sum to 16 bits
+    while(sum >> 16)
+        sum += (sum & 0xFFFF) + (sum >> 16);
+
+    return ~sum;
 }

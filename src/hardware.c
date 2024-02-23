@@ -1,4 +1,5 @@
 #include "hardware.h"
+#include "gameshark.h"
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -7,6 +8,8 @@ cpu_t cpu = {
     .writeByte = writeByte,
     .tickSystem = tickHardware 
 };
+
+CONSOLE_TYPE console_type = DMG_TYPE;
 
 void emulateHardware(cpu_t* cpu){
     while(cpu->cycles < CYCLES_PER_FRAME){
@@ -88,4 +91,22 @@ void skipBootrom(){
     WY_REG = 0x00;
     WX_REG = 0x00;
     cpu.IE = 0x00;
+}
+
+void initConsole(){
+    initCPU(&cpu);
+    initMemory(romName);
+
+    char bootromName[FILENAME_MAX];
+    getAbsoluteDir(bootromName);
+    strcat(bootromName, "data/dmg_boot.bin");
+    if(console_type == DMG_TYPE)
+        if(!loadBootRom(bootromName))
+            skipBootrom();
+
+    char gamesharkName[FILENAME_MAX];
+    getAbsoluteDir(gamesharkName);
+    strcat(gamesharkName, "data/gameshark.txt");
+    loadGameShark(gamesharkName);
+
 }

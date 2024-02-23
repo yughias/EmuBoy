@@ -34,24 +34,12 @@ void setup(){
 
     setFilename(getArgv(1));
 
-    initCPU(&cpu);
-    initMemory(romName);
     initAudio();
     initSerial();
     initJoypad();
     initPaletteRGB();
-    background(colorRGB[0]);
 
-    char bootromName[FILENAME_MAX];
-    getAbsoluteDir(bootromName);
-    strcat(bootromName, "data/dmg_boot.bin");
-    if(!loadBootRom(bootromName))
-        skipBootrom();
-
-    char gamesharkName[FILENAME_MAX];
-    getAbsoluteDir(gamesharkName);
-    strcat(gamesharkName, "data/gameshark.txt");
-    loadGameShark(gamesharkName);
+    initConsole();
 
     #ifdef DEBUG
     freopen("log.txt", "wb", stderr);
@@ -91,17 +79,6 @@ void loop(){
         emulateHardware(&cpu);
 
     (*renderDisplay)();
-
-    /*
-    drawBgRamAt(width/2, 0);
-    drawWinRamAt(width/2, height/2);
-
-    bool bigSprite = LCDC_REG & OBJ_SIZE_MASK;
-    int offY = bigSprite ? 16 : 8;
-    for(int i = 0; i < 40; i++){
-        drawOAMAt((i%8)*8, height/2+(i/8)*offY, i);
-    }
-    */
 }
 
 #ifdef __EMSCRIPTEN__
@@ -111,9 +88,8 @@ void emscripten_loadRom(const char* filename){
 
     turnOffAudioChannels();
     freeMemory();
-    initMemory(romName);
-    
-    skipBootrom();
+
+    initConsole();
 }
 
 #endif

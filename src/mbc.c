@@ -1,5 +1,7 @@
-#include <mbc.h>
-#include <memory.h>
+#include "mbc.h"
+#include "memory.h"
+#include "info.h"
+#include "hardware.h"
 
 #include <stdio.h>
 #include <string.h>
@@ -32,6 +34,7 @@ bool alreadyWrite;
 
 uint8_t* noMappedAdress(uint16_t addr){ return &NOT_MAPPED; }
 uint8_t noMbcAddress(uint16_t addr){ return ROM[addr]; }
+void mbc_no_rom_write(uint16_t addr, uint8_t byte){}
 
 uint8_t mbc1_0000_3FFF(uint16_t addr){
     addr &= (1 << 14) - 1;
@@ -276,8 +279,40 @@ uint8_t mbc1m_4000_7FFF(uint16_t addr){
     return ROM[real_addr];
 }
 
-void detectMBC(){
+uint8_t megaduck_standard_mapper(uint16_t addr){
+    size_t real_addr;
+    addr -= 0x4000;
+    uint8_t bank = MBC_0000_1FFF ? MBC_0000_1FFF : 1;
+    real_addr = addr + 0x4000 * bank;
+    real_addr &= ROM_SIZE - 1;
+    return ROM[real_addr];
+}
+
+void megaduck_standard_registers(uint16_t addr, uint8_t byte){
+    if(addr == 1)
+        MBC_0000_1FFF = byte;
+}
+
+uint8_t megaduck_special_mapper(uint16_t addr){
+    size_t real_addr;
+    uint8_t bank = MBC_0000_1FFF & 1;
+    real_addr = addr + 0x8000 * bank;
+    real_addr &= ROM_SIZE - 1;
+    return ROM[real_addr];
+}
+
+uint8_t* megaduck_special_registers(uint16_t addr){
+    if(addr == 0xB000)
+        return &MBC_0000_1FFF;
+    
+    return noMappedAdress(addr);
+}
+
+void detectConsoleAndMbc(){
     mbc_rom_write = mbc_standard_registers;
+    mbc_mapper_0000_3FFF = noMbcAddress;
+    mbc_mapper_4000_7FFF = noMbcAddress;
+    mbc_mapper_A000_BFFF = noMappedAdress;
     MBC_0000_1FFF = 0x00;
     MBC_2000_3FFF = 0x00;
     MBC_4000_5FFF = 0x00;
@@ -290,7 +325,36 @@ void detectMBC(){
     RTC_0B = 0x00;
     RTC_0C = 0x00;
     hasBattery = false;
-    alreadyWrite = false;    
+    alreadyWrite = false;  
+    console_type = DMG_TYPE;
+
+    // MBC for megaduck
+    if(!containNintendoLogo(ROM)){
+        console_type = MEGADUCK_TYPE;
+
+        // default 32k megaduck rom
+        if(ROM_SIZE == 1 << 15)
+            return;
+
+        uint16_t checksum = calculateRomChecksum(ROM, ROM_SIZE);
+
+        if(
+            checksum == SULEIMAN_TREASURE_CHECKSUM ||
+            checksum == PUPPET_KNIGHT_CHECKSUM
+        ){
+            mbc_mapper_0000_3FFF = megaduck_special_mapper;
+            mbc_mapper_4000_7FFF = megaduck_special_mapper;
+            mbc_mapper_A000_BFFF =  megaduck_special_registers;
+            mbc_rom_write = mbc_no_rom_write;
+            return;
+        }
+
+        // megaduck mapper with register in 0x0001
+        mbc_mapper_0000_3FFF = noMbcAddress;
+        mbc_mapper_4000_7FFF = megaduck_standard_mapper;
+        mbc_rom_write =  megaduck_standard_registers;
+        return;
+    }
 
     if(detectM161(ROM)){
         printf("M161 DETECTED!\n");
@@ -385,9 +449,6 @@ void detectMBC(){
         break;
 
         default:
-        mbc_mapper_0000_3FFF = noMbcAddress;
-        mbc_mapper_4000_7FFF = noMbcAddress;
-        mbc_mapper_A000_BFFF = noMappedAdress;
         break;
     }
 }

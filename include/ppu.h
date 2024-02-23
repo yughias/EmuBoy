@@ -22,14 +22,32 @@
 #define WX_ADDR 0xFF4B
 #define WY_ADDR 0xFF4A
 
-#define LCD_ENABLE_MASK            0b10000000
-#define WIN_TILE_MAP_AREA_MASK     0b01000000
-#define WIN_ENABLE_MASK            0b00100000
-#define BG_WIN_TILE_DATA_AREA_MASK 0b00010000
-#define BG_TILE_MAP_AREA_MASK      0b00001000
-#define OBJ_SIZE_MASK              0b00000100
-#define OBJ_ENABLE_MASK            0b00000010
-#define BG_WIN_ENABLE_MASK         0b00000001
+#define DMG_LCD_ENABLE_MASK            0b10000000
+#define DMG_WIN_TILE_MAP_AREA_MASK     0b01000000
+#define DMG_WIN_ENABLE_MASK            0b00100000
+#define DMG_BG_WIN_TILE_DATA_AREA_MASK 0b00010000
+#define DMG_BG_TILE_MAP_AREA_MASK      0b00001000
+#define DMG_OBJ_SIZE_MASK              0b00000100
+#define DMG_OBJ_ENABLE_MASK            0b00000010
+#define DMG_BG_WIN_ENABLE_MASK         0b00000001
+
+#define MEGADUCK_LCD_ENABLE_MASK            0b10000000
+#define MEGADUCK_WIN_TILE_MAP_AREA_MASK     0b00001000
+#define MEGADUCK_WIN_ENABLE_MASK            0b00100000
+#define MEGADUCK_BG_WIN_TILE_DATA_AREA_MASK 0b00010000
+#define MEGADUCK_BG_TILE_MAP_AREA_MASK      0b00000100
+#define MEGADUCK_OBJ_SIZE_MASK              0b00000010
+#define MEGADUCK_OBJ_ENABLE_MASK            0b00000001
+#define MEGADUCK_BG_WIN_ENABLE_MASK         0b01000000
+
+extern uint8_t LCD_ENABLE_MASK;            
+extern uint8_t WIN_TILE_MAP_AREA_MASK;   
+extern uint8_t WIN_ENABLE_MASK;    
+extern uint8_t BG_WIN_TILE_DATA_AREA_MASK;
+extern uint8_t BG_TILE_MAP_AREA_MASK;
+extern uint8_t OBJ_SIZE_MASK;     
+extern uint8_t OBJ_ENABLE_MASK;            
+extern uint8_t BG_WIN_ENABLE_MASK;         
 
 extern uint8_t LY_REG;
 extern uint8_t LYC_REG;
@@ -69,11 +87,12 @@ int getSpriteRealY(uint8_t);
 int getWindowPixelRGB(uint8_t, uint8_t);
 
 void renderLine(uint8_t);
-
+void initLcdcMasks();
 void updatePPU();
 uint8_t getStatRegister();
 
 extern int* renderBufferPtr;
 extern int colorRGB[4];
+void swapBuffers();
 
 #endif

@@ -10,6 +10,7 @@ void matrixFilterDisplay();
 void dmgFilterDisplay();
 void scale2xFilterDisplay();
 void scale3xFilterDisplay();
+void debugFilterDisplay();
 
 #define GET_3x3_PIXELS(x, y) \
 int A = x - 1 >= 0 && y - 1 >= 0 ? renderBufferPtr[(x-1) + (y-1)*LCD_WIDTH] : colorRGB[0]; \
@@ -80,13 +81,22 @@ void setupWindow(){
         return;
     }
 
+    if(!strcmp("debug", render_mode)){
+        setScaleMode(NEAREST);
+        size(800, 600);
+        renderDisplay = debugFilterDisplay;
+        return;
+    }
+
     setScaleMode(NEAREST);
     size(LCD_WIDTH, LCD_HEIGHT);
     renderDisplay = noFilterDisplay;
 }
 
 void noFilterDisplay(){
-    memcpy(pixels, renderBufferPtr, sizeof(int)*width*height);
+    for(int y = 0; y < LCD_HEIGHT; y++)
+        for(int x = 0; x < LCD_WIDTH; x++)
+            pixels[x + y * width] = renderBufferPtr[x + y * LCD_WIDTH];
 }
 
 void matrixAndGhostingDisplay(float alpha){
@@ -165,5 +175,19 @@ void scale3xFilterDisplay(){
                 for(int dx = 0; dx < 3; dx++)
                     pixels[(x*3+dx) + (y*3+dy) * width] = E_PIX[dx + dy*3];
         }
+    }
+}
+
+void debugFilterDisplay(){
+    background(color(0, 0, 0));
+    noFilterDisplay();
+    
+    drawBgRamAt(width/2, 0);
+    drawWinRamAt(width/2, height/2);
+
+    bool bigSprite = LCDC_REG & OBJ_SIZE_MASK;
+    int offY = bigSprite ? 16 : 8;
+    for(int i = 0; i < 40; i++){
+        drawOAMAt((i%8)*8, height/2+(i/8)*offY, i);
     }
 }

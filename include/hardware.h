@@ -15,12 +15,16 @@
 #define DIV_INCREMENT_RATE 256
 #define REFRESH_RATE 59.73
 
+typedef enum {DMG_TYPE, MEGADUCK_TYPE} CONSOLE_TYPE;
+
 extern cpu_t cpu;
+extern CONSOLE_TYPE console_type;
 
 void emulateCpu(cpu_t*);
 void emulateHardware(cpu_t*);
 void updateTimer();
 void tickHardware(int);
 void skipBootrom();
+void initConsole();
 
 #endif

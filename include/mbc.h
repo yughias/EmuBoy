@@ -16,7 +16,7 @@ extern mbcFunc mbc_mapper_A000_BFFF;
 
 extern bool hasBattery;
 
-void detectMBC();
+void detectConsoleAndMbc();
 bool detectM161(const uint8_t*);
 bool detectMMM01(const uint8_t*);
 bool detectMBC1M(const uint8_t*);

@@ -47,7 +47,8 @@ void initMemory(const char* romName){
     memset(VRAM, 0, VRAM_SIZE);
 
     ERAM_SIZE = getRamSize(ROM);
-    detectMBC();
+    detectConsoleAndMbc();
+    initLcdcMasks();
     if(hasBattery)
         loadSav(savName);
 

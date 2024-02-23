@@ -1,6 +1,6 @@
 #include "SDL_MAINLOOP.h"
-#include "hardware.h"
 #include "gameshark.h"
+#include "hardware.h"
 
 #include <stdlib.h>
 
@@ -31,6 +31,25 @@ uint8_t OBP1_REG;
 uint8_t WX_REG;
 uint8_t WY_REG;
 
+uint8_t LCD_ENABLE_MASK;            
+uint8_t WIN_TILE_MAP_AREA_MASK;   
+uint8_t WIN_ENABLE_MASK;    
+uint8_t BG_WIN_TILE_DATA_AREA_MASK;
+uint8_t BG_TILE_MAP_AREA_MASK;
+uint8_t OBJ_SIZE_MASK;     
+uint8_t OBJ_ENABLE_MASK;            
+uint8_t BG_WIN_ENABLE_MASK; 
+
+#define SET_LCDC_MASKS(name) \
+LCD_ENABLE_MASK = name ## _LCD_ENABLE_MASK; \
+WIN_TILE_MAP_AREA_MASK = name ## _WIN_TILE_MAP_AREA_MASK; \
+WIN_ENABLE_MASK = name ## _WIN_ENABLE_MASK; \
+BG_WIN_TILE_DATA_AREA_MASK = name ## _BG_WIN_TILE_DATA_AREA_MASK; \
+BG_TILE_MAP_AREA_MASK = name ## _BG_TILE_MAP_AREA_MASK; \
+OBJ_SIZE_MASK = name ## _OBJ_SIZE_MASK; \
+OBJ_ENABLE_MASK = name ## _OBJ_ENABLE_MASK; \
+BG_WIN_ENABLE_MASK = name ## _BG_WIN_ENABLE_MASK
+
 typedef struct {
     uint8_t idx;
     int x;
@@ -47,6 +66,18 @@ int sprite_order_compare(const void* a, const void* b){
         return sprite_b->x - sprite_a->x;
     else
         return sprite_b->idx - sprite_a->idx;
+}
+
+void initLcdcMasks(){
+    switch(console_type){
+        case DMG_TYPE:
+        SET_LCDC_MASKS(DMG);
+        break;
+
+        case MEGADUCK_TYPE:
+        SET_LCDC_MASKS(MEGADUCK);
+        break;
+    }
 }
 
 void initPaletteRGB(){
@@ -145,7 +176,7 @@ void renderLine(uint8_t y){
     int col;
 
     for(uint8_t x = 0; x < LCD_WIDTH; x++){
-        if(!(LCDC_REG & LCD_ENABLE_MASK) || !(LCDC_REG & BG_WIN_ENABLE_MASK))
+        if(!(LCDC_REG & BG_WIN_ENABLE_MASK))
             col = colorRGB[0];
         else
             col = getBackgroundPixelRGB((SCX_REG + x % 256), (SCY_REG + y) % 256);
@@ -153,7 +184,11 @@ void renderLine(uint8_t y){
         workingBufferPtr[x + y * LCD_WIDTH] = col;
     }
 
-    if((LCDC_REG & LCD_ENABLE_MASK) && (LCDC_REG & WIN_ENABLE_MASK) && (LCDC_REG & BG_WIN_ENABLE_MASK)){
+    if(console_type == MEGADUCK_TYPE)
+        if((LCDC_REG & (BG_WIN_TILE_DATA_AREA_MASK | WIN_TILE_MAP_AREA_MASK | BG_TILE_MAP_AREA_MASK)) == 0b01100)
+            return;
+
+    if((LCDC_REG & WIN_ENABLE_MASK) && (LCDC_REG & BG_WIN_ENABLE_MASK)){
         int winX = WX_REG - 7;
         if(y >= WY_REG){
             if(winX < LCD_WIDTH){
