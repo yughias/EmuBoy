@@ -102,6 +102,8 @@ void noFilterDisplay(){
 void matrixAndGhostingDisplay(float alpha){
     static float ghosting[LCD_WIDTH*LCD_HEIGHT][3] = {0};
 
+    background(colorRGB[0]);
+
     for(int y = 0; y < LCD_HEIGHT; y++)
         for(int x = 0; x < LCD_WIDTH; x++){
             int idx = x + y * LCD_WIDTH;
