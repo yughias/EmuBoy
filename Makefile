@@ -12,3 +12,6 @@ emcc:
 	-sINVOKE_RUN=0 \
 	-sEXPORTED_FUNCTIONS=[_main,_emscripten_loadRom] \
 	-o website/emulator.js
+
+release:
+	tar -c -a -f emuboy.zip emuboy.exe data/config.ini data/logo.bmp *.dll
