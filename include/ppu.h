@@ -87,6 +87,7 @@ int getSpriteRealY(uint8_t);
 int getWindowPixelRGB(uint8_t, uint8_t);
 
 void renderLine(uint8_t);
+void renderLcdOff();
 void initLcdcMasks();
 void updatePPU();
 uint8_t getStatRegister();

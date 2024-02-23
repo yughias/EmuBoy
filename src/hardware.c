@@ -109,4 +109,5 @@ void initConsole(){
     strcat(gamesharkName, "data/gameshark.txt");
     loadGameShark(gamesharkName);
 
+    renderLcdOff();
 }

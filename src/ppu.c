@@ -321,11 +321,8 @@ void updatePPU(){
         windowY_counter = 0;
         frameSkip = true;
 
-        if(lastFrameOn){
-            for(int i = 0; i < LCD_WIDTH*LCD_HEIGHT; i++)
-                workingBufferPtr[i] = colorRGB[0];
-            swapBuffers();
-        }
+        if(lastFrameOn)
+            renderLcdOff();
 
         lastFrameOn = false;
         return;
@@ -392,4 +389,10 @@ void swapBuffers(){
     int* tmp = renderBufferPtr;
     renderBufferPtr = workingBufferPtr;
     workingBufferPtr = tmp;
+}
+
+void renderLcdOff(){
+    for(int i = 0; i < LCD_WIDTH*LCD_HEIGHT; i++)
+        workingBufferPtr[i] = colorRGB[0];
+    swapBuffers();
 }
