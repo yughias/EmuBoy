@@ -29,6 +29,12 @@ void emulateJoypad(){
     if(keystate[SELECT_KEY] || JOYSTICK_CHECK(X))
         new_action_btn &= 0b1011;
 
+    // map select key to both left and right shift key for emscripten
+    #ifdef __EMSCRIPTEN__
+    if(keystate[SDL_SCANCODE_LSHIFT] || keystate[SDL_SCANCODE_RSHIFT])
+        new_action_btn &= 0b1011;
+    #endif
+
     if(keystate[START_KEY] || JOYSTICK_CHECK(Y))
         new_action_btn &= 0b0111;
 
