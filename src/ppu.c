@@ -395,4 +395,5 @@ void renderLcdOff(){
     for(int i = 0; i < LCD_WIDTH*LCD_HEIGHT; i++)
         workingBufferPtr[i] = colorRGB[0];
     swapBuffers();
+    lastFrameOn = true;
 }
