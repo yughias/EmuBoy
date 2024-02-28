@@ -1,6 +1,7 @@
 #include "mbc.h"
 #include "memory.h"
 #include "info.h"
+#include "ini.h"
 #include "hardware.h"
 
 #include <stdio.h>
@@ -325,8 +326,29 @@ void detectConsoleAndMbc(){
     RTC_0B = 0x00;
     RTC_0C = 0x00;
     hasBattery = false;
-    alreadyWrite = false;  
-    console_type = DMG_TYPE;
+    alreadyWrite = false; 
+
+    console_type = CGB_TYPE;
+        
+    int force_dmg = 0;
+    char ini_path[FILENAME_MAX];
+    getAbsoluteDir(ini_path);
+    strcat(ini_path, "data/config.ini");
+    FILE* ini_ptr = INI_open(ini_path);
+    if(ini_ptr){
+        INI_getInt(ini_ptr, "force_dmg_when_possible", &force_dmg);
+        INI_close(ini_ptr);
+    }
+
+    if(force_dmg && ROM[0x143] != 0xC0)
+        console_type = DMG_TYPE;
+
+    // in emscripten we don't have config file
+    // DMG is emulated if ROM doesn't have any CGB enhancements
+    #ifdef __EMSCRIPTEN__
+    if(ROM[0x143] < 0x80)
+        console_type = DMG_TYPE;
+    #endif
 
     // MBC for megaduck
     if(!containNintendoLogo(ROM)){

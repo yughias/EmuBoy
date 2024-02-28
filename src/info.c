@@ -275,7 +275,7 @@ const char* getManufacturerName(uint8_t* buffer){
         }
     }
 
-    return NULL;
+    return "UNKNOWN";
 }
 
 const char* getCartridgeType(uint8_t* buffer){

@@ -37,7 +37,6 @@ void setup(){
     initAudio();
     initSerial();
     initJoypad();
-    initPaletteRGB();
 
     initConsole();
 

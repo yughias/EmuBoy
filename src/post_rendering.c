@@ -13,19 +13,19 @@ void scale3xFilterDisplay();
 void debugFilterDisplay();
 
 #define GET_3x3_PIXELS(x, y) \
-int A = x - 1 >= 0 && y - 1 >= 0 ? renderBufferPtr[(x-1) + (y-1)*LCD_WIDTH] : colorRGB[0]; \
-int B = y - 1 >= 0 ? renderBufferPtr[x + (y-1)*LCD_WIDTH] : colorRGB[0]; \
-int C = x + 1 < LCD_WIDTH && y - 1 >= 0 ? renderBufferPtr[(x+1) + (y-1)*LCD_WIDTH] : colorRGB[0]; \
-int D = x - 1 >= 0 ? renderBufferPtr[(x-1) + y*LCD_WIDTH] : colorRGB[0]; \
+int A = x - 1 >= 0 && y - 1 >= 0 ? renderBufferPtr[(x-1) + (y-1)*LCD_WIDTH] : renderBufferPtr[x + y * LCD_WIDTH]; \
+int B = y - 1 >= 0 ? renderBufferPtr[x + (y-1)*LCD_WIDTH] : renderBufferPtr[x + y * LCD_WIDTH]; \
+int C = x + 1 < LCD_WIDTH && y - 1 >= 0 ? renderBufferPtr[(x+1) + (y-1)*LCD_WIDTH] : renderBufferPtr[x + y * LCD_WIDTH]; \
+int D = x - 1 >= 0 ? renderBufferPtr[(x-1) + y*LCD_WIDTH] : renderBufferPtr[x + y * LCD_WIDTH]; \
 int E = renderBufferPtr[x + y*LCD_WIDTH]; \
-int F = x + 1 < LCD_WIDTH ? renderBufferPtr[(x+1) + y*LCD_WIDTH] : colorRGB[0]; \
-int G = x - 1 >= 0 && y + 1 < LCD_HEIGHT ? renderBufferPtr[(x-1) + (y+1)*LCD_WIDTH] : colorRGB[0]; \
-int H = y + 1 < LCD_HEIGHT ? renderBufferPtr[x + (y+1)*LCD_WIDTH] : colorRGB[0]; \
-int I = x + 1 < LCD_WIDTH && y + 1 < LCD_HEIGHT ? renderBufferPtr[(x+1) + (y+1)*LCD_WIDTH] : colorRGB[0]
+int F = x + 1 < LCD_WIDTH ? renderBufferPtr[(x+1) + y*LCD_WIDTH] : renderBufferPtr[x + y * LCD_WIDTH]; \
+int G = x - 1 >= 0 && y + 1 < LCD_HEIGHT ? renderBufferPtr[(x-1) + (y+1)*LCD_WIDTH] : renderBufferPtr[x + y * LCD_WIDTH]; \
+int H = y + 1 < LCD_HEIGHT ? renderBufferPtr[x + (y+1)*LCD_WIDTH] : renderBufferPtr[x + y * LCD_WIDTH]; \
+int I = x + 1 < LCD_WIDTH && y + 1 < LCD_HEIGHT ? renderBufferPtr[(x+1) + (y+1)*LCD_WIDTH] : renderBufferPtr[x + y * LCD_WIDTH]
 
 void matrixAndGhostingDisplay(float);
 
-void (*renderDisplay)() = dmgFilterDisplay;
+void (*renderDisplay)();
 
 void setupWindow(){
     #ifdef __EMSCRIPTEN__
@@ -50,6 +50,7 @@ void setupWindow(){
     if(!strcmp("linear", render_mode)){
         setScaleMode(LINEAR);
         size(LCD_WIDTH, LCD_HEIGHT);
+        renderDisplay = noFilterDisplay;
         return;
     }
 
@@ -102,7 +103,7 @@ void noFilterDisplay(){
 void matrixAndGhostingDisplay(float alpha){
     static float ghosting[LCD_WIDTH*LCD_HEIGHT][3] = {0};
 
-    background(colorRGB[0]);
+    background(backgroundColor);
 
     for(int y = 0; y < LCD_HEIGHT; y++)
         for(int x = 0; x < LCD_WIDTH; x++){
@@ -184,12 +185,20 @@ void debugFilterDisplay(){
     background(color(0, 0, 0));
     noFilterDisplay();
     
-    drawBgRamAt(width/2, 0);
-    drawWinRamAt(width/2, height/2);
+    drawBgRamAt(LCD_WIDTH + 16, 0);
+    drawWinRamAt(LCD_WIDTH + 16, 256 + 16);
 
     bool bigSprite = LCDC_REG & OBJ_SIZE_MASK;
     int offY = bigSprite ? 16 : 8;
     for(int i = 0; i < 40; i++){
-        drawOAMAt((i%8)*8, height/2+(i/8)*offY, i);
+        drawOAMAt((i%8)*8, LCD_HEIGHT + 16 + (i/8)*offY, i);
+    }
+
+    int n_palette = console_type == CGB_TYPE ? 8 : 1;
+    for(int palette = 0; palette < n_palette; palette++){
+        for(int pal_color = 0; pal_color < 4; pal_color++){
+            drawColorAt(LCD_WIDTH + 256 + 32 + pal_color*8, palette*8, palette, pal_color, BGP_CRAM);
+            drawColorAt(LCD_WIDTH + 256 + 80 + pal_color*8, palette*8, palette, pal_color, OBP_CRAM);
+        }
     }
 }

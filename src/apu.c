@@ -75,6 +75,7 @@ uint16_t ch1_length_timer;
 uint8_t ch1_volume;
 bool ch1_envelope_dir;
 uint8_t ch1_envelope_pace;
+uint16_t ch1_sweep_shadow;
 size_t ch1_envelope_counter;
 size_t ch1_waveduty_idx;
 size_t ch1_wavelevel_idx;
@@ -136,6 +137,7 @@ ch1_sweep_pace = getSweepPace(NR10_REG); \
 ch1_sweep_dir = getSweepDirection(NR10_REG); \
 ch1_sweep_slope = getSweepSlope(NR10_REG); \
 ch1_sweep_counter = 32768 * ch1_sweep_pace; \
+ch1_sweep_shadow = getPeriodValue(NR13_REG, NR14_REG);
 
 #define trigger_noise_ch(n) \
 ch ## n ## _on = true; \
@@ -262,20 +264,20 @@ void emulateApu(){
     }
 
     if(!ch1_sweep_counter && (NR10_REG & 0b1110000)){
-        uint16_t tmp = ch1_period_val >> ch1_sweep_slope;
+        uint16_t tmp = ch1_sweep_shadow >> ch1_sweep_slope;
         if(ch1_sweep_dir){
-            ch1_period_val -= tmp;
-            if(ch1_period_val == 0)
+            ch1_sweep_shadow -= tmp;
+            if(ch1_sweep_shadow == 0)
                 ch1_on = false;
         } else {
-            ch1_period_val += tmp;
-            if(ch1_period_val >= 2048)
+            ch1_sweep_shadow += tmp;
+            if(ch1_sweep_shadow >= 2048)
                 ch1_on = false;
         }
         
-        NR13_REG = ch1_period_val & 0xFF;
+        NR13_REG = ch1_sweep_shadow & 0xFF;
         NR14_REG &= 0b11111000;
-        NR14_REG |= (ch1_period_val >> 8) & 0b111;
+        NR14_REG |= (ch1_sweep_shadow >> 8) & 0b111;
 
         trigger_sweep();
     }

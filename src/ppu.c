@@ -9,7 +9,8 @@ int renderBuffer[LCD_WIDTH*LCD_HEIGHT];
 int* workingBufferPtr = &workingBuffer[0];
 int* renderBufferPtr = &renderBuffer[0];
 
-int colorRGB[4];
+int dmgColors[4];
+int backgroundColor;
 PPU_MODE ppu_mode;
 bool lyc_compare;
 bool stat_irq;
@@ -18,6 +19,10 @@ uint8_t windowY_counter;
 uint8_t internal_ly;
 bool frameSkip;
 bool lastFrameOn;
+
+uint8_t colorCorrection[32] = {
+    0, 62, 64, 89, 90, 109, 111, 127, 128, 142, 143, 156, 156, 168, 169, 180, 181, 191, 192, 201, 202, 211, 212, 221, 221, 230, 230, 238, 239, 247, 247, 255
+};
 
 uint8_t LY_REG;
 uint8_t LYC_REG;
@@ -30,6 +35,9 @@ uint8_t OBP0_REG;
 uint8_t OBP1_REG;
 uint8_t WX_REG;
 uint8_t WY_REG;
+
+uint8_t BCPS_REG;
+uint8_t OCPS_REG;
 
 uint8_t LCD_ENABLE_MASK;            
 uint8_t WIN_TILE_MAP_AREA_MASK;   
@@ -56,8 +64,6 @@ typedef struct {
     int y;
 } sprite_info;
 
-void swapBuffers();
-
 int sprite_order_compare(const void* a, const void* b){
     sprite_info* sprite_a = (sprite_info*)a;
     sprite_info* sprite_b = (sprite_info*)b;
@@ -69,28 +75,85 @@ int sprite_order_compare(const void* a, const void* b){
 }
 
 void initLcdcMasks(){
-    switch(console_type){
-        case DMG_TYPE:
-        SET_LCDC_MASKS(DMG);
-        break;
-
-        case MEGADUCK_TYPE:
+    if(console_type == MEGADUCK_TYPE){
         SET_LCDC_MASKS(MEGADUCK);
-        break;
+        return;
     }
+
+    SET_LCDC_MASKS(DMG);
 }
 
-void initPaletteRGB(){
-    colorRGB[3] = color(46, 65, 57);
-    colorRGB[2] = color(64, 89, 74);
-    colorRGB[1] = color(95, 120, 66);
-    colorRGB[0] = color(123, 129, 17);
+int CgbToRgb(uint8_t lo_byte, uint8_t hi_byte){
+    int out_r, out_g, out_b;
+    uint8_t red = lo_byte & 0x1F;
+    uint8_t green = (lo_byte >> 5) | ((hi_byte & 0b11) << 3);
+    uint8_t blue = (hi_byte >> 2) & 0x1F;
+
+    red = colorCorrection[red];
+    green = colorCorrection[green];
+    blue = colorCorrection[blue];
+
+    out_r = (13*red + 2*green + 1*blue) / 16;
+    out_g = (3*green + 1*blue) / 4;
+    out_b = (2*green + 14*blue) / 16;
+
+    return color(out_r, out_g, out_b);
+}
+
+void writeColorToCRAM(uint8_t red, uint8_t green, uint8_t blue, uint8_t* cram, uint8_t idx){
+    red >>= 3;
+    green >>= 3;
+    blue >>= 3;
+    cram[idx*2] = red | (green << 5);
+    cram[idx*2+1] = (green >> 3) | (blue << 2);
+}
+
+void initColorPalette(){
+    dmgColors[3] = color(46, 65, 57);
+    dmgColors[2] = color(64, 89, 74);
+    dmgColors[1] = color(95, 120, 66);
+    dmgColors[0] = color(123, 129, 17);
+
+    if(console_type == CGB_TYPE || console_type == DMG_ON_CGB_TYPE)
+        backgroundColor = color(255, 255, 255);
+    else
+        backgroundColor = dmgColors[0];
+}
+
+void copyDefaultCgbPalette(){
+    const uint8_t default_bgp_cram[CRAM_SIZE] = {
+        0xFF, 0x7F, 0xFF, 0x7F, 0xFF, 0x7F, 0xFF, 0x7F,
+        0xFF, 0x7F, 0xFF, 0x7F, 0xFF, 0x7F, 0xFF, 0x7F,
+        0xFF, 0x7F, 0xFF, 0x7F, 0xFF, 0x7F, 0xFF, 0x7F,
+        0xFF, 0x7F, 0xFF, 0x7F, 0xFF, 0x7F, 0xFF, 0x7F,
+        0xFF, 0x7F, 0xFF, 0x7F, 0xFF, 0x7F, 0xFF, 0x7F,
+        0xFF, 0x7F, 0xFF, 0x7F, 0xFF, 0x7F, 0xFF, 0x7F,
+        0xFF, 0x7F, 0xFF, 0x7F, 0xFF, 0x7F, 0xFF, 0x7F,
+        0xFF, 0x7F, 0xFF, 0x7F, 0xFF, 0x7F, 0xFF, 0x7F
+    };
+    
+    const uint8_t default_obp_cram[CRAM_SIZE] = {
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
+    };
+
+    memcpy(BGP_CRAM, default_bgp_cram, CRAM_SIZE);
+    memcpy(OBP_CRAM, default_obp_cram, CRAM_SIZE);
 }
 
 void drawBgRamAt(int screenX, int screenY){
+    uint8_t* bgTileMap = getTileMap(LCDC_REG & BG_TILE_MAP_AREA_MASK);
+
     for(int y = 0; y < 256; y++){
         for(int x = 0; x < 256; x++){
-            int col = getBackgroundPixelRGB(x, y);
+            bool priority;
+            int col = getTileMapPixelRGB(bgTileMap, x, y, &priority, &priority);
             pixels[screenX+x + (screenY+y)*width] = col;
         }
     }
@@ -113,12 +176,22 @@ void drawBgRamAt(int screenX, int screenY){
 }
 
 void drawWinRamAt(int screenX, int screenY){
+    uint8_t* winTileMap = getTileMap(LCDC_REG & WIN_TILE_MAP_AREA_MASK);
+
     for(int y = 0; y < 256; y++){
         for(int x = 0; x < 256; x++){
-            int col = getWindowPixelRGB(x, y);
+            bool priority;
+            int col = getTileMapPixelRGB(winTileMap, x, y, &priority, &priority);
             pixels[screenX+x + (screenY+y)*width] = col;
         }
     }
+}
+
+void drawColorAt(int x, int y, int palette, int pal_color, uint8_t* cram){
+    uint8_t lo_byte = cram[palette*8 + pal_color*2];
+    uint8_t hi_byte = cram[palette*8 + pal_color*2 + 1];
+    int col = CgbToRgb(lo_byte, hi_byte);
+    rect(x, y, 8, 8, col);
 }
 
 uint8_t* getTileMap(bool addressMode){
@@ -134,52 +207,79 @@ uint8_t* getTileData(uint8_t tileIdx){
 }
 
 int getColorFromTileDataRGB(uint8_t* tilePtr, uint8_t tilePX, uint8_t tilePY, uint8_t colorREG){
+    uint8_t colorGB = getColorGb(tilePtr, tilePX, tilePY);
+
+    if(console_type == CGB_TYPE)
+        return convertCGB2RGB(colorGB, colorREG, BGP_CRAM);
+    else
+        return convertDMG2RGB(colorGB, colorREG, BGP_CRAM);
+}
+
+uint8_t getColorGb(uint8_t* tilePtr, uint8_t tilePX, uint8_t tilePY){
     uint8_t colorGB = 0;
     colorGB = !!(tilePtr[tilePY*2] & (1 << (7 - tilePX)));
     colorGB |= !!(tilePtr[1+tilePY*2] & (1 << (7 - tilePX))) << 1;
 
-    return convertGB2RGB(colorGB, colorREG);
+    return colorGB;
 }
 
-int convertGB2RGB(uint8_t colorGB, uint8_t colorREG){
-    uint8_t idx = (colorREG >> (2 * colorGB)) & 0b11 ;
-    return colorRGB[idx];
+int convertCGB2RGB(uint8_t colorGB, uint8_t colorREG, uint8_t* cram_palette){
+    cram_palette += colorREG*8;
+    return CgbToRgb(cram_palette[colorGB*2], cram_palette[colorGB*2+1]);
 }
 
-int getBackgroundPixelRGB(uint8_t x, uint8_t y){
-    uint8_t* tileMapPtr = getTileMap(LCDC_REG & BG_TILE_MAP_AREA_MASK);
+int convertDMG2RGB(uint8_t colorGB, uint8_t colorREG, uint8_t* cram_palette){
+    uint8_t idx = (colorREG >> (2 * colorGB)) & 0b11;
+    if(console_type == DMG_ON_CGB_TYPE)
+        return CgbToRgb(cram_palette[idx*2], cram_palette[idx*2+1]);
+    else
+        return dmgColors[idx];
+}
+
+int getTileMapPixelRGB(uint8_t* tileMapPtr, uint8_t x, uint8_t y, bool* dmgPrio, bool* cgbPrio){
     uint8_t byteX = x >> 3;
     uint8_t byteY = y >> 3;
     uint8_t tilePX = x & 0b111;
     uint8_t tilePY = y & 0b111;
     uint8_t tileIdx = tileMapPtr[byteX+byteY*32];
-
     uint8_t* tilePtr = getTileData(tileIdx);
+    uint8_t paletteReg = BGP_REG;
+    uint8_t bg_attributes;
 
-    return getColorFromTileDataRGB(tilePtr, tilePX, tilePY, BGP_REG);
-}
+    if(console_type == CGB_TYPE){
+        bg_attributes = tileMapPtr[byteX+byteY*32 + 0x2000];
+        if(bg_attributes & BG_ATTRIB_BANK_MASK)
+            tilePtr += 0x2000;
+        if(bg_attributes & BG_ATTRIB_FLIP_X_MASK)
+            tilePX = 7 - tilePX;
+        if(bg_attributes & BG_ATTRIB_FLIP_Y_MASK)
+            tilePY = 7 - tilePY;
+        paletteReg = bg_attributes & BG_ATTRIB_PALETTE_MASK;
+    }
 
-int getWindowPixelRGB(uint8_t x, uint8_t y){
-    uint8_t* tileMapPtr = getTileMap(LCDC_REG & WIN_TILE_MAP_AREA_MASK);
-    uint8_t byteX = x >> 3;
-    uint8_t byteY = y >> 3;
-    uint8_t tilePX = x & 0b111;
-    uint8_t tilePY = y & 0b111;
-    uint8_t tileIdx = tileMapPtr[byteX+byteY*32];
+    uint8_t colorGB = getColorGb(tilePtr, tilePX, tilePY);
+    *dmgPrio |= colorGB;
+    if(console_type == CGB_TYPE)
+        *cgbPrio |= (bg_attributes & BG_ATTRIB_PRIORITY_MASK) && colorGB;
 
-    uint8_t* tilePtr = getTileData(tileIdx);
-
-    return getColorFromTileDataRGB(tilePtr, tilePX, tilePY, BGP_REG);
+    return getColorFromTileDataRGB(tilePtr, tilePX, tilePY, paletteReg);
 }
 
 void renderLine(uint8_t y){
     int col;
+    uint8_t* bgTileMap = getTileMap(LCDC_REG & BG_TILE_MAP_AREA_MASK);
+    uint8_t* winTileMap = getTileMap(LCDC_REG & WIN_TILE_MAP_AREA_MASK);
 
+    bool bg_win_enabled = LCDC_REG & BG_WIN_ENABLE_MASK;
+
+    bool cgbPrio[LCD_WIDTH] = {false};
+    bool dmgPrio[LCD_WIDTH] = {false};
+    
     for(uint8_t x = 0; x < LCD_WIDTH; x++){
-        if(!(LCDC_REG & BG_WIN_ENABLE_MASK))
-            col = colorRGB[0];
+        if(console_type != CGB_TYPE && !bg_win_enabled)
+            col = backgroundColor;
         else
-            col = getBackgroundPixelRGB((SCX_REG + x % 256), (SCY_REG + y) % 256);
+            col = getTileMapPixelRGB(bgTileMap, (SCX_REG + x % 256), (SCY_REG + y) % 256, &dmgPrio[x], &cgbPrio[x]);
         
         workingBufferPtr[x + y * LCD_WIDTH] = col;
     }
@@ -194,7 +294,7 @@ void renderLine(uint8_t y){
             if(winX < LCD_WIDTH){
                 for(int offX = 0; winX < LCD_WIDTH; offX = (offX + 1) % 256){
                     if(winX >= 0)
-                        workingBufferPtr[winX + y * LCD_WIDTH] = getWindowPixelRGB(offX % 256, windowY_counter % 256);
+                        workingBufferPtr[winX + y * LCD_WIDTH] = getTileMapPixelRGB(winTileMap, offX % 256, windowY_counter % 256, &dmgPrio[winX], &cgbPrio[winX]);
                     winX++;
                 }
                 windowY_counter++;
@@ -209,7 +309,7 @@ void renderLine(uint8_t y){
     uint8_t drawnSprites = 0;
     bool bigSprite = LCDC_REG & OBJ_SIZE_MASK;
     for(int i = 0; i < 40 && drawnSprites < 10; i++){
-        // these value can be negative!
+        // these values can be negative!
         int spriteTopY = getSpriteRealY(i);
         if(y >= spriteTopY && ((y < spriteTopY + 8) || (y < spriteTopY + 16 && bigSprite))){
             int spriteTopX = getSpriteRealX(i);
@@ -220,9 +320,22 @@ void renderLine(uint8_t y){
         }
     }
 
-    qsort(sprites, drawnSprites, sizeof(sprite_info), sprite_order_compare);
+    int startVal;
+    int step;
+    int limit;
 
-    for(int i = 0; i < drawnSprites; i++){
+    if(console_type != CGB_TYPE){
+        startVal = 0;
+        limit = drawnSprites;
+        step = 1;
+        qsort(sprites, drawnSprites, sizeof(sprite_info), sprite_order_compare);
+    } else {
+        startVal = drawnSprites - 1;
+        limit = -1;
+        step = -1;
+    }
+
+    for(int i = startVal; i != limit; i += step){
         int spriteTopX = sprites[i].x;
         int spriteTopY = sprites[i].y;
         if(spriteTopX < 168){
@@ -235,18 +348,23 @@ void renderLine(uint8_t y){
             }
             uint8_t* spriteData = &OAM[sprites[i].idx*4];
             while(screenX < LCD_WIDTH && spriteX < 8){
-                bool flipX = spriteData[3] & 0b100000;
-                bool flipY = spriteData[3] & 0b1000000;
-                bool backgroundOver = spriteData[3] & 0b10000000;
-                uint8_t palette = spriteData[3] & 0b10000 ? OBP1_REG : OBP0_REG; 
-                uint8_t tileIdx = spriteData[2];
-                if(bigSprite)
-                    tileIdx &= 0b11111110;
-                uint8_t* tilePtr = VRAM + tileIdx*16;
+                bool flipX, flipY;
+                bool backgroundOver;
+                bool obp_n;
+                uint8_t palette;
+                uint8_t* tilePtr;
 
-                col = getSpritePixelRGB(tilePtr, spriteX, spriteY, palette, flipX, flipY, bigSprite);
-                if(col != -1)
-                    if(!backgroundOver || (backgroundOver && workingBufferPtr[screenX + y * LCD_WIDTH] == convertGB2RGB(0, BGP_REG)))
+                getSpriteAttribute(spriteData, &flipX, &flipY, &backgroundOver, &obp_n, &palette, &tilePtr);
+
+                bool transparent;
+                col = getSpritePixelRGB(tilePtr, spriteX, spriteY, obp_n, palette, flipX, flipY, bigSprite, &transparent);
+                if(!transparent)
+                    if(
+                        // basic dmg background priority condition
+                        (!backgroundOver || (backgroundOver && !dmgPrio[screenX])) &&
+                        // cgb priority condition
+                        (console_type != CGB_TYPE || !cgbPrio[screenX] || !bg_win_enabled)
+                    )
                         workingBufferPtr[screenX + y * LCD_WIDTH] = col;
 
                 screenX++;
@@ -256,7 +374,24 @@ void renderLine(uint8_t y){
     }
 }
 
-int getSpritePixelRGB(uint8_t* tilePtr, uint8_t x, uint8_t y, uint8_t palette, bool flipX, bool flipY, bool bigSprite){
+void getSpriteAttribute(uint8_t* spriteData, bool* flipX, bool* flipY, bool* backgroundOver, bool* obp_n, uint8_t* palette, uint8_t** tilePtr){
+    *flipX = spriteData[3] & 0b100000;
+    *flipY = spriteData[3] & 0b1000000;
+    *backgroundOver = spriteData[3] & 0b10000000;
+    *obp_n = spriteData[3] & 0b10000;
+    if(console_type == CGB_TYPE)
+        *palette = spriteData[3] & 0b111;
+    else
+        *palette = *obp_n ? OBP1_REG : OBP0_REG; 
+    uint8_t tileIdx = spriteData[2];
+    if(LCDC_REG & OBJ_SIZE_MASK)
+        tileIdx &= 0b11111110;
+    *tilePtr = VRAM + tileIdx*16;
+    if(spriteData[3] & 0b1000)
+        *tilePtr += 0x2000;
+}
+
+int getSpritePixelRGB(uint8_t* tilePtr, uint8_t x, uint8_t y, bool obp_n, uint8_t palette, bool flipX, bool flipY, bool bigSprite, bool* transparent){
     if(flipX)
         x = 7 - x;
     
@@ -271,26 +406,36 @@ int getSpritePixelRGB(uint8_t* tilePtr, uint8_t x, uint8_t y, uint8_t palette, b
     colorGB = !!(tilePtr[y*2] & (1 << (7 - x)));
     colorGB |= !!(tilePtr[1+y*2] & (1 << (7 - x))) << 1;
 
-    // white color = transparent in Sprite
-    if(colorGB == 0)
+    if(colorGB == 0){
+        *transparent = true;
         return -1;
+    } else {
+        *transparent = false;
+    }
 
-    return convertGB2RGB(colorGB, palette);
+    if(console_type == CGB_TYPE)
+        return convertCGB2RGB(colorGB, palette, OBP_CRAM);
+    else
+        return convertDMG2RGB(colorGB, palette, OBP_CRAM);
 }
 
 void drawOAMAt(int screenX, int screenY, uint8_t spriteIdx){
     uint8_t* spriteData = &OAM[spriteIdx * 4];
     
-    bool bigSprite = LCDC_REG & OBJ_SIZE_MASK;
-    bool flipX = spriteData[3] & 0b100000;
-    bool flipY = spriteData[3] & 0b1000000;
-    uint8_t palette = spriteData[3] & 0b10000 ? OBP1_REG : OBP0_REG; 
-    uint8_t tileIdx = spriteData[2];
-    uint8_t* tilePtr = VRAM + tileIdx*16;
-    uint8_t height = bigSprite ? 16 : 8;
+    bool flipX, flipY;
+    bool backgroundOver;
+    bool obp_n;
+    uint8_t palette;
+    uint8_t* tilePtr;
+
+    getSpriteAttribute(spriteData, &flipX, &flipY, &backgroundOver, &obp_n, &palette, &tilePtr);
+
+    uint8_t height = LCDC_REG & OBJ_SIZE_MASK ? 16 : 8;
     for(uint8_t y = 0; y < height; y++)
-        for(uint8_t x = 0; x < 8; x++)
-            pixels[(screenX + x) + (screenY + y)*width] = getSpritePixelRGB(tilePtr, x, y, palette, flipX, flipY, OBJ_SIZE_MASK);
+        for(uint8_t x = 0; x < 8; x++){
+            bool transparent;
+            pixels[(screenX + x) + (screenY + y)*width] = getSpritePixelRGB(tilePtr, x, y, obp_n, palette, flipX, flipY, OBJ_SIZE_MASK, &transparent);
+        }
 }
 
 int getSpriteRealX(uint8_t spriteIdx){
@@ -353,12 +498,18 @@ void updatePPU(){
 
     // old stat mode timing
     if(internal_ly < LCD_HEIGHT){
+        PPU_MODE old_mode = ppu_mode;
+
         if(ppu_counter < 80)
             ppu_mode = OAM_SCAN_MODE;
         else if(ppu_counter < 80 + 172)
             ppu_mode = DRAW_MODE;
         else
             ppu_mode = HBLANK_MODE;
+
+        if(console_type == CGB_TYPE)
+            if(old_mode != ppu_mode && ppu_mode == HBLANK_MODE)
+                stepHDMA();
     } else {
         ppu_mode = VBLANK_MODE;
     }
@@ -392,8 +543,10 @@ void swapBuffers(){
 }
 
 void renderLcdOff(){
-    for(int i = 0; i < LCD_WIDTH*LCD_HEIGHT; i++)
-        workingBufferPtr[i] = colorRGB[0];
+    for(int i = 0; i < LCD_WIDTH*LCD_HEIGHT; i++){
+        workingBufferPtr[i] = backgroundColor;
+        renderBufferPtr[i] = backgroundColor;
+    }
     swapBuffers();
     lastFrameOn = true;
 }

@@ -7,6 +7,11 @@ writeFunc writeTable[0x100];
 #define READ(name) return name ## _REG
 #define WRITE(name) name ## _REG = byte; return
 
+// cgb regs are disable after writing 01 to bit 2-3 and disabling bootrom
+#define CGB_MODE(name) if(console_type == CGB_TYPE) { name } else return
+#define CGB_MODE_READ(name) CGB_MODE(name) 0xFF
+#define CGB_MODE_WRITE(name) CGB_MODE(name)
+
 uint16_t megaduckShuffleRegisters(uint16_t);
 uint8_t megaduckNibbleSwap(uint16_t, uint8_t);
 
@@ -33,11 +38,17 @@ uint8_t readEram(uint16_t address){
 }
 
 uint8_t readVram(uint16_t address){
-    return VRAM[address - 0x8000];
+    return VRAM[(address - 0x8000) + VBK_REG * 0x2000];
 }
 
 uint8_t readWram(uint16_t address){
-    return WRAM[address & (0x2000 - 1)];
+    uint8_t bank = 0;
+    if(address >= 0xD000){
+        address -= 0xD000;
+        bank = SVBK_REG ? SVBK_REG : 1;
+    }
+
+    return WRAM[(address & (0x2000 - 1)) + bank * 0x1000];
 }
 
 uint8_t readOam(uint16_t address){
@@ -120,12 +131,22 @@ uint8_t readIO(uint16_t address){
         r_49: READ(OBP1);
         r_4A: READ(WY);
         r_4B: READ(WX);
-        r_4C: r_4D: r_4E: r_4F:
-        r_50: r_51: r_52: r_53: r_54: r_55: r_56: r_57:
+        r_4C: CGB_MODE_READ( READ(KEY0); );
+        r_4D: CGB_MODE_READ( return KEY1_REG | 0b01111110;);
+        r_4E: return 0XFF;
+        r_4F: CGB_MODE_READ(READ(VBK); );
+        r_50: r_51: r_52: r_53: r_54: return 0xFF;
+        r_55: CGB_MODE_READ( return HDMA_REGS[4]; );
+        r_56: r_57:
         r_58: r_59: r_5A: r_5B: r_5C: r_5D: r_5E: r_5F:
-        r_60: r_61: r_62: r_63: r_64: r_65: r_66: r_67:
-        r_68: r_69: r_6A: r_6B: r_6C: r_6D: r_6E: r_6F:
-        r_70: r_71: r_72: r_73: r_74: r_75: r_76: r_77:
+        r_60: r_61: r_62: r_63: r_64: r_65: r_66: r_67: return 0xFF;
+        r_68: READ(BCPS); 
+        r_69: CGB_MODE_READ( return readFromCRAM(&BCPS_REG, BGP_CRAM); );
+        r_6A: CGB_MODE_READ( READ(OCPS); );
+        r_6B: CGB_MODE_READ( return readFromCRAM(&OCPS_REG, OBP_CRAM); );
+        r_6C: r_6D: r_6E: r_6F: return 0xFF;
+        r_70: CGB_MODE_READ( READ(SVBK); );
+        r_71: r_72: r_73: r_74: r_75: r_76: r_77:
         r_78: r_79: r_7A: r_7B: r_7C: r_7D: r_7E: r_7F: return 0xFF;
         r_80: r_81: r_82: r_83: r_84: r_85: r_86: r_87:
         r_88: r_89: r_8A: r_8B: r_8C: r_8D: r_8E: r_8F:
@@ -150,11 +171,16 @@ uint8_t readIO(uint16_t address){
 // write callbacks
 
 void writeVram(uint16_t address, uint8_t byte){
-    VRAM[address - 0x8000] = byte;
+    VRAM[(address - 0x8000) + VBK_REG * 0x2000] = byte;
 }
 
 void writeWram(uint16_t address, uint8_t byte){
-    WRAM[address & (0x2000 - 1)] = byte;
+    uint8_t bank = 0;
+    if(address >= 0xD000){
+        address -= 0xD000;
+        bank = SVBK_REG ? SVBK_REG : 1;
+    }
+    WRAM[(address & (0x2000 - 1)) + bank * 0x1000] = byte;
 }
 
 void writeEram(uint16_t address, uint8_t byte){
@@ -255,13 +281,30 @@ void writeIO(uint16_t address, uint8_t byte){
         w_49: WRITE(OBP1);
         w_4A: WRITE(WY);
         w_4B: WRITE(WX);
-        w_4C: w_4D: w_4E: w_4F:
-        w_50: fillReadTable(0x00, 0x00, mbc_mapper_0000_3FFF); return;
-        w_51: w_52: w_53: w_54: w_55: w_56: w_57:
+        w_4C: CGB_MODE_WRITE( WRITE(KEY0); );
+        w_4D: CGB_MODE_WRITE( if(byte & 1) KEY1_REG |= 0x80; return; );
+        w_4E: return;
+        w_4F: CGB_MODE_WRITE( VBK_REG = byte & 1; return; );
+        w_50: 
+                fillReadTable(0x00, 0x09, mbc_mapper_0000_3FFF);
+                if((KEY0_REG >> 2) == 0b01)
+                    console_type = DMG_ON_CGB_TYPE;
+                return;
+        w_51: CGB_MODE_WRITE( HDMA_REGS[0] = byte; return; );
+        w_52: CGB_MODE_WRITE( HDMA_REGS[1] = byte; return; );
+        w_53: CGB_MODE_WRITE( HDMA_REGS[2] = byte; return; );
+        w_54: CGB_MODE_WRITE( HDMA_REGS[3] = byte; return; );
+        w_55: CGB_MODE_WRITE( startHDMA(byte); return; );
+        w_56: w_57:
         w_58: w_59: w_5A: w_5B: w_5C: w_5D: w_5E: w_5F:
-        w_60: w_61: w_62: w_63: w_64: w_65: w_66: w_67:
-        w_68: w_69: w_6A: w_6B: w_6C: w_6D: w_6E: w_6F:
-        w_70: w_71: w_72: w_73: w_74: w_75: w_76: w_77:
+        w_60: w_61: w_62: w_63: w_64: w_65: w_66: w_67: return;
+        w_68: CGB_MODE_WRITE( WRITE(BCPS); );
+        w_69: CGB_MODE_WRITE( writeToCRAM(&BCPS_REG, byte, BGP_CRAM); return; );
+        w_6A: CGB_MODE_WRITE( WRITE(OCPS); );
+        w_6B: CGB_MODE_WRITE( writeToCRAM(&OCPS_REG, byte, OBP_CRAM); return; );
+        w_6C: w_6D: w_6E: w_6F: return;
+        w_70: CGB_MODE_WRITE( SVBK_REG = byte & 0b111; return; );
+        w_71: w_72: w_73: w_74: w_75: w_76: w_77:
         w_78: w_79: w_7A: w_7B: w_7C: w_7D: w_7E: w_7F: return;
         w_80: w_81: w_82: w_83: w_84: w_85: w_86: w_87:
         w_88: w_89: w_8A: w_8B: w_8C: w_8D: w_8E: w_8F:
