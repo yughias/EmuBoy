@@ -387,7 +387,7 @@ void getSpriteAttribute(uint8_t* spriteData, bool* flipX, bool* flipY, bool* bac
     if(LCDC_REG & OBJ_SIZE_MASK)
         tileIdx &= 0b11111110;
     *tilePtr = VRAM + tileIdx*16;
-    if(spriteData[3] & 0b1000)
+    if(console_type == CGB_TYPE && (spriteData[3] & 0b1000))
         *tilePtr += 0x2000;
 }
 
@@ -434,7 +434,7 @@ void drawOAMAt(int screenX, int screenY, uint8_t spriteIdx){
     for(uint8_t y = 0; y < height; y++)
         for(uint8_t x = 0; x < 8; x++){
             bool transparent;
-            pixels[(screenX + x) + (screenY + y)*width] = getSpritePixelRGB(tilePtr, x, y, obp_n, palette, flipX, flipY, OBJ_SIZE_MASK, &transparent);
+            pixels[(screenX + x) + (screenY + y)*width] = getSpritePixelRGB(tilePtr, x, y, obp_n, palette, flipX, flipY, height, &transparent);
         }
 }
 
@@ -508,7 +508,7 @@ void updatePPU(){
             ppu_mode = HBLANK_MODE;
 
         if(console_type == CGB_TYPE)
-            if(old_mode != ppu_mode && ppu_mode == HBLANK_MODE)
+            if(old_mode != HBLANK_MODE && ppu_mode == HBLANK_MODE)
                 stepHDMA();
     } else {
         ppu_mode = VBLANK_MODE;

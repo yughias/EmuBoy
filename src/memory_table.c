@@ -134,7 +134,7 @@ uint8_t readIO(uint16_t address){
         r_4C: CGB_MODE_READ( READ(KEY0); );
         r_4D: CGB_MODE_READ( return KEY1_REG | 0b01111110;);
         r_4E: return 0XFF;
-        r_4F: CGB_MODE_READ(READ(VBK); );
+        r_4F: CGB_MODE_READ( return VBK_REG | 0xFE; );
         r_50: r_51: r_52: r_53: r_54: return 0xFF;
         r_55: CGB_MODE_READ( return HDMA_REGS[4]; );
         r_56: r_57:
@@ -145,7 +145,7 @@ uint8_t readIO(uint16_t address){
         r_6A: CGB_MODE_READ( READ(OCPS); );
         r_6B: CGB_MODE_READ( return readFromCRAM(&OCPS_REG, OBP_CRAM); );
         r_6C: r_6D: r_6E: r_6F: return 0xFF;
-        r_70: CGB_MODE_READ( READ(SVBK); );
+        r_70: CGB_MODE_READ( return SVBK_REG | 0xF8; );
         r_71: r_72: r_73: r_74: r_75: r_76: r_77:
         r_78: r_79: r_7A: r_7B: r_7C: r_7D: r_7E: r_7F: return 0xFF;
         r_80: r_81: r_82: r_83: r_84: r_85: r_86: r_87:
