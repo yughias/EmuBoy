@@ -138,6 +138,7 @@ void initCPU(cpu_t* cpu){
     cpu->PC = 0x0000;
 
     cpu->HALTED = false;
+    cpu->HALT_BUG = false;
     cpu->IME = false;
     cpu->EI_DELAY = false;
     cpu->IE = 0x00;
@@ -181,11 +182,15 @@ static inline void dispatchInterrupt(cpu_t* cpu){
 
 void stepCPU(cpu_t* cpu){
     uint8_t opcode = readByteAndTick(cpu, cpu->PC);
-    pc_inc(1);
+
+    if(cpu->HALT_BUG)
+        cpu->HALT_BUG = false;
+    else
+        pc_inc(1);
 
     if(cpu->IE & cpu->IF){
         cpu->HALTED = false;
-        if(cpu->IME & !cpu->EI_DELAY){
+        if(cpu->IME && !cpu->EI_DELAY){
             cpu->IME = false;
             dispatchInterrupt(cpu);
             return;
@@ -903,7 +908,10 @@ static inline void CCF(cpu_t* cpu){
 }
 
 static inline void HLT(cpu_t* cpu){
-    cpu->HALTED = true;
+    if(!cpu->IME && (cpu->IE & cpu->IF))
+        cpu->HALT_BUG = true;
+    else
+        cpu->HALTED = true;
 }
 
 static inline void RETNZ(cpu_t* cpu){

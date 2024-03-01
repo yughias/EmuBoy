@@ -19,9 +19,10 @@ typedef void (*tickFunc)(int);
 
 typedef struct cpu_t {
     // interrupt vars
-    bool     HALTED;
-    bool     IME;
-    bool     EI_DELAY;
+    bool    HALTED;
+    bool    IME;
+    bool    EI_DELAY;
+    bool    HALT_BUG; 
     uint8_t IE;
     uint8_t IF;
 
