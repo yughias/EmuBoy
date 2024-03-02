@@ -87,5 +87,4 @@ void transferBlockHDMA(uint16_t* srcAddr, uint16_t* dstAddr){
         (*srcAddr) += 1;
         (*dstAddr) += 1;
     }
-    cpu.tickSystem(32);
 }
