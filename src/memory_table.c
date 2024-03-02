@@ -266,9 +266,11 @@ void writeIO(uint16_t address, uint8_t byte){
         w_38: w_39: w_3A: w_3B: w_3C: w_3D: w_3E: w_3F: WAVE_RAM[address - 0xFF30] = byte; return;
         w_40: WRITE(LCDC);
         w_41:
-                if(!stat_irq && ppu_mode != OAM_SCAN_MODE)
-                    cpu.IF |= STAT_IRQ;
-                stat_irq = true;
+                if(console_type != CGB_TYPE){
+                    if(!stat_irq && ppu_mode != OAM_SCAN_MODE)
+                        cpu.IF |= STAT_IRQ;
+                    stat_irq = true;
+                }
                 STAT_REG = byte & 0b01111000;
                 return;
         w_42: WRITE(SCY);
