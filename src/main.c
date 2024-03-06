@@ -2,6 +2,7 @@
 #include "hardware.h"
 #include "gameshark.h"
 #include "info.h"
+#include "ini.h"
 #include "post_rendering.h"
 
 #include <stdio.h>
@@ -18,6 +19,11 @@ void closeEmulator(){
 }
 
 void setup(){
+    char ini_path[FILENAME_MAX];
+    getAbsoluteDir(ini_path);
+    strcat(ini_path, "data/config.ini");
+    loadConfigFile(ini_path);
+
     setupWindow();
     setTitle(u8"エミュボーイ");
     frameRate(REFRESH_RATE);

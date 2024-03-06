@@ -35,54 +35,42 @@ void setupWindow(){
     return;
     #endif
 
-    char render_mode[128] = "";
-    char ini_path[FILENAME_MAX];
-    getAbsoluteDir(ini_path);
-    strcat(ini_path, "data/config.ini");
-
-    FILE* ini_ptr = INI_open(ini_path);
-
-    if(ini_ptr){
-        INI_getString(ini_ptr, "render", render_mode);
-        INI_close(ini_ptr);
-    }
-
-    if(!strcmp("linear", render_mode)){
+    if(!strcmp("linear", config_render)){
         setScaleMode(LINEAR);
         size(LCD_WIDTH, LCD_HEIGHT);
         renderDisplay = noFilterDisplay;
         return;
     }
 
-    if(!strcmp("matrix", render_mode)){
+    if(!strcmp("matrix", config_render)){
         setScaleMode(NEAREST);
         size(LCD_WIDTH*5, LCD_HEIGHT*5);
         renderDisplay = matrixFilterDisplay;
         return;
     }
 
-    if(!strcmp("dmg", render_mode)){
+    if(!strcmp("dmg", config_render)){
         setScaleMode(NEAREST);
         size(LCD_WIDTH*5, LCD_HEIGHT*5);
         renderDisplay = dmgFilterDisplay;
         return;
     }
 
-    if(!strcmp("scale2x", render_mode)){
+    if(!strcmp("scale2x", config_render)){
         setScaleMode(NEAREST);
         size(LCD_WIDTH*2, LCD_HEIGHT*2);
         renderDisplay = scale2xFilterDisplay;
         return;
     }
 
-    if(!strcmp("scale3x", render_mode)){
+    if(!strcmp("scale3x", config_render)){
         setScaleMode(NEAREST);
         size(LCD_WIDTH*3, LCD_HEIGHT*3);
         renderDisplay = scale3xFilterDisplay;
         return;
     }
 
-    if(!strcmp("debug", render_mode)){
+    if(!strcmp("debug", config_render)){
         setScaleMode(NEAREST);
         size(800, 600);
         renderDisplay = debugFilterDisplay;

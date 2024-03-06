@@ -89,29 +89,19 @@ void updateSerial(){
 #ifndef __EMSCRIPTEN__
 
 bool load_network_config(){
-    char ini_path[FILENAME_MAX];
-    getAbsoluteDir(ini_path);
-    strcat(ini_path, "data/config.ini");
-
-    FILE* ini_ptr = INI_open(ini_path);
-    if(!ini_ptr)
-        return false;
-    int input_val;
-
-    if(!ini_ptr)
-        return false;
-
-    if(INI_getInt(ini_ptr, "listen_port", &input_val))
-        p2p.my_server_port = input_val;
+    if(config_listen_port)
+        p2p.my_server_port = config_listen_port;
     else
         return false;
 
-    if(INI_getInt(ini_ptr, "connect_port", &input_val))
-        p2p.peer_server_port = input_val;
+    if(config_connect_port)
+        p2p.peer_server_port = config_connect_port;
     else
         return false;
 
-    if(!INI_getString(ini_ptr, "connect_ip", p2p.peer_server_ip))
+    if(config_connect_ip[0])
+        strcpy(p2p.peer_server_ip, config_connect_ip);
+    else
         return false;
 
     return true;

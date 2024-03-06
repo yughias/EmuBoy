@@ -329,18 +329,8 @@ void detectConsoleAndMbc(){
     alreadyWrite = false; 
 
     console_type = CGB_TYPE;
-        
-    int force_dmg = 0;
-    char ini_path[FILENAME_MAX];
-    getAbsoluteDir(ini_path);
-    strcat(ini_path, "data/config.ini");
-    FILE* ini_ptr = INI_open(ini_path);
-    if(ini_ptr){
-        INI_getInt(ini_ptr, "force_dmg_when_possible", &force_dmg);
-        INI_close(ini_ptr);
-    }
 
-    if(force_dmg && ROM[0x143] != 0xC0)
+    if(config_force_dmg_when_possible && ROM[0x143] != 0xC0)
         console_type = DMG_TYPE;
 
     // in emscripten we don't have config file
