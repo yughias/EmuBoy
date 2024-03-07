@@ -75,6 +75,7 @@ void loop(){
     #endif
 
     const Uint8* keystate = SDL_GetKeyboardState(NULL);
+    emulateTurboButton();
     #ifndef SPEED_TEST
     int speed = keystate[SDL_SCANCODE_TAB] ? 16 : 1;
     #else

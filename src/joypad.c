@@ -13,6 +13,9 @@ uint8_t ACTION_BTN;
 const Uint8* keystate;
 SDL_Joystick* joystick;
 
+bool a_turbo_btn = false;
+bool b_turbo_btn = false;
+
 void initJoypad(){
     keystate = SDL_GetKeyboardState(NULL);
     joystick = SDL_JoystickOpen(0);
@@ -37,7 +40,7 @@ void emulateJoypad(){
     if(keystate[B_KEY] || JOYSTICK_CHECK(A))
         new_action_btn &= 0b1101;
     
-    if(keystate[SELECT_KEY] || JOYSTICK_CHECK(X))
+    if(keystate[SELECT_KEY] || JOYSTICK_CHECK(BACK))
         new_action_btn &= 0b1011;
 
     // map select key to both left and right shift key for emscripten
@@ -46,7 +49,7 @@ void emulateJoypad(){
         new_action_btn &= 0b1011;
     #endif
 
-    if(keystate[START_KEY] || JOYSTICK_CHECK(Y))
+    if(keystate[START_KEY] || JOYSTICK_CHECK(START))
         new_action_btn &= 0b0111;
 
     if(keystate[RIGHT_KEY] || JOYSTICK_CHECK(DPAD_RIGHT) || x_axis == 1)
@@ -61,8 +64,25 @@ void emulateJoypad(){
     if(keystate[DOWN_KEY] || JOYSTICK_CHECK(DPAD_DOWN) || y_axis == 1)
         new_arrow_btn &= 0b0111;
 
+    
+    if(keystate[TURBO_A_KEY] || JOYSTICK_CHECK(Y)){
+        new_action_btn &= 0b1110;
+        new_action_btn |= a_turbo_btn;
+    }
+
+    if(keystate[TURBO_B_KEY] || JOYSTICK_CHECK(X)){
+        new_action_btn &= 0b1110;
+        new_action_btn |= b_turbo_btn;
+    }
+
+
     ARROW_BTN = new_arrow_btn;
     ACTION_BTN = new_action_btn;
+}
+
+void emulateTurboButton(){
+    a_turbo_btn ^= 1;
+    b_turbo_btn ^= 1;
 }
 
 uint8_t getJoypadRegister(){
