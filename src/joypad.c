@@ -1,10 +1,6 @@
 #include <SDL2/SDL.h>
 #include "joypad.h"
 
-#define AXIS_DEAD_ZONE (1 << 13)
-#define JOYSTICK_CHECK(btn) (joystick && SDL_JoystickGetButton(joystick, SDL_CONTROLLER_BUTTON_ ## btn)) 
-#define NORM_AXIS(axis) if(axis > AXIS_DEAD_ZONE) axis = 1; else if(axis < -AXIS_DEAD_ZONE) axis = -1; else axis = 0
-
 uint8_t JOYP_REG;
 
 uint8_t ARROW_BTN;

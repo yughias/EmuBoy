@@ -410,6 +410,8 @@ void render(){
 }
 
 void size(int w, int h){
+    width = w;
+    height = h;
     if(!window){
         width = w;
         height = h;
@@ -420,6 +422,19 @@ void size(int w, int h){
         renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_TARGETTEXTURE);
         drawBuffer = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_STREAMING, width, height);
         SDL_LockTextureToSurface(drawBuffer, NULL, &surface);
+        pixels = (int*)surface->pixels;
+        #else
+        surface = SDL_GetWindowSurface(window);
+        pixels = (int*)surface->pixels;
+        #endif
+    } else {
+        SDL_SetWindowSize(window, w, h);
+
+        #ifdef MAINLOOP_GL
+        SDL_DestroyTexture(drawBuffer);
+        drawBuffer = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_STREAMING, width, height);
+        SDL_LockTextureToSurface(drawBuffer, NULL, &surface);
+        calculateRescaleVars();
         pixels = (int*)surface->pixels;
         #else
         surface = SDL_GetWindowSurface(window);

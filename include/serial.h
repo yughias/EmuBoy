@@ -2,6 +2,7 @@
 #define __SERIAL_H__
 
 #include <stdbool.h>
+#include <stdint.h>
 
 #define SB_ADDR 0xFF01
 #define SC_ADDR  0xFF02

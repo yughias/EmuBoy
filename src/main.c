@@ -4,6 +4,7 @@
 #include "info.h"
 #include "ini.h"
 #include "post_rendering.h"
+#include "menu.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -19,6 +20,8 @@ void closeEmulator(){
 }
 
 void setup(){
+    createMenuBar();
+
     char ini_path[FILENAME_MAX];
     getAbsoluteDir(ini_path);
     strcat(ini_path, "data/config.ini");
@@ -74,10 +77,9 @@ void loop(){
     }
     #endif
 
-    const Uint8* keystate = SDL_GetKeyboardState(NULL);
     emulateTurboButton();
     #ifndef SPEED_TEST
-    int speed = keystate[SDL_SCANCODE_TAB] ? 16 : 1;
+    int speed = keystate[SDL_SCANCODE_TAB] || JOYSTICK_CHECK(RIGHTSHOULDER) ? 16 : 1;
     #else
     int speed = SPEED_TEST;
     #endif

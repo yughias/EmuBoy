@@ -1,6 +1,7 @@
 #include "post_rendering.h"
 #include "SDL_MAINLOOP.h"
 #include "hardware.h"
+#include "menu.h"
 #include "ini.h"
 
 #include <stdlib.h>
@@ -25,6 +26,8 @@ int I = x + 1 < LCD_WIDTH && y + 1 < LCD_HEIGHT ? renderBufferPtr[(x+1) + (y+1)*
 
 void matrixAndGhostingDisplay(float);
 
+void setupDisplayFilter(int width, int height, ScaleMode scale_mode, void (*filterFunc)(), buttonId radioBtn);
+
 void (*renderDisplay)();
 
 void setupWindow(){
@@ -36,50 +39,44 @@ void setupWindow(){
     #endif
 
     if(!strcmp("linear", config_render)){
-        setScaleMode(LINEAR);
-        size(LCD_WIDTH, LCD_HEIGHT);
-        renderDisplay = noFilterDisplay;
+        setupDisplayFilter(LCD_WIDTH, LCD_HEIGHT, LINEAR, noFilterDisplay, menu_linearBtn);
         return;
     }
 
     if(!strcmp("matrix", config_render)){
-        setScaleMode(NEAREST);
-        size(LCD_WIDTH*5, LCD_HEIGHT*5);
-        renderDisplay = matrixFilterDisplay;
+        setupDisplayFilter(LCD_WIDTH*5, LCD_HEIGHT*5, NEAREST, matrixFilterDisplay, menu_matrixBtn);
         return;
     }
 
     if(!strcmp("dmg", config_render)){
-        setScaleMode(NEAREST);
-        size(LCD_WIDTH*5, LCD_HEIGHT*5);
-        renderDisplay = dmgFilterDisplay;
+        setupDisplayFilter(LCD_WIDTH*5, LCD_HEIGHT*5, NEAREST, dmgFilterDisplay, menu_classicBtn);
         return;
     }
 
     if(!strcmp("scale2x", config_render)){
-        setScaleMode(NEAREST);
-        size(LCD_WIDTH*2, LCD_HEIGHT*2);
-        renderDisplay = scale2xFilterDisplay;
+        setupDisplayFilter(LCD_WIDTH*2, LCD_HEIGHT*2, NEAREST, scale2xFilterDisplay, menu_scale2xBtn);
         return;
     }
 
     if(!strcmp("scale3x", config_render)){
-        setScaleMode(NEAREST);
-        size(LCD_WIDTH*3, LCD_HEIGHT*3);
-        renderDisplay = scale3xFilterDisplay;
+        setupDisplayFilter(LCD_WIDTH*3, LCD_HEIGHT*3, NEAREST, scale3xFilterDisplay, menu_scale3xBtn);
         return;
     }
 
     if(!strcmp("debug", config_render)){
-        setScaleMode(NEAREST);
-        size(800, 600);
-        renderDisplay = debugFilterDisplay;
+        setupDisplayFilter(800, 600, NEAREST, debugFilterDisplay, menu_debugBtn);
         return;
     }
 
-    setScaleMode(NEAREST);
-    size(LCD_WIDTH, LCD_HEIGHT);
-    renderDisplay = noFilterDisplay;
+    setupDisplayFilter(LCD_WIDTH, LCD_HEIGHT, NEAREST, noFilterDisplay, menu_nearestBtn);
+}
+
+
+void setupDisplayFilter(int width, int height, ScaleMode scale_mode, void (*filterFunc)(), buttonId radioBtn){
+    setScaleMode(scale_mode);
+    size(width, height);
+    renderDisplay = filterFunc;
+    checkRadioButton(radioBtn);
 }
 
 void noFilterDisplay(){
