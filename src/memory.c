@@ -72,14 +72,16 @@ void initMemory(const char* romName){
     fillReadTable(0x40, 0x80, mbc_mapper_4000_7FFF);
     fillReadTable(0x80, 0xA0, readVram);
     fillReadTable(0xA0, 0xC0, readEram);
-    fillReadTable(0xC0, 0xFE, readWram);
+    fillReadTable(0xC0, 0xE0, readWram);
+    fillReadTable(0xE0, 0xFE, readMirrorRam);
     fillReadTable(0xFE, 0xFE, readOam);
     fillReadTable(0xFF, 0xFF, readIO);
 
     fillWriteTable(0x00, 0x80, mbc_rom_write);
     fillWriteTable(0x80, 0xA0, writeVram);
     fillWriteTable(0xA0, 0xC0, writeEram);
-    fillWriteTable(0xC0, 0xFE, writeWram);
+    fillWriteTable(0xC0, 0xE0, writeWram);
+    fillWriteTable(0xE0, 0xFE, writeMirrorRam);
     fillWriteTable(0xFE, 0xFE, writeOam);
     fillWriteTable(0xFF, 0xFF, writeIO);
 

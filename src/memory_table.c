@@ -41,6 +41,10 @@ uint8_t readVram(uint16_t address){
     return VRAM[(address - 0x8000) + VBK_REG * 0x2000];
 }
 
+uint8_t readMirrorRam(uint16_t address){
+    return WRAM[(address - 0xE000)];
+}
+
 uint8_t readWram(uint16_t address){
     uint8_t bank = 0;
     if(address >= 0xD000){
@@ -86,14 +90,14 @@ uint8_t readIO(uint16_t address){
     {
         r_00: return getJoypadRegister();
         r_01: READ(SB);
-        r_02: READ(SC);
+        r_02: return SC_REG | 0b01111110; // fix mask for CGB
         r_03: return 0xFF;
         r_04: return gb_timer.div;
         r_05: READ(TIMA);
         r_06: READ(TMA);
         r_07: TAC_REG |= 0b11111000; return TAC_REG;
         r_08: r_09: r_0A: r_0B: r_0C: r_0D: r_0E: return 0xFF;
-        r_0F: cpu.IF &= VBLANK_IRQ | STAT_IRQ | TIMER_IRQ | SERIAL_IRQ | JOYPAD_IRQ; return cpu.IF;
+        r_0F: cpu.IF |= 0b11100000; return cpu.IF;
         r_10: return getNR10();
         r_11: return getNR11();
         r_12: READ(NR12);
@@ -140,7 +144,7 @@ uint8_t readIO(uint16_t address){
         r_56: r_57:
         r_58: r_59: r_5A: r_5B: r_5C: r_5D: r_5E: r_5F:
         r_60: r_61: r_62: r_63: r_64: r_65: r_66: r_67: return 0xFF;
-        r_68: READ(BCPS); 
+        r_68: CGB_MODE_READ( READ(BCPS); ); 
         r_69: CGB_MODE_READ( return readFromCRAM(&BCPS_REG, BGP_CRAM); );
         r_6A: CGB_MODE_READ( READ(OCPS); );
         r_6B: CGB_MODE_READ( return readFromCRAM(&OCPS_REG, OBP_CRAM); );
@@ -164,7 +168,7 @@ uint8_t readIO(uint16_t address){
         r_E8: r_E9: r_EA: r_EB: r_EC: r_ED: r_EE: r_EF:
         r_F0: r_F1: r_F2: r_F3: r_F4: r_F5: r_F6: r_F7:
         r_F8: r_F9: r_FA: r_FB: r_FC: r_FD: r_FE: return HRAM[address - 0xFF80];
-        r_FF: cpu.IE &= VBLANK_IRQ | STAT_IRQ | TIMER_IRQ | SERIAL_IRQ | JOYPAD_IRQ; return cpu.IE;
+        r_FF: return cpu.IE;
     }
 }
 
@@ -185,6 +189,10 @@ void writeWram(uint16_t address, uint8_t byte){
 
 void writeEram(uint16_t address, uint8_t byte){
     *(*mbc_mapper_A000_BFFF)(address) = byte;
+}
+
+void writeMirrorRam(uint16_t address, uint8_t byte){
+    WRAM[(address - 0xE000)] = byte;
 }
 
 void writeOam(uint16_t address, uint8_t byte){
