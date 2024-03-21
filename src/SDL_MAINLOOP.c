@@ -309,6 +309,11 @@ int main(int argc, char* argv[]){
 void mainloop(){
     frameCount++;
 
+    #ifdef MAINLOOP_GL
+    SDL_LockTextureToSurface(drawBuffer, NULL, &surface);
+    pixels = (int*)surface->pixels;
+    #endif
+
     #ifdef MAINLOOP_WINDOWS
     MSG msg;
     while (PeekMessage(&msg, NULL, 0, 0, PM_REMOVE))
@@ -388,11 +393,6 @@ void mainloop(){
         isMouseDragged = true;
     else
         isMouseDragged = false;
-
-    #ifdef MAINLOOP_GL
-    SDL_LockTextureToSurface(drawBuffer, NULL, &surface);
-    pixels = (int*)surface->pixels;
-    #endif
 
     loop();
 

@@ -73,8 +73,8 @@ void setupWindow(){
 
 
 void setupDisplayFilter(int width, int height, ScaleMode scale_mode, void (*filterFunc)(), buttonId radioBtn){
-    setScaleMode(scale_mode);
     size(width, height);
+    setScaleMode(scale_mode);
     renderDisplay = filterFunc;
     checkRadioButton(radioBtn);
 }

@@ -281,6 +281,7 @@ void hleDmgColorization(uint8_t* rom){
             }
         }
 
+    // standard colors for unknown games
     for(int j = 0; j < 4; j++){
         int bg_col = paletteConfigs[0].bg[j];
         int obj0_col = paletteConfigs[0].obj0[j];

@@ -8,6 +8,7 @@ int config_listen_port;
 int config_connect_port;
 char config_connect_ip[CONFIG_STRING_SIZE];
 char config_render[CONFIG_STRING_SIZE];
+char config_gb_palette[CONFIG_STRING_SIZE];
 int config_force_dmg_when_possible;
 
 #define READ_INT(var) if(!INI_getInt(ini_ptr, #var, &config_ ## var)) config_ ## var = 0
@@ -57,6 +58,7 @@ void loadConfigFile(const char* filename){
     READ_INT(listen_port);
     READ_STRING(connect_ip);
     READ_STRING(render);
+    READ_STRING(gb_palette);
     READ_INT(force_dmg_when_possible);
 
     INI_close(ini_ptr);

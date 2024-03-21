@@ -1,6 +1,8 @@
 #include "SDL_MAINLOOP.h"
 #include "gameshark.h"
 #include "hardware.h"
+#include "ini.h"
+#include "menu.h"
 
 #include <stdlib.h>
 
@@ -109,10 +111,39 @@ void writeColorToCRAM(uint8_t red, uint8_t green, uint8_t blue, uint8_t* cram, u
 }
 
 void initColorPalette(){
-    dmgColors[3] = color(46, 65, 57);
-    dmgColors[2] = color(64, 89, 74);
-    dmgColors[1] = color(95, 120, 66);
-    dmgColors[0] = color(123, 129, 17);
+    if(!strcmp(config_gb_palette, "grey")){
+        dmgColors[3] = color(16, 16, 16);
+        dmgColors[2] = color(88, 88, 88);
+        dmgColors[1] = color(160, 160, 160);
+        dmgColors[0] = color(232, 232, 232);
+        checkRadioButton(menu_greyPaletteBtn);
+    } else if(!strcmp(config_gb_palette, "gameboy_light")){ 
+        dmgColors[3] = color(0, 79, 59);
+        dmgColors[2] = color(0, 105, 74);
+        dmgColors[1] = color(0, 154, 113);
+        dmgColors[0] = color(0, 181, 129);
+        checkRadioButton(menu_gameboyLightPaletteBtn);
+    } else if(!strcmp(config_gb_palette, "gameboy_kiosk")){
+        dmgColors[3] = color(16, 55, 0);
+        dmgColors[2] = color(107, 110, 0);
+        dmgColors[1] = color(187, 187, 24);
+        dmgColors[0] = color(236, 237, 176); 
+        checkRadioButton(menu_gameboyKioskPaletteBtn);
+    } else if(!strcmp(config_gb_palette, "super_gameboy")){
+        dmgColors[3] = color(49, 24, 82);
+        dmgColors[2] = color(173, 41, 33);
+        dmgColors[1] = color(222, 148, 74);
+        dmgColors[0] = color(255, 239, 206);
+        checkRadioButton(menu_superGameboyPaletteBtn);
+    } else {
+        dmgColors[3] = color(46, 65, 57);
+        dmgColors[2] = color(64, 89, 74);
+        dmgColors[1] = color(95, 120, 66);
+        dmgColors[0] = color(123, 129, 17);
+        checkRadioButton(menu_defaultPaletteBtn);
+    }
+
+   color(255, 0, 0);
 
     if(console_type == CGB_TYPE || console_type == DMG_ON_CGB_TYPE)
         backgroundColor = color(255, 255, 255);
