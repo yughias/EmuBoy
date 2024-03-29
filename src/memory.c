@@ -2,13 +2,13 @@
 #include "info.h"
 #include "bootrom_skip.h"
 #include "memory_table.h"
+#include "mbcs/mbc3.h"
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
 uint8_t BOOTROM_DISABLE_REG;
-uint8_t NOT_MAPPED;
 
 uint8_t* BOOTROM;
 size_t BOOTROM_SIZE;
@@ -67,11 +67,13 @@ void initMemory(const char* romName){
     detectConsoleAndMbc();
     if(hasBattery)
         loadSav(savName);
+    if(hasRtc)
+        loadRtc(savName);
 
     fillReadTable(0x00, 0x40, mbc_mapper_0000_3FFF);
     fillReadTable(0x40, 0x80, mbc_mapper_4000_7FFF);
     fillReadTable(0x80, 0xA0, readVram);
-    fillReadTable(0xA0, 0xC0, readEram);
+    fillReadTable(0xA0, 0xC0, mbc_mapper_A000_BFFF_read);
     fillReadTable(0xC0, 0xE0, readWram);
     fillReadTable(0xE0, 0xFE, readMirrorRam);
     fillReadTable(0xFE, 0xFE, readOam);
@@ -79,7 +81,7 @@ void initMemory(const char* romName){
 
     fillWriteTable(0x00, 0x80, mbc_rom_write);
     fillWriteTable(0x80, 0xA0, writeVram);
-    fillWriteTable(0xA0, 0xC0, writeEram);
+    fillWriteTable(0xA0, 0xC0, mbc_mapper_A000_BFFF_write);
     fillWriteTable(0xC0, 0xE0, writeWram);
     fillWriteTable(0xE0, 0xFE, writeMirrorRam);
     fillWriteTable(0xFE, 0xFE, writeOam);
@@ -112,21 +114,6 @@ uint8_t readByte(uint16_t address){
 
 void writeByte(uint16_t address, uint8_t byte){
     (*writeTable[address >> 8])(address, byte);
-}
-
-uint8_t readFromCRAM(uint8_t* idx_reg, uint8_t* cram){
-    uint8_t addr = (*idx_reg) & 0b111111;
-    return cram[addr];
-}
-
-void writeToCRAM(uint8_t* idx_reg, uint8_t byte, uint8_t* cram){
-    uint8_t addr = (*idx_reg) & 0b111111;
-    bool auto_inc = (*idx_reg) >> 7;
-    cram[addr] = byte;
-    if(auto_inc){
-        addr = (addr + 1) % CRAM_SIZE;
-        *idx_reg = (1 << 7) | addr;
-    }
 }
 
 void loadRom(const char* filename){
@@ -168,6 +155,8 @@ void loadSav(const char* filename){
 
 void saveSav(const char* filename){
     FILE* fptr = fopen(filename, "wb");
+    if(!fptr)
+        return;
     fwrite(ERAM, 1, ERAM_SIZE, fptr);
     fclose(fptr);
 }

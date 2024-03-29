@@ -33,10 +33,6 @@ uint8_t readBootrom(uint16_t address){
     return BOOTROM[address];
 }
 
-uint8_t readEram(uint16_t address){
-    return *(*mbc_mapper_A000_BFFF)(address);
-}
-
 uint8_t readVram(uint16_t address){
     return VRAM[(address - 0x8000) + VBK_REG * 0x2000];
 }
@@ -145,9 +141,9 @@ uint8_t readIO(uint16_t address){
         r_58: r_59: r_5A: r_5B: r_5C: r_5D: r_5E: r_5F:
         r_60: r_61: r_62: r_63: r_64: r_65: r_66: r_67: return 0xFF;
         r_68: CGB_MODE_READ( READ(BCPS); ); 
-        r_69: CGB_MODE_READ( return readFromCRAM(&BCPS_REG, BGP_CRAM); );
+        r_69: CGB_MODE_READ( return readCRAM(&BCPS_REG, BGP_CRAM); );
         r_6A: CGB_MODE_READ( READ(OCPS); );
-        r_6B: CGB_MODE_READ( return readFromCRAM(&OCPS_REG, OBP_CRAM); );
+        r_6B: CGB_MODE_READ( return readCRAM(&OCPS_REG, OBP_CRAM); );
         r_6C: r_6D: r_6E: r_6F: return 0xFF;
         r_70: CGB_MODE_READ( return SVBK_REG | 0xF8; );
         r_71: r_72: r_73: r_74: r_75: r_76: r_77:
@@ -172,6 +168,11 @@ uint8_t readIO(uint16_t address){
     }
 }
 
+uint8_t readCRAM(uint8_t* idx_reg, uint8_t* cram){
+    uint8_t addr = (*idx_reg) & 0b111111;
+    return cram[addr];
+}
+
 // write callbacks
 
 void writeVram(uint16_t address, uint8_t byte){
@@ -185,10 +186,6 @@ void writeWram(uint16_t address, uint8_t byte){
         bank = SVBK_REG ? SVBK_REG : 1;
     }
     WRAM[(address & (0x2000 - 1)) + bank * 0x1000] = byte;
-}
-
-void writeEram(uint16_t address, uint8_t byte){
-    *(*mbc_mapper_A000_BFFF)(address) = byte;
 }
 
 void writeMirrorRam(uint16_t address, uint8_t byte){
@@ -309,9 +306,9 @@ void writeIO(uint16_t address, uint8_t byte){
         w_58: w_59: w_5A: w_5B: w_5C: w_5D: w_5E: w_5F:
         w_60: w_61: w_62: w_63: w_64: w_65: w_66: w_67: return;
         w_68: CGB_MODE_WRITE( WRITE(BCPS); );
-        w_69: CGB_MODE_WRITE( writeToCRAM(&BCPS_REG, byte, BGP_CRAM); return; );
+        w_69: CGB_MODE_WRITE( writeCRAM(&BCPS_REG, byte, BGP_CRAM); return; );
         w_6A: CGB_MODE_WRITE( WRITE(OCPS); );
-        w_6B: CGB_MODE_WRITE( writeToCRAM(&OCPS_REG, byte, OBP_CRAM); return; );
+        w_6B: CGB_MODE_WRITE( writeCRAM(&OCPS_REG, byte, OBP_CRAM); return; );
         w_6C: w_6D: w_6E: w_6F: return;
         w_70: CGB_MODE_WRITE( SVBK_REG = byte & 0b111; return; );
         w_71: w_72: w_73: w_74: w_75: w_76: w_77:
@@ -357,6 +354,16 @@ uint16_t megaduckShuffleRegisters(uint16_t address){
     };
 
     return (0xFF << 8) | megaduck_conversion_table[address & 0xFF]; 
+}
+
+void writeCRAM(uint8_t* idx_reg, uint8_t byte, uint8_t* cram){
+    uint8_t addr = (*idx_reg) & 0b111111;
+    bool auto_inc = (*idx_reg) >> 7;
+    cram[addr] = byte;
+    if(auto_inc){
+        addr = (addr + 1) % CRAM_SIZE;
+        *idx_reg = (1 << 7) | addr;
+    }
 }
 
 uint8_t megaduckNibbleSwap(uint16_t address, uint8_t byte){

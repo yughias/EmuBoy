@@ -12,6 +12,8 @@ cpu_t cpu = {
 
 CONSOLE_TYPE console_type = DMG_TYPE;
 
+uint64_t startFrame_clock;
+
 void emulateHardware(cpu_t* cpu){
     while(cpu->cycles < CYCLES_PER_FRAME){
         #ifdef DEBUG
@@ -19,6 +21,7 @@ void emulateHardware(cpu_t* cpu){
         #endif
         stepCPU(cpu);
     }
+    startFrame_clock += cpu->cycles;
     cpu->cycles -= CYCLES_PER_FRAME;
 }
 
@@ -38,6 +41,8 @@ void tickHardware(int ticks){
 }
 
 void initConsole(){
+    startFrame_clock = 0;
+
     initCPU(&cpu);
     initMemory(romName);
     initHDMA();

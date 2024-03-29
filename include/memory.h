@@ -23,8 +23,6 @@
 
 extern uint8_t BOOTROM_DISABLE_REG;
 
-extern uint8_t NOT_MAPPED;
-
 extern uint8_t* BOOTROM;
 extern size_t BOOTROM_SIZE;
 
@@ -61,8 +59,5 @@ void setFilename(const char*);
 
 uint8_t readByte(uint16_t);
 void writeByte(uint16_t, uint8_t);
-
-void writeToCRAM(uint8_t*, uint8_t, uint8_t*);
-uint8_t readFromCRAM(uint8_t*, uint8_t*);
 
 #endif

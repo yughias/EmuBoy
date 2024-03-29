@@ -192,7 +192,9 @@ int main(int argc, char* argv[]){
     SDL_Init(
         SDL_INIT_VIDEO |
         SDL_INIT_AUDIO |
-        SDL_INIT_JOYSTICK
+        SDL_INIT_JOYSTICK |
+        SDL_INIT_GAMECONTROLLER |
+        SDL_INIT_SENSOR
         #ifdef MAINLOOP_GL
         | SDL_VIDEO_OPENGL
         #endif

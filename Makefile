@@ -1,5 +1,5 @@
-SRC = $(wildcard src/*.c)
-EMCC_SRC = $(filter-out src/p2p.c src/ini.c, SRC)
+SRC = $(wildcard src/*.c)  $(wildcard src/mbcs/*.c) 
+EMCC_SRC = $(filter-out src/p2p.c src/escapi.c, $(SRC))
 
 gcc:
 	windres config.rc -O coff -o config.res
@@ -7,7 +7,7 @@ gcc:
 	del config.res
 
 emcc:
-	emcc -Iinclude $(wildcard src/*.c) -O3 -flto=full \
+	emcc -Iinclude $(EMCC_SRC) -O3 -flto=full \
 	-sUSE_SDL=2 \
 	-sINVOKE_RUN=0 \
 	-sEXPORTED_FUNCTIONS=[_main,_emscripten_loadRom,_switchCompatibilityMode] \

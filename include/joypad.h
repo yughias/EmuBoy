@@ -4,7 +4,7 @@
 #include "SDL_MAINLOOP.h"
 
 #define AXIS_DEAD_ZONE (1 << 13)
-#define JOYSTICK_CHECK(btn) (joystick && SDL_JoystickGetButton(joystick, SDL_CONTROLLER_BUTTON_ ## btn)) 
+#define GAMECONTROLLER_CHECK(btn) (gameController && SDL_GameControllerGetButton(gameController, SDL_CONTROLLER_BUTTON_ ## btn)) 
 #define NORM_AXIS(axis) if(axis > AXIS_DEAD_ZONE) axis = 1; else if(axis < -AXIS_DEAD_ZONE) axis = -1; else axis = 0
 
 #define LEFT_KEY SDL_SCANCODE_LEFT
@@ -21,7 +21,7 @@
 #define JOYP_ADDR 0xFF00
 
 extern const Uint8* keystate;
-extern SDL_Joystick* joystick;
+extern SDL_GameController* gameController;
 
 extern uint8_t JOYP_REG;
 

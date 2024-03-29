@@ -539,7 +539,7 @@ void updatePPU(){
             ppu_mode = HBLANK_MODE;
 
         if(console_type == CGB_TYPE)
-            if(old_mode != HBLANK_MODE && ppu_mode == HBLANK_MODE)
+            if(old_mode != HBLANK_MODE && ppu_mode == HBLANK_MODE && !cpu.HALTED)
                 stepHDMA();
     } else {
         ppu_mode = VBLANK_MODE;

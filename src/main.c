@@ -5,6 +5,8 @@
 #include "ini.h"
 #include "post_rendering.h"
 #include "menu.h"
+#include "mbcs/mbc3.h"
+#include "mbcs/mbc_cam.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -13,6 +15,10 @@
 void closeEmulator(){
     if(hasBattery)
         saveSav(savName);
+    if(hasRtc)
+        saveRtc(savName);
+    if(hasCamera)
+        mbc_cam_free();
     freeGameShark();
     freeMemory();
     freeAudio();
@@ -79,7 +85,7 @@ void loop(){
 
     emulateTurboButton();
     #ifndef SPEED_TEST
-    int speed = keystate[SDL_SCANCODE_TAB] || JOYSTICK_CHECK(RIGHTSHOULDER) ? 16 : 1;
+    int speed = keystate[SDL_SCANCODE_TAB] || GAMECONTROLLER_CHECK(RIGHTSHOULDER) ? 16 : 1;
     #else
     int speed = SPEED_TEST;
     #endif

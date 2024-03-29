@@ -23,6 +23,9 @@ void startHDMA(uint8_t byte){
     if(byte & 0x80){
         hblank_dma_started = true;
         HDMA_REGS[4] = byte & 0x7F;
+
+        if(ppu_mode == HBLANK_MODE && !cpu.HALTED)
+            stepHDMA();
     } else {
         if(hblank_dma_started){
             hblank_dma_started = false;
