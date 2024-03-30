@@ -29,5 +29,6 @@ void initJoypad();
 void emulateJoypad();
 void emulateTurboButton();
 uint8_t getJoypadRegister();
+void setGameControllerLed();
 
 #endif

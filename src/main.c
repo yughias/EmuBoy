@@ -83,6 +83,9 @@ void loop(){
     }
     #endif
 
+    if(gameController)
+        setGameControllerLed();
+
     emulateTurboButton();
     #ifndef SPEED_TEST
     int speed = keystate[SDL_SCANCODE_TAB] || GAMECONTROLLER_CHECK(RIGHTSHOULDER) ? 16 : 1;

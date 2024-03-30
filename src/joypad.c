@@ -101,3 +101,12 @@ uint8_t getJoypadRegister(){
 
     return output_val;
 }
+
+void setGameControllerLed(){
+    SDL_JoystickPowerLevel controllerBattery = SDL_JoystickCurrentPowerLevel(SDL_GameControllerGetJoystick(gameController));
+    int red = 255;
+    int led_values[4] = {5, 60, 100, 255};
+    if(controllerBattery >= SDL_JOYSTICK_POWER_EMPTY && controllerBattery <= SDL_JOYSTICK_POWER_FULL)
+        red = led_values[controllerBattery];
+    SDL_GameControllerSetLED(gameController, red, 0, 0);
+}

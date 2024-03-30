@@ -199,6 +199,10 @@ int main(int argc, char* argv[]){
         | SDL_VIDEO_OPENGL
         #endif
     );
+
+    SDL_SetHint(SDL_HINT_JOYSTICK_HIDAPI_PS4_RUMBLE, "1");
+    SDL_SetHint(SDL_HINT_JOYSTICK_HIDAPI_PS5_RUMBLE, "1");
+
     SDL_DisplayMode displayMode;
     SDL_GetCurrentDisplayMode(0, &displayMode);
     displayWidth = displayMode.w;
@@ -430,8 +434,6 @@ void size(int w, int h){
         pixels = (int*)surface->pixels;
         #endif
     } else {
-        SDL_SetWindowSize(window, w, h);
-
         #ifdef MAINLOOP_GL
         SDL_DestroyTexture(drawBuffer);
         drawBuffer = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_STREAMING, width, height);
@@ -439,6 +441,7 @@ void size(int w, int h){
         calculateRescaleVars();
         pixels = (int*)surface->pixels;
         #else
+        SDL_SetWindowSize(window, w, h);
         surface = SDL_GetWindowSurface(window);
         pixels = (int*)surface->pixels;
         #endif

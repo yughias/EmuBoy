@@ -158,7 +158,7 @@ void getCapturedFrame(){
         int r = (col >> 16) & 0xFF;
         int g = (col >> 8) & 0xFF;
         int b = col & 0xFF; 
-        int value = (r + g + b) / 3;
+        int value = 0.2126*r + 0.7152*g + 0.0722*b;
         value = ( (value * EXPOSURE_bits ) / 0x300 ); // 0x0300 could be other values
         value = 128 + (((value-128) * 1)/8); // "adapt" to "3.1"/5.0 V
         gb_cam_retina_output_buf[i][j] = clamp(0,value,255);
