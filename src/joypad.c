@@ -15,6 +15,8 @@ bool b_turbo_btn = false;
 void initJoypad(){
     keystate = SDL_GetKeyboardState(NULL);
     gameController = SDL_GameControllerOpen(0);
+    if(gameController)
+        SDL_GameControllerSetSensorEnabled(gameController, SDL_SENSOR_ACCEL, SDL_TRUE);
 }
 
 void emulateJoypad(){

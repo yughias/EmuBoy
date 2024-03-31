@@ -296,6 +296,9 @@ size_t getRomSize(uint8_t* buffer){
 }
 
 size_t getRamSize(uint8_t* buffer){
+    if(buffer[0x147] == 0x22)
+        return 256;
+
     if(buffer[0x147] == 0x06)
         return 512;
 

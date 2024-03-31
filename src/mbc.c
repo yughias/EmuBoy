@@ -201,11 +201,12 @@ void detectConsoleAndMbc(){
         break;
 
         case 0x22:
+        hasBattery = true;
         mbc_rom_write = mbc5_registers;
         MBC_2000_2FFF = 0x01;
         mbc_mapper_0000_3FFF = no_mbc_address;
         mbc_mapper_4000_7FFF = mbc5_4000_7FFF;
-        RAM_MAPPER(no_mapped_address);
+        RAM_MAPPER(mbc7_ram);
         printf("MBC7 ON!\n");
         break;
 

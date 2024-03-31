@@ -5,6 +5,7 @@
 #include "mbcs/mbc2.h"
 #include "mbcs/mbc3.h"
 #include "mbcs/mbc5.h"
+#include "mbcs/mbc7.h"
 
 #include "mbcs/mbc_cam.h"
 
