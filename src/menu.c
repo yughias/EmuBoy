@@ -13,6 +13,8 @@ generateVideoMenuCallback(Matrix, "matrix");
 generateVideoMenuCallback(Classic, "dmg");
 generateVideoMenuCallback(Scale2x, "scale2x");
 generateVideoMenuCallback(Scale3x, "scale3x");
+generateVideoMenuCallback(Hq2x, "hq2x");
+generateVideoMenuCallback(Hq3x, "hq3x");
 generateVideoMenuCallback(Debug, "debug");
 
 generatePaletteMenuCallback(Default, "");
@@ -27,6 +29,8 @@ buttonId menu_matrixBtn;
 buttonId menu_classicBtn;
 buttonId menu_scale2xBtn;
 buttonId menu_scale3xBtn;
+buttonId menu_hq2xBtn;
+buttonId menu_hq3xBtn;
 buttonId menu_debugBtn;
 
 buttonId menu_defaultPaletteBtn;
@@ -50,6 +54,8 @@ void createMenuBar(){
     menu_classicBtn = addButtonTo(filterMenu, L"classic", useClassicMenu);
     menu_scale2xBtn = addButtonTo(filterMenu, L"scale2x", useScale2xMenu);
     menu_scale3xBtn = addButtonTo(filterMenu, L"scale3x", useScale3xMenu);
+    menu_hq2xBtn = addButtonTo(filterMenu, L"hq2x", useHq2xMenu);
+    menu_hq3xBtn = addButtonTo(filterMenu, L"hq3x", useHq3xMenu);
     menu_debugBtn = addButtonTo(filterMenu, L"debug", useDebugMenu);
     
     menuId paletteMenu = addMenuTo(videoMenu, L"GB palette", true);

@@ -11,6 +11,8 @@ extern buttonId menu_matrixBtn;
 extern buttonId menu_classicBtn;
 extern buttonId menu_scale2xBtn;
 extern buttonId menu_scale3xBtn;
+extern buttonId menu_hq2xBtn;
+extern buttonId menu_hq3xBtn;
 extern buttonId menu_debugBtn;
 
 extern buttonId menu_defaultPaletteBtn;

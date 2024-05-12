@@ -3,7 +3,9 @@
 #include "hardware.h"
 #include "menu.h"
 #include "ini.h"
+#include "upscaler.h"
 
+#include <math.h>
 #include <stdlib.h>
 
 void noFilterDisplay();
@@ -11,22 +13,19 @@ void matrixFilterDisplay();
 void dmgFilterDisplay();
 void scale2xFilterDisplay();
 void scale3xFilterDisplay();
+void hq2xFilterDisplay();
+void hq3xFilterDisplay();
 void debugFilterDisplay();
-
-#define GET_3x3_PIXELS(x, y) \
-int A = x - 1 >= 0 && y - 1 >= 0 ? renderBufferPtr[(x-1) + (y-1)*LCD_WIDTH] : renderBufferPtr[x + y * LCD_WIDTH]; \
-int B = y - 1 >= 0 ? renderBufferPtr[x + (y-1)*LCD_WIDTH] : renderBufferPtr[x + y * LCD_WIDTH]; \
-int C = x + 1 < LCD_WIDTH && y - 1 >= 0 ? renderBufferPtr[(x+1) + (y-1)*LCD_WIDTH] : renderBufferPtr[x + y * LCD_WIDTH]; \
-int D = x - 1 >= 0 ? renderBufferPtr[(x-1) + y*LCD_WIDTH] : renderBufferPtr[x + y * LCD_WIDTH]; \
-int E = renderBufferPtr[x + y*LCD_WIDTH]; \
-int F = x + 1 < LCD_WIDTH ? renderBufferPtr[(x+1) + y*LCD_WIDTH] : renderBufferPtr[x + y * LCD_WIDTH]; \
-int G = x - 1 >= 0 && y + 1 < LCD_HEIGHT ? renderBufferPtr[(x-1) + (y+1)*LCD_WIDTH] : renderBufferPtr[x + y * LCD_WIDTH]; \
-int H = y + 1 < LCD_HEIGHT ? renderBufferPtr[x + (y+1)*LCD_WIDTH] : renderBufferPtr[x + y * LCD_WIDTH]; \
-int I = x + 1 < LCD_WIDTH && y + 1 < LCD_HEIGHT ? renderBufferPtr[(x+1) + (y+1)*LCD_WIDTH] : renderBufferPtr[x + y * LCD_WIDTH]
-
+void hq2xFilterDisplay();
 void matrixAndGhostingDisplay(float);
 
 void setupDisplayFilter(int width, int height, ScaleMode scale_mode, void (*filterFunc)(), buttonId radioBtn);
+
+#define DETECT_UPSCALER(filterName, interp, rate) \
+if(!strcmp(#filterName, config_render)){ \
+        setupDisplayFilter(LCD_WIDTH*rate, LCD_HEIGHT*rate, interp, filterName ## FilterDisplay, menu_ ## filterName ## Btn); \
+        return; \
+} \
 
 void (*renderDisplay)();
 
@@ -43,30 +42,21 @@ void setupWindow(){
         return;
     }
 
-    if(!strcmp("matrix", config_render)){
-        setupDisplayFilter(LCD_WIDTH*5, LCD_HEIGHT*5, NEAREST, matrixFilterDisplay, menu_matrixBtn);
-        return;
-    }
-
     if(!strcmp("dmg", config_render)){
         setupDisplayFilter(LCD_WIDTH*5, LCD_HEIGHT*5, NEAREST, dmgFilterDisplay, menu_classicBtn);
         return;
     }
 
-    if(!strcmp("scale2x", config_render)){
-        setupDisplayFilter(LCD_WIDTH*2, LCD_HEIGHT*2, NEAREST, scale2xFilterDisplay, menu_scale2xBtn);
-        return;
-    }
-
-    if(!strcmp("scale3x", config_render)){
-        setupDisplayFilter(LCD_WIDTH*3, LCD_HEIGHT*3, NEAREST, scale3xFilterDisplay, menu_scale3xBtn);
-        return;
-    }
-
-    if(!strcmp("debug", config_render)){
+	if(!strcmp("debug", config_render)){
         setupDisplayFilter(800, 600, NEAREST, debugFilterDisplay, menu_debugBtn);
         return;
     }
+
+	DETECT_UPSCALER(matrix, NEAREST, 5);
+	DETECT_UPSCALER(scale2x, NEAREST, 2);
+	DETECT_UPSCALER(scale3x, NEAREST, 3);
+	DETECT_UPSCALER(hq2x, NEAREST, 2);
+	DETECT_UPSCALER(hq3x, NEAREST, 3);
 
     setupDisplayFilter(LCD_WIDTH, LCD_HEIGHT, NEAREST, noFilterDisplay, menu_nearestBtn);
 }
@@ -110,60 +100,21 @@ void dmgFilterDisplay(){
 }
 
 void scale2xFilterDisplay(){
-    for(int y = 0; y < LCD_HEIGHT; y++){
-        for(int x = 0; x < LCD_WIDTH; x++){
-            GET_3x3_PIXELS(x, y);
-            int E0, E1, E2, E3;
-            if (B != H && D != F) {
-                E0 = D == B ? D : E;
-                E1 = B == F ? F : E;
-                E2 = D == H ? D : E;
-                E3 = H == F ? F : E;
-            } else {
-                E0 = E;
-                E1 = E;
-                E2 = E;
-                E3 = E;
-            }
-            pixels[x*2 + y*2 * width] = E0;
-            pixels[(x*2+1) + y*2 * width] = E1;
-            pixels[x*2 + (y*2+1) * width] = E2;
-            pixels[(x*2+1) + (y*2+1) * width] = E3;
-        }
-    }
+    scale2x(renderBufferPtr, pixels, LCD_WIDTH, LCD_HEIGHT);
 }
 
 void scale3xFilterDisplay(){
-    for(int y = 0; y < LCD_HEIGHT; y++){
-        for(int x = 0; x < LCD_WIDTH; x++){
-            GET_3x3_PIXELS(x, y);
-            int E_PIX[9];
-            if (B != H && D != F) {
-                E_PIX[0] = D == B ? D : E;
-                E_PIX[1] = (D == B && E != C) || (B == F && E != A) ? B : E;
-                E_PIX[2] = B == F ? F : E;
-                E_PIX[3] = (D == B && E != G) || (D == H && E != A) ? D : E;
-                E_PIX[4] = E;
-                E_PIX[5] = (B == F && E != I) || (H == F && E != C) ? F : E;
-                E_PIX[6] = D == H ? D : E;
-                E_PIX[7] = (D == H && E != I) || (H == F && E != G) ? H : E;
-                E_PIX[8] = H == F ? F : E;
-            } else {
-                E_PIX[0] = E;
-                E_PIX[1] = E;
-                E_PIX[2] = E;
-                E_PIX[3] = E;
-                E_PIX[4] = E;
-                E_PIX[5] = E;
-                E_PIX[6] = E;
-                E_PIX[7] = E;
-                E_PIX[8] = E;
-            }
-            for(int dy = 0; dy < 3; dy++)
-                for(int dx = 0; dx < 3; dx++)
-                    pixels[(x*3+dx) + (y*3+dy) * width] = E_PIX[dx + dy*3];
-        }
-    }
+	scale3x(renderBufferPtr, pixels, LCD_WIDTH, LCD_HEIGHT);
+}
+
+
+void hq2xFilterDisplay(){
+	hq2x(renderBufferPtr, pixels, LCD_WIDTH, LCD_HEIGHT);
+}
+
+
+void hq3xFilterDisplay(){
+	hq3x(renderBufferPtr, pixels, LCD_WIDTH, LCD_HEIGHT);
 }
 
 void debugFilterDisplay(){

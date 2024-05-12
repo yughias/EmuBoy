@@ -188,7 +188,7 @@ void stepCPU(cpu_t* cpu){
     else
         pc_inc(1);
 
-    if(cpu->IE & cpu->IF){
+    if(cpu->IE & cpu->IF & 0x1F){
         cpu->HALTED = false;
         if(cpu->IME && !cpu->EI_DELAY){
             cpu->IME = false;
@@ -908,7 +908,7 @@ static inline void CCF(cpu_t* cpu){
 }
 
 static inline void HLT(cpu_t* cpu){
-    if(!cpu->IME && (cpu->IE & cpu->IF))
+    if(!cpu->IME && (cpu->IE & cpu->IF & 0x1F))
         cpu->HALT_BUG = true;
     else
         cpu->HALTED = true;

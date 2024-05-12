@@ -310,7 +310,7 @@ void renderLine(uint8_t y){
         if(console_type != CGB_TYPE && !bg_win_enabled)
             col = backgroundColor;
         else
-            col = getTileMapPixelRGB(bgTileMap, (SCX_REG + x % 256), (SCY_REG + y) % 256, &dmgPrio[x], &cgbPrio[x]);
+            col = getTileMapPixelRGB(bgTileMap, (SCX_REG + x) % 256, (SCY_REG + y) % 256, &dmgPrio[x], &cgbPrio[x]);
         
         workingBufferPtr[x + y * LCD_WIDTH] = col;
     }
