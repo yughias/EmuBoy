@@ -15,3 +15,5 @@ emcc:
 
 emuboy.zip: emuboy.exe
 	tar -c -a -f emuboy.zip emuboy.exe data/config.ini data/logo.bmp *.dll
+
+.PHONY: emuboy.exe emuboy.zip

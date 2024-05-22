@@ -118,7 +118,7 @@ uint8_t readIO(uint16_t address){
         r_26: return getNR52();
         r_27: r_28: r_29: r_2A: r_2B: r_2C: r_2D: r_2E: r_2F: return 0xFF;
         r_30: r_31: r_32: r_33: r_34: r_35: r_36: r_37:
-        r_38: r_39: r_3A: r_3B: r_3C: r_3D: r_3E: r_3F: return WAVE_RAM[address - 0xFF30];
+        r_38: r_39: r_3A: r_3B: r_3C: r_3D: r_3E: r_3F: return WAVE_RAM[getWaveRamAddress(address - 0xFF30)];
         r_40: READ(LCDC);
         r_41: return getStatRegister();
         r_42: READ(SCY);
@@ -268,7 +268,7 @@ void writeIO(uint16_t address, uint8_t byte){
         w_26: WRITE(NR52);
         w_27: w_28: w_29: w_2A: w_2B: w_2C: w_2D: w_2E: w_2F: return;
         w_30: w_31: w_32: w_33: w_34: w_35: w_36: w_37:
-        w_38: w_39: w_3A: w_3B: w_3C: w_3D: w_3E: w_3F: WAVE_RAM[address - 0xFF30] = byte; return;
+        w_38: w_39: w_3A: w_3B: w_3C: w_3D: w_3E: w_3F: WAVE_RAM[getWaveRamAddress(address - 0xFF30)] = byte; return;
         w_40: WRITE(LCDC);
         w_41:
                 if(console_type != CGB_TYPE){

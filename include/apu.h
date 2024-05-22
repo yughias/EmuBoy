@@ -101,5 +101,6 @@ void setChannel3Timer();
 void setChannel4Timer();
 
 void turnOffAudioChannels();
+uint8_t getWaveRamAddress(uint8_t);
 
 #endif

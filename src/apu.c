@@ -527,3 +527,7 @@ void turnOffAudioChannels(){
     ch3_on = false;
     ch4_on = false;
 }
+
+uint8_t getWaveRamAddress(uint8_t address){
+    return ch3_on ? ch3_wave_idx >> 1 : address;
+}
