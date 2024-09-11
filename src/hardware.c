@@ -38,6 +38,13 @@ void tickHardware(int ticks){
         updatePPU();
         updateTimer();
     }
+    
+    if(KEY1_REG & 0x80){
+        for(int i = 0; i < ticks; i++){
+            updateSerial();
+            updateTimer();
+        }
+    }
 }
 
 void initConsole(){
