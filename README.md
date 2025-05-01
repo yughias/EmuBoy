@@ -73,8 +73,8 @@ A demo is available [here](https://yughias.github.io/pages/emuboy/emulator.html)
 
 ## Screenshots
 
-![screenshot 1](data/imgs/screenshot_1.png)
-![screenshot 2](data/imgs/screenshot_2.png)
-![screenshot 3](data/imgs/screenshot_3.png)
-![screenshot 4](data/imgs/screenshot_4.png)
+
+| ![screenshot 1](data/imgs/screenshot_1.png) | ![screenshot 2](data/imgs/screenshot_2.png) |
+| -------------------------------------------- | ----------------------------------------------------- |
+| ![screenshot 3](data/imgs/screenshot_3.png) |![screenshot 4](data/imgs/screenshot_4.png) |
 
