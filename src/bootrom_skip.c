@@ -1,6 +1,6 @@
 #include "bootrom_skip.h"
 #include "info.h"
-#include "hardware.h"
+#include "gb.h"
 
 #include "string.h"
 

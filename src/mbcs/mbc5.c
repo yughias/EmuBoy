@@ -1,7 +1,7 @@
 #include "mbc.h"
 #include "memory.h"
 #include "joypad.h"
-#include "hardware.h"
+#include "gb.h"
 
 #include <SDL2/SDL.h>
 

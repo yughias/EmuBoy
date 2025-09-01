@@ -1,6 +1,6 @@
 #include "SDL_MAINLOOP.h"
 #include "serial.h"
-#include "hardware.h"
+#include "gb.h"
 
 #ifndef __EMSCRIPTEN__
 #include "p2p.h"

@@ -2,7 +2,7 @@
 #include "memory.h"
 #include "info.h"
 #include "ini.h"
-#include "hardware.h"
+#include "gb.h"
 
 #include "mbcs/all.h"
 

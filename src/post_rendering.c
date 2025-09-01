@@ -1,6 +1,6 @@
 #include "post_rendering.h"
 #include "SDL_MAINLOOP.h"
-#include "hardware.h"
+#include "gb.h"
 #include "menu.h"
 #include "ini.h"
 #include "upscaler.h"

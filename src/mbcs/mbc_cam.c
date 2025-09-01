@@ -1,7 +1,7 @@
 #include "mbc.h"
 #include "mbcs/mbc_cam.h"
 #include "memory.h"
-#include "hardware.h"
+#include "gb.h"
 
 #ifndef __EMSCRIPTEN__
 #include "escapi.h"

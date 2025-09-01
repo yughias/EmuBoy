@@ -1,5 +1,5 @@
 #include "SDL_MAINLOOP.h"
-#include "hardware.h"
+#include "gb.h"
 #include "gameshark.h"
 #include "info.h"
 #include "ini.h"

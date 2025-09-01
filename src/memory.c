@@ -1,4 +1,4 @@
-#include "hardware.h"
+#include "gb.h"
 #include "info.h"
 #include "bootrom_skip.h"
 #include "memory_table.h"

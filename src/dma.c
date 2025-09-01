@@ -1,4 +1,4 @@
-#include "hardware.h"
+#include "gb.h"
 
 uint8_t DMA_REG;
 
