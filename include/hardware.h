@@ -1,7 +1,7 @@
 #ifndef __HARDWARE_H__
 #define __HARDWARE_H__
 
-#include "cpu.h"
+#include "sm83.h"
 #include "ppu.h"
 #include "memory.h"
 #include "joypad.h"
@@ -19,12 +19,12 @@
 
 typedef enum {DMG_TYPE, CGB_TYPE, MEGADUCK_TYPE, DMG_ON_CGB_TYPE} CONSOLE_TYPE;
 
-extern cpu_t cpu;
+extern sm83_t cpu;
 extern CONSOLE_TYPE console_type;
 extern uint64_t startFrame_clock;
 
-void emulateCpu(cpu_t*);
-void emulateHardware(cpu_t*);
+void emulateCpu(sm83_t*);
+void emulateHardware(sm83_t*);
 void updateTimer();
 void tickHardware(int);
 void initConsole();

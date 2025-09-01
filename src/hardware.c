@@ -4,7 +4,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-cpu_t cpu = {
+sm83_t cpu = {
     .readByte  = readByte,
     .writeByte = writeByte,
     .tickSystem = tickHardware 
@@ -14,7 +14,7 @@ CONSOLE_TYPE console_type = DMG_TYPE;
 
 uint64_t startFrame_clock;
 
-void emulateHardware(cpu_t* cpu){
+void emulateHardware(sm83_t* cpu){
     while(cpu->cycles < CYCLES_PER_FRAME){
         #ifdef DEBUG
         infoCPU(cpu);

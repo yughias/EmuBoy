@@ -1,73 +1,73 @@
-#include "cpu.h"
+#include "sm83.h"
 #include <stdio.h>
 
 //cpu NEW INSTRUCTION
-static inline void STOP(cpu_t*);
-static inline void JR(cpu_t*, int8_t);
-static inline void JRNZ(cpu_t*, int8_t);
-static inline void JRZ(cpu_t*, int8_t);
-static inline void JRNC(cpu_t*, int8_t);
-static inline void JRC(cpu_t*, int8_t);
-static inline void ADD_16(cpu_t*, uint16_t*, uint16_t);
-static inline void INC_16(cpu_t*, uint16_t*);
-static inline void DEC_16(cpu_t*, uint16_t*);
-static inline void INC_8(cpu_t*, uint8_t*);
-static inline void DEC_8(cpu_t*, uint8_t*);
-static inline void DAA(cpu_t*);
-static inline void CPL(cpu_t*);
-static inline void SCF(cpu_t*);
-static inline void CCF(cpu_t*);
-static inline void HLT(cpu_t*);
-static inline void RETNZ(cpu_t*);
-static inline void RETZ(cpu_t*);
-static inline void RETNC(cpu_t*);
-static inline void RETC(cpu_t*);
-static inline void LDH1(cpu_t*, uint8_t);
-static inline void LDH2(cpu_t*, uint8_t);
-static inline void ADD_SP(cpu_t*, int8_t);
-static inline void LD_SP(cpu_t*, int8_t);
-static inline void POP(cpu_t*, uint16_t*);
-static inline void RET(cpu_t*);
-static inline void JP(cpu_t*, uint16_t);
-static inline void JPNZ(cpu_t*, uint16_t);
-static inline void JPZ(cpu_t*, uint16_t);
-static inline void JPNC(cpu_t*, uint16_t);
-static inline void JPC(cpu_t*, uint16_t);
-static inline void EI(cpu_t*);
-static inline void DI(cpu_t*);
-static inline void CALL(cpu_t*, uint16_t);
-static inline void CALLNZ(cpu_t*, uint16_t);
-static inline void CALLZ(cpu_t*, uint16_t);
-static inline void CALLNC(cpu_t*, uint16_t);
-static inline void CALLC(cpu_t*, uint16_t);
-static inline void PUSH(cpu_t*, uint16_t);
-static inline void RST(cpu_t*, uint8_t);
-static inline void RLC(cpu_t*, uint8_t*);
-static inline void RRC(cpu_t*, uint8_t*);
-static inline void RLCA(cpu_t*);
-static inline void RRCA(cpu_t*);
-static inline void RLA(cpu_t*);
-static inline void RRA(cpu_t*);
-static inline void RLC(cpu_t*, uint8_t*);
-static inline void RRC(cpu_t*, uint8_t*);
-static inline void RL(cpu_t*, uint8_t*);
-static inline void RR(cpu_t*, uint8_t*);
-static inline void SLA(cpu_t*, uint8_t*);
-static inline void SRA(cpu_t*, uint8_t*);
-static inline void SWAP(cpu_t*, uint8_t*);
-static inline void SRL(cpu_t*, uint8_t*);
-static inline void BIT(cpu_t*, uint8_t, uint8_t*);
-static inline void SET(cpu_t*, uint8_t, uint8_t*);
-static inline void RES(cpu_t*, uint8_t, uint8_t*);
-static inline void ADD(cpu_t*, uint8_t*, uint8_t);
-static inline void ADC(cpu_t*, uint8_t*, uint8_t);
-static inline void SUB(cpu_t*, uint8_t*, uint8_t);
-static inline void SBC(cpu_t*, uint8_t*, uint8_t);
-static inline void AND(cpu_t*, uint8_t*, uint8_t);
-static inline void XOR(cpu_t*, uint8_t*, uint8_t);
-static inline void OR(cpu_t*, uint8_t*, uint8_t);
-static inline void CP(cpu_t*, uint8_t*, uint8_t);
-static inline void RETI(cpu_t*);
+static inline void STOP(sm83_t*);
+static inline void JR(sm83_t*, int8_t);
+static inline void JRNZ(sm83_t*, int8_t);
+static inline void JRZ(sm83_t*, int8_t);
+static inline void JRNC(sm83_t*, int8_t);
+static inline void JRC(sm83_t*, int8_t);
+static inline void ADD_16(sm83_t*, uint16_t*, uint16_t);
+static inline void INC_16(sm83_t*, uint16_t*);
+static inline void DEC_16(sm83_t*, uint16_t*);
+static inline void INC_8(sm83_t*, uint8_t*);
+static inline void DEC_8(sm83_t*, uint8_t*);
+static inline void DAA(sm83_t*);
+static inline void CPL(sm83_t*);
+static inline void SCF(sm83_t*);
+static inline void CCF(sm83_t*);
+static inline void HLT(sm83_t*);
+static inline void RETNZ(sm83_t*);
+static inline void RETZ(sm83_t*);
+static inline void RETNC(sm83_t*);
+static inline void RETC(sm83_t*);
+static inline void LDH1(sm83_t*, uint8_t);
+static inline void LDH2(sm83_t*, uint8_t);
+static inline void ADD_SP(sm83_t*, int8_t);
+static inline void LD_SP(sm83_t*, int8_t);
+static inline void POP(sm83_t*, uint16_t*);
+static inline void RET(sm83_t*);
+static inline void JP(sm83_t*, uint16_t);
+static inline void JPNZ(sm83_t*, uint16_t);
+static inline void JPZ(sm83_t*, uint16_t);
+static inline void JPNC(sm83_t*, uint16_t);
+static inline void JPC(sm83_t*, uint16_t);
+static inline void EI(sm83_t*);
+static inline void DI(sm83_t*);
+static inline void CALL(sm83_t*, uint16_t);
+static inline void CALLNZ(sm83_t*, uint16_t);
+static inline void CALLZ(sm83_t*, uint16_t);
+static inline void CALLNC(sm83_t*, uint16_t);
+static inline void CALLC(sm83_t*, uint16_t);
+static inline void PUSH(sm83_t*, uint16_t);
+static inline void RST(sm83_t*, uint8_t);
+static inline void RLC(sm83_t*, uint8_t*);
+static inline void RRC(sm83_t*, uint8_t*);
+static inline void RLCA(sm83_t*);
+static inline void RRCA(sm83_t*);
+static inline void RLA(sm83_t*);
+static inline void RRA(sm83_t*);
+static inline void RLC(sm83_t*, uint8_t*);
+static inline void RRC(sm83_t*, uint8_t*);
+static inline void RL(sm83_t*, uint8_t*);
+static inline void RR(sm83_t*, uint8_t*);
+static inline void SLA(sm83_t*, uint8_t*);
+static inline void SRA(sm83_t*, uint8_t*);
+static inline void SWAP(sm83_t*, uint8_t*);
+static inline void SRL(sm83_t*, uint8_t*);
+static inline void BIT(sm83_t*, uint8_t, uint8_t*);
+static inline void SET(sm83_t*, uint8_t, uint8_t*);
+static inline void RES(sm83_t*, uint8_t, uint8_t*);
+static inline void ADD(sm83_t*, uint8_t*, uint8_t);
+static inline void ADC(sm83_t*, uint8_t*, uint8_t);
+static inline void SUB(sm83_t*, uint8_t*, uint8_t);
+static inline void SBC(sm83_t*, uint8_t*, uint8_t);
+static inline void AND(sm83_t*, uint8_t*, uint8_t);
+static inline void XOR(sm83_t*, uint8_t*, uint8_t);
+static inline void OR(sm83_t*, uint8_t*, uint8_t);
+static inline void CP(sm83_t*, uint8_t*, uint8_t);
+static inline void RETI(sm83_t*);
 
 // flag masks to set/clear registers
 #define SET_Z   0b10000000
@@ -120,14 +120,14 @@ static inline void RETI(cpu_t*);
 
 // cpu utility function
 static inline bool calculateCarry(int, uint16_t, uint16_t, bool);
-static inline void prefix_CB(cpu_t*, uint8_t opcode);
+static inline void prefix_CB(sm83_t*, uint8_t opcode);
 
-uint8_t readByteAndTick(cpu_t*, uint16_t);
-uint16_t readShortAndTick(cpu_t*, uint16_t);
-void writeByteAndTick(cpu_t*, uint16_t, uint8_t);
-void writeShortAndTick(cpu_t*, uint16_t, uint16_t);
+uint8_t readByteAndTick(sm83_t*, uint16_t);
+uint16_t readShortAndTick(sm83_t*, uint16_t);
+void writeByteAndTick(sm83_t*, uint16_t, uint8_t);
+void writeShortAndTick(sm83_t*, uint16_t, uint16_t);
 
-void initCPU(cpu_t* cpu){
+void initCPU(sm83_t* cpu){
     cpu->cycles = 0;
 
     cpu->AF = 0x0000;
@@ -145,7 +145,7 @@ void initCPU(cpu_t* cpu){
     cpu->IF = 0x00;
 }
 
-void infoCPU(cpu_t* cpu){
+void infoCPU(sm83_t* cpu){
     fprintf(stderr, "A: %02X F: %02X B: %02X C: %02X D: %02X E: %02X H: %02X L: %02X ",
             cpu->A, cpu->F, cpu->B, cpu->C, cpu->D, cpu->E, cpu->H, cpu->L);
 
@@ -153,7 +153,7 @@ void infoCPU(cpu_t* cpu){
             cpu->SP, cpu->PC, cpu->readByte(cpu->PC), cpu->readByte(cpu->PC+1), cpu->readByte(cpu->PC+2), cpu->readByte(cpu->PC+3));
 }
 
-static inline void dispatchInterrupt(cpu_t* cpu){
+static inline void dispatchInterrupt(sm83_t* cpu){
     cpu->PC -= 1;
     cpu->tickSystem(4);
 
@@ -180,7 +180,7 @@ static inline void dispatchInterrupt(cpu_t* cpu){
     JP(cpu, jmp_addr);
 }
 
-void stepCPU(cpu_t* cpu){
+void stepCPU(sm83_t* cpu){
     uint8_t opcode = readByteAndTick(cpu, cpu->PC);
 
     if(cpu->HALT_BUG)
@@ -501,7 +501,7 @@ void stepCPU(cpu_t* cpu){
     }
 }
 
-static inline void prefix_CB(cpu_t* cpu, uint8_t opcode){
+static inline void prefix_CB(sm83_t* cpu, uint8_t opcode){
     static void* cb_table[256] = {
         &&cb_00, &&cb_01, &&cb_02, &&cb_03, &&cb_04, &&cb_05, &&cb_06, &&cb_07, &&cb_08, &&cb_09, &&cb_0A, &&cb_0B, &&cb_0C, &&cb_0D, &&cb_0E, &&cb_0F,
         &&cb_10, &&cb_11, &&cb_12, &&cb_13, &&cb_14, &&cb_15, &&cb_16, &&cb_17, &&cb_18, &&cb_19, &&cb_1A, &&cb_1B, &&cb_1C, &&cb_1D, &&cb_1E, &&cb_1F,
@@ -800,40 +800,40 @@ static inline void prefix_CB(cpu_t* cpu, uint8_t opcode){
 
 // Z80 INSTRUCTIONS
 
-static inline void STOP(cpu_t* cpu){
+static inline void STOP(sm83_t* cpu){
     printf("entered stop opcode\n");    
 }
 
-static inline void JR(cpu_t* cpu, int8_t d){
+static inline void JR(sm83_t* cpu, int8_t d){
     cpu->PC += d;
     cpu->tickSystem(4);
 }
 
-static inline void JRNZ(cpu_t* cpu, int8_t d){
+static inline void JRNZ(sm83_t* cpu, int8_t d){
     if(!cpu->Z_FLAG){
         JR(cpu, d);
     }
 }
 
-static inline void JRZ(cpu_t* cpu, int8_t d){
+static inline void JRZ(sm83_t* cpu, int8_t d){
     if(cpu->Z_FLAG){
         JR(cpu, d);
     }
 }
 
-static inline void JRNC(cpu_t* cpu, int8_t d){
+static inline void JRNC(sm83_t* cpu, int8_t d){
     if(!cpu->C_FLAG){
         JR(cpu, d);
     }
 }
 
-static inline void JRC(cpu_t* cpu, int8_t d){
+static inline void JRC(sm83_t* cpu, int8_t d){
     if(cpu->C_FLAG){
         JR(cpu, d);
     }
 }
 
-static inline void ADD_16(cpu_t* cpu, uint16_t* regDst, uint16_t regSrc){
+static inline void ADD_16(sm83_t* cpu, uint16_t* regDst, uint16_t regSrc){
     cpu->N_FLAG = false;
     cpu->C_FLAG = calculateCarry(16, *regDst, regSrc, 0);
     cpu->H_FLAG = calculateCarry(12, *regDst, regSrc, 0);
@@ -841,15 +841,15 @@ static inline void ADD_16(cpu_t* cpu, uint16_t* regDst, uint16_t regSrc){
     *regDst += regSrc;
 }
 
-static inline void INC_16(cpu_t* cpu, uint16_t* reg){
+static inline void INC_16(sm83_t* cpu, uint16_t* reg){
     *reg += 1;
 }
 
-static inline void DEC_16(cpu_t* cpu, uint16_t* reg){
+static inline void DEC_16(sm83_t* cpu, uint16_t* reg){
     *reg -= 1;
 }
 
-static inline void INC_8(cpu_t* cpu, uint8_t* reg){
+static inline void INC_8(sm83_t* cpu, uint8_t* reg){
     cpu->H_FLAG = calculateCarry(4, *reg, 1, 0);
     cpu->N_FLAG = false;
 
@@ -857,7 +857,7 @@ static inline void INC_8(cpu_t* cpu, uint8_t* reg){
     cpu->Z_FLAG = *reg == 0;
 }
 
-static inline void DEC_8(cpu_t* cpu, uint8_t* reg){
+static inline void DEC_8(sm83_t* cpu, uint8_t* reg){
     cpu->H_FLAG = !calculateCarry(4, *reg, -1, 0);
     cpu->N_FLAG = true;
 
@@ -865,7 +865,7 @@ static inline void DEC_8(cpu_t* cpu, uint8_t* reg){
     cpu->Z_FLAG = *reg == 0;
 }
 
-static inline void DAA(cpu_t* cpu){
+static inline void DAA(sm83_t* cpu){
     // explanation at:
     //      https://forums.nesdev.org/viewtopic.php?t=15944
 
@@ -889,69 +889,69 @@ static inline void DAA(cpu_t* cpu){
     cpu->H_FLAG = false;
 }
 
-static inline void CPL(cpu_t* cpu){
+static inline void CPL(sm83_t* cpu){
     cpu->A = ~(cpu->A);
     cpu->N_FLAG = true;
     cpu->H_FLAG = true;
 }
 
-static inline void SCF(cpu_t* cpu){
+static inline void SCF(sm83_t* cpu){
     cpu->C_FLAG = true;
     cpu->H_FLAG = false;
     cpu->N_FLAG = false;
 }
 
-static inline void CCF(cpu_t* cpu){
+static inline void CCF(sm83_t* cpu){
     cpu->C_FLAG = !cpu->C_FLAG;
     cpu->H_FLAG = false;
     cpu->N_FLAG = false;
 }
 
-static inline void HLT(cpu_t* cpu){
+static inline void HLT(sm83_t* cpu){
     if(!cpu->IME && (cpu->IE & cpu->IF & 0x1F))
         cpu->HALT_BUG = true;
     else
         cpu->HALTED = true;
 }
 
-static inline void RETNZ(cpu_t* cpu){
+static inline void RETNZ(sm83_t* cpu){
     if(!cpu->Z_FLAG){
         cpu->tickSystem(4);
         POP(cpu, &cpu->PC);
     }
 }
 
-static inline void RETZ(cpu_t* cpu){
+static inline void RETZ(sm83_t* cpu){
     if(cpu->Z_FLAG){
         cpu->tickSystem(4);
         POP(cpu, &cpu->PC);
     }
 }
 
-static inline void RETNC(cpu_t* cpu){
+static inline void RETNC(sm83_t* cpu){
     if(!cpu->C_FLAG){
         cpu->tickSystem(4);
         POP(cpu, &cpu->PC);
     }
 }
 
-static inline void RETC(cpu_t* cpu){
+static inline void RETC(sm83_t* cpu){
     if(cpu->C_FLAG){
         cpu->tickSystem(4);
         POP(cpu, &cpu->PC);
     }
 }
 
-static inline void LDH1(cpu_t* cpu, uint8_t n){
+static inline void LDH1(sm83_t* cpu, uint8_t n){
     writeByteAndTick(cpu, 0xFF00 + n, cpu->A);
 }
 
-static inline void LDH2(cpu_t* cpu, uint8_t n){
+static inline void LDH2(sm83_t* cpu, uint8_t n){
     cpu->A = readByteAndTick(cpu, 0xFF00 + n);
 }
 
 
-static inline void ADD_SP(cpu_t* cpu, int8_t n){
+static inline void ADD_SP(sm83_t* cpu, int8_t n){
     uint16_t res = cpu->SP + n;
     cpu->C_FLAG = calculateCarry(8, cpu->SP, n, 0);
     cpu->H_FLAG = calculateCarry(4, cpu->SP, n, 0);
@@ -961,107 +961,107 @@ static inline void ADD_SP(cpu_t* cpu, int8_t n){
     cpu->N_FLAG = false;
 }
 
-static inline void LD_SP(cpu_t* cpu, int8_t n){
+static inline void LD_SP(sm83_t* cpu, int8_t n){
     uint16_t tmp = cpu->SP;
     ADD_SP(cpu, n);
     cpu->HL = cpu->SP;
     cpu->SP = tmp;
 }
 
-static inline void POP(cpu_t* cpu, uint16_t* reg){
+static inline void POP(sm83_t* cpu, uint16_t* reg){
     *reg = readShortAndTick(cpu, cpu->SP);
     cpu->SP += 2; 
 }
 
-static inline void RET(cpu_t* cpu){
+static inline void RET(sm83_t* cpu){
     POP(cpu, &cpu->PC);
     cpu->tickSystem(4);
 }
 
-static inline void JP(cpu_t* cpu, uint16_t val){
+static inline void JP(sm83_t* cpu, uint16_t val){
     cpu->PC = val;
 }
 
-static inline void JPNZ(cpu_t* cpu, uint16_t val){
+static inline void JPNZ(sm83_t* cpu, uint16_t val){
     if(!cpu->Z_FLAG){
         JP(cpu, val);
         cpu->tickSystem(4);
     }
 }
 
-static inline void JPZ(cpu_t* cpu, uint16_t val){
+static inline void JPZ(sm83_t* cpu, uint16_t val){
     if(cpu->Z_FLAG){
         JP(cpu, val);
         cpu->tickSystem(4);
     }
 }
 
-static inline void JPNC(cpu_t* cpu, uint16_t val){
+static inline void JPNC(sm83_t* cpu, uint16_t val){
     if(!cpu->C_FLAG){
         JP(cpu, val);
         cpu->tickSystem(4);
     }
 }
 
-static inline void JPC(cpu_t* cpu, uint16_t val){
+static inline void JPC(sm83_t* cpu, uint16_t val){
     if(cpu->C_FLAG){
         JP(cpu, val);
         cpu->tickSystem(4);
     }
 }
 
-static inline void DI(cpu_t* cpu){
+static inline void DI(sm83_t* cpu){
     cpu->IME = false;
 }
 
-static inline void EI(cpu_t* cpu){
+static inline void EI(sm83_t* cpu){
     cpu->IME = true;
 }
 
-static inline void CALL(cpu_t* cpu, uint16_t val){
+static inline void CALL(sm83_t* cpu, uint16_t val){
     PUSH(cpu, cpu->PC);
     cpu->PC = val;
 }
 
-static inline void CALLNZ(cpu_t* cpu, uint16_t val){
+static inline void CALLNZ(sm83_t* cpu, uint16_t val){
     if(!cpu->Z_FLAG){
         cpu->tickSystem(4);
         CALL(cpu, val);
     }
 }
 
-static inline void CALLZ(cpu_t* cpu, uint16_t val){
+static inline void CALLZ(sm83_t* cpu, uint16_t val){
     if(cpu->Z_FLAG){
         cpu->tickSystem(4);
         CALL(cpu, val);
     }
 }
 
-static inline void CALLNC(cpu_t* cpu, uint16_t val){
+static inline void CALLNC(sm83_t* cpu, uint16_t val){
     if(!cpu->C_FLAG){
         cpu->tickSystem(4);
         CALL(cpu, val);
     }
 }
 
-static inline void CALLC(cpu_t* cpu, uint16_t val){
+static inline void CALLC(sm83_t* cpu, uint16_t val){
     if(cpu->C_FLAG){
         cpu->tickSystem(4);
         CALL(cpu, val);
     }
 }
 
-static inline void PUSH(cpu_t* cpu, uint16_t val){
+static inline void PUSH(sm83_t* cpu, uint16_t val){
     writeByteAndTick(cpu, cpu->SP - 1, val >> 8);
     writeByteAndTick(cpu, cpu->SP - 2, val & 0xFF);
     cpu->SP -= 2;
 }
 
-static inline void RST(cpu_t* cpu, uint8_t addr){
+static inline void RST(sm83_t* cpu, uint8_t addr){
     CALL(cpu, addr);
 }
 
-static inline void RLCA(cpu_t* cpu){
+static inline void RLCA(sm83_t* cpu){
     cpu->C_FLAG = cpu->A & 0b10000000;
     cpu->H_FLAG = false;
     cpu->N_FLAG = false;
@@ -1070,7 +1070,7 @@ static inline void RLCA(cpu_t* cpu){
     cpu->A = (cpu->A << 1) | (cpu->C_FLAG);
 }
 
-static inline void RRCA(cpu_t* cpu){
+static inline void RRCA(sm83_t* cpu){
     cpu->C_FLAG = cpu->A & 0b1;
     cpu->H_FLAG = false;
     cpu->N_FLAG = false;
@@ -1078,7 +1078,7 @@ static inline void RRCA(cpu_t* cpu){
     cpu->A = (cpu->A >> 1) | (cpu->C_FLAG << 7);
 }
 
-static inline void RLA(cpu_t* cpu){
+static inline void RLA(sm83_t* cpu){
     bool old_carry = cpu->C_FLAG;
     cpu->C_FLAG = cpu->A & 0b10000000;
     cpu->H_FLAG = false;
@@ -1087,7 +1087,7 @@ static inline void RLA(cpu_t* cpu){
     cpu->A = (cpu->A << 1) | old_carry;
 }
 
-static inline void RRA(cpu_t* cpu){
+static inline void RRA(sm83_t* cpu){
     bool old_carry = cpu->C_FLAG;
     cpu->C_FLAG = cpu->A & 0b1;
     cpu->H_FLAG = false;
@@ -1096,7 +1096,7 @@ static inline void RRA(cpu_t* cpu){
     cpu->A = (cpu->A >> 1) | (old_carry << 7);
 }
 
-static inline void RLC(cpu_t* cpu, uint8_t* reg){
+static inline void RLC(sm83_t* cpu, uint8_t* reg){
     bool msb = *reg >> 7;
     cpu->C_FLAG = msb;
     cpu->H_FLAG = false;
@@ -1106,7 +1106,7 @@ static inline void RLC(cpu_t* cpu, uint8_t* reg){
     cpu->Z_FLAG = *reg == 0;
 }
 
-static inline void RRC(cpu_t* cpu, uint8_t* reg){
+static inline void RRC(sm83_t* cpu, uint8_t* reg){
     bool lsb = *reg & 0b1;
     cpu->C_FLAG = lsb;
     cpu->H_FLAG = false;
@@ -1116,7 +1116,7 @@ static inline void RRC(cpu_t* cpu, uint8_t* reg){
     cpu->Z_FLAG = *reg == 0;
 }
 
-static inline void RL(cpu_t* cpu, uint8_t* reg){
+static inline void RL(sm83_t* cpu, uint8_t* reg){
     bool old_carry = cpu->C_FLAG;
     bool msb = *reg >> 7;
     *reg = (*reg << 1) | old_carry;
@@ -1127,7 +1127,7 @@ static inline void RL(cpu_t* cpu, uint8_t* reg){
     cpu->Z_FLAG = *reg == 0;
 }
 
-static inline void RR(cpu_t* cpu, uint8_t* reg){
+static inline void RR(sm83_t* cpu, uint8_t* reg){
     bool old_carry = cpu->C_FLAG;
     bool lsb = *reg & 0b1;
     *reg = (*reg >> 1) | (old_carry << 7);
@@ -1138,7 +1138,7 @@ static inline void RR(cpu_t* cpu, uint8_t* reg){
     cpu->Z_FLAG = *reg == 0;
 }
 
-static inline void SLA(cpu_t* cpu, uint8_t* reg){
+static inline void SLA(sm83_t* cpu, uint8_t* reg){
     bool msb = *reg >> 7;
     cpu->C_FLAG = msb;
     cpu->H_FLAG = false;
@@ -1149,7 +1149,7 @@ static inline void SLA(cpu_t* cpu, uint8_t* reg){
     cpu->Z_FLAG = *reg == 0;
 }
 
-static inline void SRA(cpu_t* cpu, uint8_t* reg){
+static inline void SRA(sm83_t* cpu, uint8_t* reg){
     bool sign = *reg >> 7;
     bool lsb = *reg & 0b1;
     cpu->C_FLAG = lsb;
@@ -1161,7 +1161,7 @@ static inline void SRA(cpu_t* cpu, uint8_t* reg){
     cpu->Z_FLAG = *reg == 0;
 }
 
-static inline void SWAP(cpu_t* cpu, uint8_t* reg){
+static inline void SWAP(sm83_t* cpu, uint8_t* reg){
     uint8_t high_nibble = *reg >> 4;
     *reg <<= 4;
     *reg |= high_nibble;
@@ -1173,7 +1173,7 @@ static inline void SWAP(cpu_t* cpu, uint8_t* reg){
 }
 
 
-static inline void SRL(cpu_t* cpu, uint8_t* reg){
+static inline void SRL(sm83_t* cpu, uint8_t* reg){
     bool lsb = *reg & 0b1;
     cpu->C_FLAG = lsb;
     cpu->H_FLAG = false;
@@ -1184,22 +1184,22 @@ static inline void SRL(cpu_t* cpu, uint8_t* reg){
     cpu->Z_FLAG = *reg == 0;
 }
 
-static inline void BIT(cpu_t* cpu, uint8_t bit, uint8_t* reg){
+static inline void BIT(sm83_t* cpu, uint8_t bit, uint8_t* reg){
     uint8_t masked_bit = *reg & (1 << bit);
     cpu->Z_FLAG = masked_bit == 0;
     cpu->H_FLAG = true;
     cpu->N_FLAG = false;
 }
 
-static inline void RES(cpu_t* cpu, uint8_t bit, uint8_t* reg){
+static inline void RES(sm83_t* cpu, uint8_t bit, uint8_t* reg){
     *reg = *reg & (~(uint8_t)(1 << bit));
 }
 
-static inline void SET(cpu_t* cpu, uint8_t bit, uint8_t* reg){
+static inline void SET(sm83_t* cpu, uint8_t bit, uint8_t* reg){
     *reg = * reg | (1 << bit);
 }
 
-static inline void ADD(cpu_t* cpu, uint8_t* reg, uint8_t val){
+static inline void ADD(sm83_t* cpu, uint8_t* reg, uint8_t val){
     uint8_t res = *reg + val;
     cpu->C_FLAG = calculateCarry(8, *reg, val, 0);
 
@@ -1210,7 +1210,7 @@ static inline void ADD(cpu_t* cpu, uint8_t* reg, uint8_t val){
     cpu->N_FLAG = false;
 }
 
-static inline void ADC(cpu_t* cpu, uint8_t* reg, uint8_t val){
+static inline void ADC(sm83_t* cpu, uint8_t* reg, uint8_t val){
     bool carry = cpu->C_FLAG;
     uint8_t res = *reg + val + carry;
 
@@ -1223,7 +1223,7 @@ static inline void ADC(cpu_t* cpu, uint8_t* reg, uint8_t val){
     cpu->N_FLAG = false;
 }
 
-static inline void SUB(cpu_t* cpu, uint8_t* reg, uint8_t val){
+static inline void SUB(sm83_t* cpu, uint8_t* reg, uint8_t val){
     val = ~val + 1;
     cpu->C_FLAG = !calculateCarry(8, *reg, val - 1, 1);
 
@@ -1236,7 +1236,7 @@ static inline void SUB(cpu_t* cpu, uint8_t* reg, uint8_t val){
     cpu->N_FLAG = true;
 }
 
-static inline void SBC(cpu_t* cpu, uint8_t* reg, uint8_t val){
+static inline void SBC(sm83_t* cpu, uint8_t* reg, uint8_t val){
     val = ~val + 1;
     bool carry = cpu->C_FLAG;
     cpu->C_FLAG = !calculateCarry(8, *reg, val - 1, !carry);
@@ -1249,7 +1249,7 @@ static inline void SBC(cpu_t* cpu, uint8_t* reg, uint8_t val){
     cpu->N_FLAG = true;
 }
 
-static inline void AND(cpu_t* cpu, uint8_t* reg, uint8_t val){
+static inline void AND(sm83_t* cpu, uint8_t* reg, uint8_t val){
     *reg &= val;
     cpu->Z_FLAG = *reg == 0;
     cpu->H_FLAG = true;
@@ -1257,7 +1257,7 @@ static inline void AND(cpu_t* cpu, uint8_t* reg, uint8_t val){
     cpu->N_FLAG = false;
 }
 
-static inline void XOR(cpu_t* cpu, uint8_t* reg, uint8_t val){
+static inline void XOR(sm83_t* cpu, uint8_t* reg, uint8_t val){
     *reg ^= val;
     cpu->Z_FLAG = *reg == 0;
     cpu->H_FLAG = false;
@@ -1265,7 +1265,7 @@ static inline void XOR(cpu_t* cpu, uint8_t* reg, uint8_t val){
     cpu->N_FLAG = false;
 }
 
-static inline void OR(cpu_t* cpu, uint8_t* reg, uint8_t val){
+static inline void OR(sm83_t* cpu, uint8_t* reg, uint8_t val){
     *reg |= val;
     cpu->Z_FLAG = *reg == 0;
     cpu->H_FLAG = false;
@@ -1273,13 +1273,13 @@ static inline void OR(cpu_t* cpu, uint8_t* reg, uint8_t val){
     cpu->N_FLAG = false;
 }
 
-static inline void CP(cpu_t* cpu, uint8_t* reg, uint8_t val){
+static inline void CP(sm83_t* cpu, uint8_t* reg, uint8_t val){
     uint8_t copy = *reg;
     SUB(cpu, reg, val);
     *reg = copy;
 }
 
-static inline void RETI(cpu_t* cpu){
+static inline void RETI(sm83_t* cpu){
     RET(cpu);
     EI(cpu);
 }
@@ -1290,22 +1290,22 @@ static inline bool calculateCarry(int bit, uint16_t a, uint16_t b, bool cy) {
   return carry & (1 << bit);
 }
 
-uint8_t readByteAndTick(cpu_t* cpu, uint16_t addr){
+uint8_t readByteAndTick(sm83_t* cpu, uint16_t addr){
     uint8_t byte = cpu->readByte(addr);
     cpu->tickSystem(4);
     return byte;
 }
 
-uint16_t readShortAndTick(cpu_t* cpu, uint16_t addr){
+uint16_t readShortAndTick(sm83_t* cpu, uint16_t addr){
     return (readByteAndTick(cpu, addr+1) << 8) | readByteAndTick(cpu, addr);
 }
 
-void writeByteAndTick(cpu_t* cpu, uint16_t addr, uint8_t byte){
+void writeByteAndTick(sm83_t* cpu, uint16_t addr, uint8_t byte){
     cpu->writeByte(addr, byte);
     cpu->tickSystem(4);
 }
 
-void writeShortAndTick(cpu_t* cpu, uint16_t addr, uint16_t val){
+void writeShortAndTick(sm83_t* cpu, uint16_t addr, uint16_t val){
     writeByteAndTick(cpu, addr, val & 0xFF);
     writeByteAndTick(cpu, addr+1, val >> 8);
 }

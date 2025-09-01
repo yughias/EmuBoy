@@ -1,5 +1,5 @@
-#ifndef _CPU_H_
-#define _CPU_H_
+#ifndef _SM83_H_
+#define _SM83_H_
 
 #include <stdbool.h>
 #include <stdint.h>
@@ -17,7 +17,7 @@ typedef uint8_t (*readFunc)(uint16_t);
 typedef void (*writeFunc)(uint16_t, uint8_t);
 typedef void (*tickFunc)(int);
 
-typedef struct cpu_t {
+typedef struct sm83_t {
     // interrupt vars
     bool    HALTED;
     bool    IME;
@@ -79,10 +79,10 @@ typedef struct cpu_t {
     tickFunc tickSystem;
 
     uint64_t cycles;
-} cpu_t;
+} sm83_t;
 
-void initCPU(cpu_t*);
-void infoCPU(cpu_t*);
-void stepCPU(cpu_t*);
+void initCPU(sm83_t*);
+void infoCPU(sm83_t*);
+void stepCPU(sm83_t*);
 
 #endif

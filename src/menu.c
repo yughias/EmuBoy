@@ -71,7 +71,7 @@ void showIniAndReload(){
     char system_cmd[FILENAME_MAX];
     getAbsoluteDir(ini_path);
     strcat(ini_path, "data/config.ini");
-    sprintf(system_cmd, "notepad \'%s\'", ini_path);
+    sprintf(system_cmd, "notepad \"%s\"", ini_path);
     
     system(system_cmd);
 
