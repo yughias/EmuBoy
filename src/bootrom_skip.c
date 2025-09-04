@@ -12,7 +12,7 @@ typedef struct {
     int obj1[4];
 } paletteConfig;
 
-paletteConfig paletteConfigs[] = {
+static paletteConfig paletteConfigs[] = {
     {0x00, 0, {0xFFFFFF, 0x7BFF31, 0x0063C5, 0x000000}, {0xFFFFFF, 0xFF8484, 0x943A3A, 0x000000}, {0xFFFFFF, 0xFF8484, 0x943A3A, 0x000000}},
     {0xB3, 'U', {0xFFFFFF, 0xADAD84, 0x42737B, 0x000000}, {0xFFFFFF, 0xFF7300, 0x944200, 0x000000}, {0xFFFFFF, 0xFF7300, 0x944200, 0x000000}},
     {0x59, 0, {0xFFFFFF, 0xADAD84, 0x42737B, 0x000000}, {0xFFFFFF, 0xFF7300, 0x944200, 0x000000}, {0xFFFFFF, 0x5ABDFF, 0xFF0000, 0x0000FF}},
@@ -109,143 +109,155 @@ paletteConfig paletteConfigs[] = {
     {0xF4, '-', {0xFFFFFF, 0x7BFF31, 0x0063C5, 0x000000}, {0xFFFFFF, 0xFF8484, 0x943A3A, 0x000000}, {0xFFFFFF, 0x63A5FF, 0x0000FF, 0x000000}}
 };
 
-uint8_t getCgbTitleHash(const char* rom_name);
+static uint8_t getCgbTitleHash(const char* rom_name);
 
-void skipDmgBootrom(){
-    cpu.AF = 0x01B0;
-    cpu.BC = 0x0013;
-    cpu.DE = 0x00D8;
-    cpu.HL = 0x014D;
-    cpu.SP = 0xFFFE;
-    cpu.PC = 0x0100;
+void skipDmgBootrom(gb_t* gb){
+    sm83_t* cpu = &gb->cpu;
+    cpu->AF = 0x01B0;
+    cpu->BC = 0x0013;
+    cpu->DE = 0x00D8;
+    cpu->HL = 0x014D;
+    cpu->SP = 0xFFFE;
+    cpu->PC = 0x0100;
     
-    cpu.Z_FLAG = true;
-    cpu.N_FLAG = false;
-    cpu.H_FLAG = true;
-    cpu.C_FLAG = true;
+    cpu->Z_FLAG = true;
+    cpu->N_FLAG = false;
+    cpu->H_FLAG = true;
+    cpu->C_FLAG = true;
 
-    cpu.HALTED = false;
-    cpu.IME = false;
-    cpu.EI_DELAY = false;
+    cpu->HALTED = false;
+    cpu->IME = false;
+    cpu->EI_DELAY = false;
     
-    SB_REG = 0x00;
-    SC_REG = 0x7E;
-    gb_timer.div = 0xAB;
-    TIMA_REG = 0x00;
-    TMA_REG = 0x00;
-    TAC_REG = 0xF8;
-    cpu.IF = 0xE1;
-    NR10_REG = 0x80;
-    NR11_REG = 0xBF;
-    NR12_REG = 0xF3;
-    NR13_REG = 0xFF;
-    NR14_REG = 0xBF;
-    NR21_REG = 0x3F;
-    NR22_REG = 0x00;
-    NR23_REG = 0xFF;
-    NR24_REG = 0xBF;
-    NR30_REG = 0x7F;
-    NR31_REG = 0xFF;
-    NR32_REG = 0x9F;
-    NR33_REG = 0xFF;
-    NR34_REG = 0xBF;
-    NR41_REG = 0xFF;
-    NR42_REG = 0x00;
-    NR43_REG = 0x00;
-    NR44_REG = 0xBF;
-    NR50_REG = 0x77;
-    NR51_REG = 0xF3;
-    NR52_REG = 0xF1;
-    LCDC_REG = 0x91;
-    STAT_REG = 0x85;
-    SCY_REG	= 0x00;
-    SCX_REG	= 0x00;
-    LY_REG	= 0x00;
-    LYC_REG	= 0x00;
-    DMA_REG	= 0xFF;
-    BGP_REG = 0xFC;
-    OBP0_REG = 0x00;
-    OBP1_REG = 0x00;
-    WY_REG = 0x00;
-    WX_REG = 0x00;
-    cpu.IE = 0x00;
+    serial_t* serial = &gb->serial;
+    serial->SB_REG = 0x00;
+    serial->SC_REG = 0x7E;
+    gb_timer_t* tmr = &gb->timer;
+    tmr->div = 0xAB;
+    tmr->TIMA_REG = 0x00;
+    tmr->TMA_REG = 0x00;
+    tmr->TAC_REG = 0xF8;
+    cpu->IF = 0xE1;
+    apu_t* apu = &gb->apu;
+    apu->NR10_REG = 0x80;
+    apu->NR11_REG = 0xBF;
+    apu->NR12_REG = 0xF3;
+    apu->NR13_REG = 0xFF;
+    apu->NR14_REG = 0xBF;
+    apu->NR21_REG = 0x3F;
+    apu->NR22_REG = 0x00;
+    apu->NR23_REG = 0xFF;
+    apu->NR24_REG = 0xBF;
+    apu->NR30_REG = 0x7F;
+    apu->NR31_REG = 0xFF;
+    apu->NR32_REG = 0x9F;
+    apu->NR33_REG = 0xFF;
+    apu->NR34_REG = 0xBF;
+    apu->NR41_REG = 0xFF;
+    apu->NR42_REG = 0x00;
+    apu->NR43_REG = 0x00;
+    apu->NR44_REG = 0xBF;
+    apu->NR50_REG = 0x77;
+    apu->NR51_REG = 0xF3;
+    apu->NR52_REG = 0xF1;
+    ppu_t* ppu = &gb->ppu;
+    ppu->LCDC_REG = 0x91;
+    ppu->STAT_REG = 0x85;
+    ppu->SCY_REG	= 0x00;
+    ppu->SCX_REG	= 0x00;
+    ppu->LY_REG	= 0x00;
+    ppu->LYC_REG	= 0x00;
+    ppu->BGP_REG = 0xFC;
+    ppu->OBP0_REG = 0x00;
+    ppu->OBP1_REG = 0x00;
+    ppu->WY_REG = 0x00;
+    ppu->WX_REG = 0x00;
+    dma_t* dma = &gb->dma;
+    dma->DMA_REG = 0xFF;
+    cpu->IE = 0x00;
 }
 
-void skipCgbBootrom(){
-    cpu.A = 0x11;
-    cpu.BC = 0x0000;
-    cpu.DE = 0x0008;
-    cpu.HL = 0x0000;
-    cpu.SP = 0xFFFE;
-    cpu.PC = 0x0100;
+void skipCgbBootrom(gb_t* gb){
+    sm83_t* cpu = &gb->cpu;
+    cpu->A = 0x11;
+    cpu->BC = 0x0000;
+    cpu->DE = 0x0008;
+    cpu->HL = 0x0000;
+    cpu->SP = 0xFFFE;
+    cpu->PC = 0x0100;
     
-    cpu.Z_FLAG = true;
-    cpu.N_FLAG = false;
-    cpu.H_FLAG = false;
-    cpu.C_FLAG = false;
+    cpu->Z_FLAG = true;
+    cpu->N_FLAG = false;
+    cpu->H_FLAG = false;
+    cpu->C_FLAG = false;
 
-    cpu.HALTED = false;
-    cpu.IME = false;
-    cpu.EI_DELAY = false;
+    cpu->HALTED = false;
+    cpu->IME = false;
+    cpu->EI_DELAY = false;
 
-    JOYP_REG = 0xC7;
-    SB_REG = 0x00;
-    SC_REG = 0x7E;
-    gb_timer.div = 0x00;
-    TIMA_REG = 0x00;
-    TMA_REG = 0x00;
-    TAC_REG = 0xF8;
-    cpu.IF = 0xE1;
-    NR10_REG = 0x80;
-    NR11_REG = 0xBF;
-    NR12_REG = 0xF3;
-    NR13_REG = 0xFF;
-    NR14_REG = 0xBF;
-    NR21_REG = 0x3F;
-    NR22_REG = 0x00;
-    NR23_REG = 0xFF;
-    NR24_REG = 0xBF;
-    NR30_REG = 0x7F;
-    NR31_REG = 0xFF;
-    NR32_REG = 0x9F;
-    NR33_REG = 0xFF;
-    NR34_REG = 0xBF;
-    NR41_REG = 0xFF;
-    NR42_REG = 0x00;
-    NR43_REG = 0x00;
-    NR44_REG = 0xBF;
-    NR50_REG = 0x77;
-    NR51_REG = 0xF3;
-    NR52_REG = 0xF0;
-    LCDC_REG = 0x91;
-    STAT_REG = 0x00;
-    SCY_REG = 0x00;
-    SCX_REG = 0x00;
-    LY_REG = 0x00;
-    LYC_REG = 0x00;
-    DMA_REG = 0xFF;
-    BGP_REG = 0xFC;
-    OBP0_REG = 0x00;
-    OBP1_REG = 0x00;
-    WY_REG = 0x00;
-    WX_REG = 0x00;
-    KEY1_REG = 0x7E;
-    VBK_REG = 0x00;
-    HDMA_REGS[0] = 0xFF;
-    HDMA_REGS[1] = 0xFF;
-    HDMA_REGS[2] = 0xFF;
-    HDMA_REGS[3] = 0xFF;
-    HDMA_REGS[4] = 0xFF;
-    BCPS_REG = 0x00;
-    OCPS_REG = 0x00;
-    SVBK_REG = 0x00;
-    cpu.IE = 0x00;
+    gb->joypad.JOYP_REG = 0xC7;
+    serial_t* serial = &gb->serial;
+    serial->SB_REG = 0x00;
+    serial->SC_REG = 0x7E;
+    gb_timer_t* tmr = &gb->timer;
+    tmr->div = 0x00;
+    tmr->TIMA_REG = 0x00;
+    tmr->TMA_REG = 0x00;
+    tmr->TAC_REG = 0xF8;
+    cpu->IF = 0xE1;
+    apu_t* apu = &gb->apu;
+    apu->NR10_REG = 0x80;
+    apu->NR11_REG = 0xBF;
+    apu->NR12_REG = 0xF3;
+    apu->NR13_REG = 0xFF;
+    apu->NR14_REG = 0xBF;
+    apu->NR21_REG = 0x3F;
+    apu->NR22_REG = 0x00;
+    apu->NR23_REG = 0xFF;
+    apu->NR24_REG = 0xBF;
+    apu->NR30_REG = 0x7F;
+    apu->NR31_REG = 0xFF;
+    apu->NR32_REG = 0x9F;
+    apu->NR33_REG = 0xFF;
+    apu->NR34_REG = 0xBF;
+    apu->NR41_REG = 0xFF;
+    apu->NR42_REG = 0x00;
+    apu->NR43_REG = 0x00;
+    apu->NR44_REG = 0xBF;
+    apu->NR50_REG = 0x77;
+    apu->NR51_REG = 0xF3;
+    apu->NR52_REG = 0xF0;
+    ppu_t* ppu = &gb->ppu;
+    ppu->LCDC_REG = 0x91;
+    ppu->STAT_REG = 0x00;
+    ppu->SCY_REG = 0x00;
+    ppu->SCX_REG = 0x00;
+    ppu->LY_REG = 0x00;
+    ppu->LYC_REG = 0x00;
+    ppu->BGP_REG = 0xFC;
+    ppu->OBP0_REG = 0x00;
+    ppu->OBP1_REG = 0x00;
+    ppu->WY_REG = 0x00;
+    ppu->WX_REG = 0x00;
+    ppu->BCPS_REG = 0x00;
+    ppu->OCPS_REG = 0x00;
+    gb->KEY1_REG = 0x7E;
+    gb->VBK_REG = 0x00;
+    dma_t* dma = &gb->dma;
+    dma->DMA_REG = 0xFF;
+    dma->HDMA_REGS[0] = 0xFF;
+    dma->HDMA_REGS[1] = 0xFF;
+    dma->HDMA_REGS[2] = 0xFF;
+    dma->HDMA_REGS[3] = 0xFF;
+    dma->HDMA_REGS[4] = 0xFF;
+    gb->SVBK_REG = 0x00;
+    cpu->IE = 0x00;
 
-    if(ROM[0x143] < 0x80){
-        hleDmgColorization(ROM);
-        console_type = DMG_ON_CGB_TYPE;
+    if(gb->ROM[0x143] < 0x80){
+        hleDmgColorization(gb);
+        gb->console_type = DMG_ON_CGB_TYPE;
     } else {
-        copyDefaultCgbPalette();
+        copyDefaultCgbPalette(gb);
     }
 }
 
@@ -258,7 +270,8 @@ uint8_t getCgbTitleHash(const char* rom_name){
     return hash;
 }
 
-void hleDmgColorization(uint8_t* rom){
+void hleDmgColorization(gb_t* gb){
+    uint8_t* rom = gb->ROM;
     const char* rom_name = getRomName(rom);
     uint8_t hash = getCgbTitleHash(rom_name);
     char forth_char = rom_name[3];
@@ -273,9 +286,9 @@ void hleDmgColorization(uint8_t* rom){
                     int obj0_col = config->obj0[j];
                     int obj1_col = config->obj1[j];
 
-                    writeColorToCRAM((bg_col >> 16) & 0xFF, (bg_col >> 8) & 0xFF, bg_col & 0xFF, BGP_CRAM, j);
-                    writeColorToCRAM((obj0_col >> 16) & 0xFF, (obj0_col >> 8) & 0xFF, obj0_col & 0xFF, OBP_CRAM, j);
-                    writeColorToCRAM((obj1_col >> 16) & 0xFF, (obj1_col >> 8) & 0xFF, obj1_col & 0xFF, OBP_CRAM , j + 4);
+                    writeColorToCRAM((bg_col >> 16) & 0xFF, (bg_col >> 8) & 0xFF, bg_col & 0xFF, gb->BGP_CRAM, j);
+                    writeColorToCRAM((obj0_col >> 16) & 0xFF, (obj0_col >> 8) & 0xFF, obj0_col & 0xFF, gb->OBP_CRAM, j);
+                    writeColorToCRAM((obj1_col >> 16) & 0xFF, (obj1_col >> 8) & 0xFF, obj1_col & 0xFF, gb->OBP_CRAM , j + 4);
                 }
                 return;
             }
@@ -287,19 +300,19 @@ void hleDmgColorization(uint8_t* rom){
         int obj0_col = paletteConfigs[0].obj0[j];
         int obj1_col = paletteConfigs[0].obj1[j];
 
-        writeColorToCRAM((bg_col >> 16) & 0xFF, (bg_col >> 8) & 0xFF, bg_col & 0xFF, BGP_CRAM, j);
-        writeColorToCRAM((obj0_col >> 16) & 0xFF, (obj0_col >> 8) & 0xFF, obj0_col & 0xFF, OBP_CRAM, j);
-        writeColorToCRAM((obj1_col >> 16) & 0xFF, (obj1_col >> 8) & 0xFF, obj1_col & 0xFF, OBP_CRAM, j + 4);
+        writeColorToCRAM((bg_col >> 16) & 0xFF, (bg_col >> 8) & 0xFF, bg_col & 0xFF, gb->BGP_CRAM, j);
+        writeColorToCRAM((obj0_col >> 16) & 0xFF, (obj0_col >> 8) & 0xFF, obj0_col & 0xFF, gb->OBP_CRAM, j);
+        writeColorToCRAM((obj1_col >> 16) & 0xFF, (obj1_col >> 8) & 0xFF, obj1_col & 0xFF, gb->OBP_CRAM, j + 4);
     }
 }
 
-void switchCompatibilityMode(){
-    if(console_type == DMG_TYPE){
-        console_type = DMG_ON_CGB_TYPE;
-        hleDmgColorization(ROM);
-    } else if(console_type == DMG_ON_CGB_TYPE){
-        console_type = DMG_TYPE;
+void switchCompatibilityMode(gb_t* gb){
+    if(gb->console_type == DMG_TYPE){
+        gb->console_type = DMG_ON_CGB_TYPE;
+        hleDmgColorization(gb);
+    } else if(gb->console_type == DMG_ON_CGB_TYPE){
+        gb->console_type = DMG_TYPE;
     }
 
-    initColorPalette();
+    initColorPalette(gb);
 }

@@ -4,31 +4,41 @@
 #include <stdint.h>
 #include <stdbool.h>
 
-typedef uint8_t (*readFunc)(uint16_t);
-typedef void (*writeFunc)(uint16_t, uint8_t);
+typedef struct gb_t gb_t;
 
-extern writeFunc mbc_rom_write;
-extern readFunc mbc_mapper_0000_3FFF;
-extern readFunc mbc_mapper_4000_7FFF;
-extern readFunc mbc_mapper_A000_BFFF_read;
-extern writeFunc mbc_mapper_A000_BFFF_write;
+typedef uint8_t (*readGbFunc)(gb_t*, uint16_t);
+typedef void (*writeGbFunc)(gb_t*, uint16_t, uint8_t);
 
-extern bool hasBattery;
-extern bool hasRtc;
-extern bool hasCamera;
-extern bool mbcAlreadyWritten;
+typedef struct mbc_t {
+    readGbFunc mapper_0000_3FFF;
+    readGbFunc mapper_4000_7FFF;
+    readGbFunc mapper_A000_BFFF_read;
+    writeGbFunc mapper_A000_BFFF_write;
 
-extern uint8_t MBC_0000_1FFF;
-extern uint8_t MBC_2000_3FFF;
-extern uint8_t MBC_4000_5FFF;
-extern uint8_t MBC_6000_7FFF;
-extern uint8_t MBC_2000_2FFF;
-extern uint8_t MBC_3000_3FFF;
+    writeGbFunc rom_write;
 
-void detectConsoleAndMbc();
+    uint8_t REG_0000_1FFF;
+    uint8_t REG_2000_3FFF;
+    uint8_t REG_4000_5FFF;
+    uint8_t REG_6000_7FFF;
+
+    // advanced mbc registers
+    uint8_t REG_2000_2FFF;
+    uint8_t REG_3000_3FFF;
+
+    bool hasBattery;
+    bool mbcAlreadyWritten;
+    bool hasRtc;
+    bool hasCamera;
+    bool hasRumble;
+
+    void* data;
+} mbc_t;
+
+void detectConsoleAndMbc(gb_t*);
 bool detectM161(const uint8_t*);
-bool detectMMM01(const uint8_t*);
-bool detectMBC1M(const uint8_t*);
+bool detectMMM01(const uint8_t*, size_t);
+bool detectMBC1M(const uint8_t*, size_t);
 bool containNintendoLogo(const uint8_t*);
 
 #endif

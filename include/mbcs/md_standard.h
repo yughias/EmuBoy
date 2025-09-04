@@ -3,7 +3,9 @@
 
 #include <stdint.h>
 
-uint8_t megaduck_standard_mapper(uint16_t addr);
-void megaduck_standard_registers(uint16_t addr, uint8_t byte);
+typedef struct gb_t gb_t;
+
+uint8_t megaduck_standard_mapper(gb_t* gb, uint16_t addr);
+void megaduck_standard_registers(gb_t* gb, uint16_t addr, uint8_t byte);
 
 #endif

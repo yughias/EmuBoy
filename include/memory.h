@@ -21,43 +21,21 @@
 #define OAM_START_ADDR 0xFE00
 #define HRAM_START_ADDR 0xFF80
 
-extern uint8_t BOOTROM_DISABLE_REG;
-
-extern uint8_t* BOOTROM;
-extern size_t BOOTROM_SIZE;
-
-extern uint8_t* ROM;
-extern size_t ROM_SIZE;
-
-extern size_t ERAM_SIZE;
-extern uint8_t ERAM[MAX_ERAM_SIZE];
-
-extern uint8_t VRAM[VRAM_SIZE];
-extern uint8_t WRAM[WRAM_SIZE];
-extern uint8_t OAM[OAM_SIZE];
-extern uint8_t HRAM[HRAM_SIZE];
-
-extern uint8_t SVBK_REG;
-extern uint8_t VBK_REG;
-extern uint8_t KEY0_REG;
-extern uint8_t KEY1_REG;
-
-extern uint8_t BGP_CRAM[CRAM_SIZE];
-extern uint8_t OBP_CRAM[CRAM_SIZE];
-
 extern char romName[FILENAME_MAX];
 extern char savName[FILENAME_MAX];
 
-void initMemory(const char*);
-void loadRom(const char*);
-bool loadBootRom(const char*);
-void loadSav(const char*);
-void saveSav(const char*);
-void freeMemory();
+typedef struct gb_t gb_t;
+
+void initMemory(gb_t*, const char*);
+void loadRom(gb_t*, const char*);
+bool loadBootRom(gb_t*, const char*);
+void loadSav(gb_t*, const char*);
+void saveSav(gb_t*, const char*);
+void freeMemory(gb_t* gb);
 
 void setFilename(const char*);
 
-uint8_t readByte(uint16_t);
-void writeByte(uint16_t, uint8_t);
+uint8_t readByte(void*, uint16_t);
+void writeByte(void*, uint16_t, uint8_t);
 
 #endif

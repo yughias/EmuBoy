@@ -13,9 +13,9 @@
 #define SERIAL_IRQ                0b00001000
 #define JOYPAD_IRQ                0b00010000
 
-typedef uint8_t (*readFunc)(uint16_t);
-typedef void (*writeFunc)(uint16_t, uint8_t);
-typedef void (*tickFunc)(int);
+typedef uint8_t (*readFunc)(void*, uint16_t);
+typedef void (*writeFunc)(void*, uint16_t, uint8_t);
+typedef void (*tickFunc)(void*, int);
 
 typedef struct sm83_t {
     // interrupt vars
@@ -79,6 +79,8 @@ typedef struct sm83_t {
     tickFunc tickSystem;
 
     uint64_t cycles;
+
+    void* ctx;
 } sm83_t;
 
 void initCPU(sm83_t*);

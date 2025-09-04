@@ -37,11 +37,11 @@ void loadGameShark(const char* filename){
     }
 }
 
-void emulateGameShark(){
+void emulateGameShark(gb_t* gb){
     for(size_t i = 0; i < n_code; i++){
         switch(codes[i].type){
             case 0x01:
-            cpu.writeByte(codes[i].addr, codes[i].byte);
+            gb->cpu.writeByte(gb, codes[i].addr, codes[i].byte);
             break;
         }
     }

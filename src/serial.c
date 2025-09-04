@@ -10,15 +10,9 @@
 #include <stdint.h>
 #include <string.h>
 
-uint8_t SB_REG;
-uint8_t SC_REG;
-
 #ifndef __EMSCRIPTEN__
 P2P_connection p2p;
 #endif
-
-size_t serial_counter = 0;
-enum SERIAL_MODE { SLAVE, MASTER }  serial_mode;
 
 void initSerial(){
     #ifdef __EMSCRIPTEN__
@@ -32,8 +26,6 @@ void initSerial(){
     SDLNet_Init();
 
     P2P_establishConnection(&p2p);
-
-    serial_mode = SLAVE;
     #endif
 }
 
@@ -43,45 +35,47 @@ void freeSerial(){
     #endif
 }
 
-void updateSerial(){
-    if(serial_counter--)
+void updateSerial(gb_t* gb){
+    sm83_t* cpu = &gb->cpu;
+    serial_t* serial = &gb->serial;
+    if(serial->counter--)
         return;
 
-    serial_counter = 4096;
+    serial->counter = 4096;
 
     #ifndef __EMSCRIPTEN__
     if(p2p.connection_established){
-        switch(serial_mode){
+        switch(serial->mode){
             case SLAVE:
-            uint8_t out_byte = SB_REG;
-            if((SC_REG & 0x80) && !(SC_REG & 0x01) && P2P_no_blocking_recv(&p2p, &SB_REG, 1)){
-                SC_REG &= 0x7F;
-                cpu.IF |= SERIAL_IRQ;
+            uint8_t out_byte = serial->SB_REG;
+            if((serial->SC_REG & 0x80) && !(serial->SC_REG & 0x01) && P2P_no_blocking_recv(&p2p, &serial->SB_REG, 1)){
+                serial->SC_REG &= 0x7F;
+                cpu->IF |= SERIAL_IRQ;
                 P2P_send(&p2p, &out_byte, 1);  
                 return;
             }
 
-            if((SC_REG & 0x80) && (SC_REG & 0x01)){
-                P2P_send(&p2p, &SB_REG, 1);
-                serial_mode = MASTER;
+            if((serial->SC_REG & 0x80) && (serial->SC_REG & 0x01)){
+                P2P_send(&p2p, &serial->SB_REG, 1);
+                serial->mode = MASTER;
                 return;
             }
             break;
 
             case MASTER:
-            P2P_blocking_recv(&p2p, &SB_REG, 1);
-            SC_REG &= 0x7F;
-            cpu.IF |= SERIAL_IRQ;
-            serial_mode = SLAVE;  
+            P2P_blocking_recv(&p2p, &serial->SB_REG, 1);
+            serial->SC_REG &= 0x7F;
+            cpu->IF |= SERIAL_IRQ;
+            serial->mode = SLAVE;  
             break;
         }
     } else 
     #endif
     {
-        if((SC_REG & 0x80) && (SC_REG & 0x01)){
-            SB_REG = 0xFF;
-            SC_REG &= 0x7F;
-            cpu.IF |= SERIAL_IRQ;
+        if((serial->SC_REG & 0x80) && (serial->SC_REG & 0x01)){
+            serial->SB_REG = 0xFF;
+            serial->SC_REG &= 0x7F;
+            cpu->IF |= SERIAL_IRQ;
         }  
     }      
 }

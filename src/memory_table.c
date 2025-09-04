@@ -1,27 +1,24 @@
 #include "gb.h"
 #include "memory_table.h"
 
-readFunc readTable[0x100];
-writeFunc writeTable[0x100];
-
 #define READ(name) return name ## _REG
 #define WRITE(name) name ## _REG = byte; return
 
 // cgb regs are disable after writing 01 to bit 2-3 and disabling bootrom
-#define CGB_MODE(name) if(console_type == CGB_TYPE) { name } else return
+#define CGB_MODE(name) if(gb->console_type == CGB_TYPE) { name } else return
 #define CGB_MODE_READ(name) CGB_MODE(name) 0xFF
 #define CGB_MODE_WRITE(name) CGB_MODE(name)
 
-uint16_t megaduckShuffleRegisters(uint16_t);
-uint8_t megaduckNibbleSwap(uint16_t, uint8_t);
+static uint16_t megaduckShuffleRegisters(uint16_t);
+static uint8_t megaduckNibbleSwap(uint16_t, uint8_t);
 
-void fillReadTable(uint8_t start, uint8_t end, readFunc callback){
+void fillReadTable(readGbFunc* readTable, uint8_t start, uint8_t end, readGbFunc callback){
     readTable[start] = callback;
     for(int i = start + 1; i < end; i++)
         readTable[i] = callback;
 }
 
-void fillWriteTable(uint8_t start, uint8_t end, writeFunc callback){
+void fillWriteTable(writeGbFunc* writeTable, uint8_t start, uint8_t end, writeGbFunc callback){
     writeTable[start] = callback;
     for(int i = start + 1; i < end; i++)
         writeTable[i] = callback;
@@ -29,36 +26,36 @@ void fillWriteTable(uint8_t start, uint8_t end, writeFunc callback){
 
 // read / write callbacks
 
-uint8_t readBootrom(uint16_t address){
-    return BOOTROM[address];
+uint8_t readBootrom(gb_t* gb, uint16_t address){
+    return gb->BOOTROM[address];
 }
 
-uint8_t readVram(uint16_t address){
-    return VRAM[(address - 0x8000) + VBK_REG * 0x2000];
+uint8_t readVram(gb_t* gb, uint16_t address){
+    return gb->VRAM[(address - 0x8000) + gb->VBK_REG * 0x2000];
 }
 
-uint8_t readMirrorRam(uint16_t address){
-    return WRAM[(address - 0xE000)];
+uint8_t readMirrorRam(gb_t* gb, uint16_t address){
+    return gb->WRAM[(address - 0xE000)];
 }
 
-uint8_t readWram(uint16_t address){
+uint8_t readWram(gb_t* gb, uint16_t address){
     uint8_t bank = 0;
     if(address >= 0xD000){
         address -= 0xD000;
-        bank = SVBK_REG ? SVBK_REG : 1;
+        bank = gb->SVBK_REG ? gb->SVBK_REG : 1;
     }
 
-    return WRAM[(address & (0x2000 - 1)) + bank * 0x1000];
+    return gb->WRAM[(address & (0x2000 - 1)) + bank * 0x1000];
 }
 
-uint8_t readOam(uint16_t address){
+uint8_t readOam(gb_t* gb, uint16_t address){
     if(address < 0xFEA0)
-        return OAM[address - 0xFE00];
+        return gb->OAM[address - 0xFE00];
     else
         return 0xFF;
 }
 
-uint8_t readIO(uint16_t address){
+uint8_t readIO(gb_t* gb, uint16_t address){
     static const void* read_io[0x100] = {
         &&r_00, &&r_01, &&r_02, &&r_03, &&r_04, &&r_05, &&r_06, &&r_07, &&r_08, &&r_09, &&r_0A, &&r_0B, &&r_0C, &&r_0D, &&r_0E, &&r_0F,
         &&r_10, &&r_11, &&r_12, &&r_13, &&r_14, &&r_15, &&r_16, &&r_17, &&r_18, &&r_19, &&r_1A, &&r_1B, &&r_1C, &&r_1D, &&r_1E, &&r_1F,
@@ -78,74 +75,82 @@ uint8_t readIO(uint16_t address){
         &&r_F0, &&r_F1, &&r_F2, &&r_F3, &&r_F4, &&r_F5, &&r_F6, &&r_F7, &&r_F8, &&r_F9, &&r_FA, &&r_FB, &&r_FC, &&r_FD, &&r_FE, &&r_FF,
     };
 
-    if(console_type == MEGADUCK_TYPE)
+    if(gb->console_type == MEGADUCK_TYPE)
         address = megaduckShuffleRegisters(address);
+
+    gb_timer_t* tmr = &gb->timer;
+    sm83_t* cpu = &gb->cpu;
+    dma_t* dma = &gb->dma;
+    joypad_t* joy = &gb->joypad;
+    ppu_t* ppu = &gb->ppu;
+    apu_t* apu = &gb->apu;
+    serial_t* serial = &gb->serial;
     
     goto *(read_io[address & 0xFF]);
 
     {
-        r_00: return getJoypadRegister();
-        r_01: READ(SB);
-        r_02: return SC_REG | 0b01111110; // fix mask for CGB
+        r_00: return getJoypadRegister(joy);
+        r_01: READ(serial->SB);
+        r_02: return serial->SC_REG | 0b01111110; // fix mask for CGB
         r_03: return 0xFF;
-        r_04: return gb_timer.div;
-        r_05: READ(TIMA);
-        r_06: READ(TMA);
-        r_07: TAC_REG |= 0b11111000; return TAC_REG;
+        r_04: return tmr->div;
+        r_05: READ(tmr->TIMA);
+        r_06: READ(tmr->TMA);
+        r_07: tmr->TAC_REG |= 0b11111000; return tmr->TAC_REG;
         r_08: r_09: r_0A: r_0B: r_0C: r_0D: r_0E: return 0xFF;
-        r_0F: cpu.IF |= 0b11100000; return cpu.IF;
-        r_10: return getNR10();
-        r_11: return getNR11();
-        r_12: READ(NR12);
+        r_0F: cpu->IF |= 0b11100000; return cpu->IF;
+        r_10: return getNR10(apu);
+        r_11: return getNR11(apu);
+        r_12: READ(apu->NR12);
         r_13: return 0xFF;
-        r_14: return getNR14();
+        r_14: return getNR14(apu);
         r_15: return 0xFF;
-        r_16: return getNR21();
-        r_17: READ(NR22);
+        r_16: return getNR21(apu);
+        r_17: READ(apu->NR22);
         r_18: return 0xFF;
-        r_19: return getNR24();
-        r_1A: return getNR30();
+        r_19: return getNR24(apu);
+        r_1A: return getNR30(apu);
         r_1B: return 0xFF;
-        r_1C: return getNR32();
+        r_1C: return getNR32(apu);
         r_1D: return 0xFF;
-        r_1E: return getNR34();
+        r_1E: return getNR34(apu);
         r_1F: r_20: return 0xFF;
-        r_21: READ(NR42);
-        r_22: READ(NR43);
-        r_23: return getNR44();
-        r_24: READ(NR50);
-        r_25: READ(NR51);
-        r_26: return getNR52();
+        r_21: READ(apu->NR42);
+        r_22: READ(apu->NR43);
+        r_23: return getNR44(apu);
+        r_24: READ(apu->NR50);
+        r_25: READ(apu->NR51);
+        r_26: return getNR52(apu);
         r_27: r_28: r_29: r_2A: r_2B: r_2C: r_2D: r_2E: r_2F: return 0xFF;
         r_30: r_31: r_32: r_33: r_34: r_35: r_36: r_37:
-        r_38: r_39: r_3A: r_3B: r_3C: r_3D: r_3E: r_3F: return WAVE_RAM[getWaveRamAddress(address - 0xFF30)];
-        r_40: READ(LCDC);
-        r_41: return getStatRegister();
-        r_42: READ(SCY);
-        r_43: READ(SCX);
-        r_44: READ(LY);
-        r_45: READ(LYC);
-        r_46: READ(DMA);
-        r_47: READ(BGP);
-        r_48: READ(OBP0);
-        r_49: READ(OBP1);
-        r_4A: READ(WY);
-        r_4B: READ(WX);
-        r_4C: CGB_MODE_READ( READ(KEY0); );
-        r_4D: CGB_MODE_READ( return KEY1_REG | 0b01111110;);
+        r_38: r_39: r_3A: r_3B: r_3C: r_3D: r_3E: r_3F: return apu->WAVE_RAM[getWaveRamAddress(apu, address - 0xFF30)];
+        r_40: READ(ppu->LCDC);
+        r_41: return getStatRegister(ppu);
+        r_42: READ(ppu->SCY);
+        r_43: READ(ppu->SCX);
+        r_44: READ(ppu->LY);
+        r_45: READ(ppu->LYC);
+        r_46: READ(dma->DMA);
+        r_47: READ(ppu->BGP);
+        r_48: READ(ppu->OBP0);
+        r_49: READ(ppu->OBP1);
+        r_4A: READ(ppu->WY);
+        r_4B: READ(ppu->WX);
+        r_4C: CGB_MODE_READ( READ(gb->KEY0); );
+        r_4D: CGB_MODE_READ( return gb->KEY1_REG | 0b01111110;);
         r_4E: return 0XFF;
-        r_4F: CGB_MODE_READ( return VBK_REG | 0xFE; );
+        r_4F: CGB_MODE_READ( return gb->VBK_REG | 0xFE; );
         r_50: r_51: r_52: r_53: r_54: return 0xFF;
-        r_55: CGB_MODE_READ( return HDMA_REGS[4]; );
+        r_55: CGB_MODE_READ( return dma->HDMA_REGS[4]; );
         r_56: r_57:
         r_58: r_59: r_5A: r_5B: r_5C: r_5D: r_5E: r_5F:
         r_60: r_61: r_62: r_63: r_64: r_65: r_66: r_67: return 0xFF;
-        r_68: CGB_MODE_READ( READ(BCPS); ); 
-        r_69: CGB_MODE_READ( return readCRAM(&BCPS_REG, BGP_CRAM); );
-        r_6A: CGB_MODE_READ( READ(OCPS); );
-        r_6B: CGB_MODE_READ( return readCRAM(&OCPS_REG, OBP_CRAM); );
+        r_68: CGB_MODE_READ( READ(ppu->BCPS); ); 
+        r_69: CGB_MODE_READ( return readCRAM(&ppu->BCPS_REG, gb->BGP_CRAM); );
+        r_6A: CGB_MODE_READ( READ(ppu->OCPS); );
+        r_6B: CGB_MODE_READ( return readCRAM(&ppu->OCPS_REG, gb->OBP_CRAM); );
         r_6C: r_6D: r_6E: r_6F: return 0xFF;
-        r_70: CGB_MODE_READ( return SVBK_REG | 0xF8; );
+        r_70: CGB_MODE_READ( return gb->SVBK_REG | 0xF8; );
         r_71: r_72: r_73: r_74: r_75: r_76: r_77:
         r_78: r_79: r_7A: r_7B: r_7C: r_7D: r_7E: r_7F: return 0xFF;
         r_80: r_81: r_82: r_83: r_84: r_85: r_86: r_87:
@@ -163,8 +168,8 @@ uint8_t readIO(uint16_t address){
         r_E0: r_E1: r_E2: r_E3: r_E4: r_E5: r_E6: r_E7:
         r_E8: r_E9: r_EA: r_EB: r_EC: r_ED: r_EE: r_EF:
         r_F0: r_F1: r_F2: r_F3: r_F4: r_F5: r_F6: r_F7:
-        r_F8: r_F9: r_FA: r_FB: r_FC: r_FD: r_FE: return HRAM[address - 0xFF80];
-        r_FF: return cpu.IE;
+        r_F8: r_F9: r_FA: r_FB: r_FC: r_FD: r_FE: return gb->HRAM[address - 0xFF80];
+        r_FF: return cpu->IE;
     }
 }
 
@@ -175,29 +180,29 @@ uint8_t readCRAM(uint8_t* idx_reg, uint8_t* cram){
 
 // write callbacks
 
-void writeVram(uint16_t address, uint8_t byte){
-    VRAM[(address - 0x8000) + VBK_REG * 0x2000] = byte;
+void writeVram(gb_t* gb, uint16_t address, uint8_t byte){
+    gb->VRAM[(address - 0x8000) + gb->VBK_REG * 0x2000] = byte;
 }
 
-void writeWram(uint16_t address, uint8_t byte){
+void writeWram(gb_t* gb, uint16_t address, uint8_t byte){
     uint8_t bank = 0;
     if(address >= 0xD000){
         address -= 0xD000;
-        bank = SVBK_REG ? SVBK_REG : 1;
+        bank = gb->SVBK_REG ? gb->SVBK_REG : 1;
     }
-    WRAM[(address & (0x2000 - 1)) + bank * 0x1000] = byte;
+    gb->WRAM[(address & (0x2000 - 1)) + bank * 0x1000] = byte;
 }
 
-void writeMirrorRam(uint16_t address, uint8_t byte){
-    WRAM[(address - 0xE000)] = byte;
+void writeMirrorRam(gb_t* gb, uint16_t address, uint8_t byte){
+    gb->WRAM[(address - 0xE000)] = byte;
 }
 
-void writeOam(uint16_t address, uint8_t byte){
+void writeOam(gb_t* gb, uint16_t address, uint8_t byte){
     if(address < 0xFEA0)
-        OAM[address - 0xFE00] = byte;
+        gb->OAM[address - 0xFE00] = byte;
 }
 
-void writeIO(uint16_t address, uint8_t byte){
+void writeIO(gb_t* gb, uint16_t address, uint8_t byte){
     static const void* write_io[0x100] = {
         &&w_00, &&w_01, &&w_02, &&w_03, &&w_04, &&w_05, &&w_06, &&w_07, &&w_08, &&w_09, &&w_0A, &&w_0B, &&w_0C, &&w_0D, &&w_0E, &&w_0F,
         &&w_10, &&w_11, &&w_12, &&w_13, &&w_14, &&w_15, &&w_16, &&w_17, &&w_18, &&w_19, &&w_1A, &&w_1B, &&w_1C, &&w_1D, &&w_1E, &&w_1F,
@@ -217,100 +222,108 @@ void writeIO(uint16_t address, uint8_t byte){
         &&w_F0, &&w_F1, &&w_F2, &&w_F3, &&w_F4, &&w_F5, &&w_F6, &&w_F7, &&w_F8, &&w_F9, &&w_FA, &&w_FB, &&w_FC, &&w_FD, &&w_FE, &&w_FF,
     };
 
-    if(console_type == MEGADUCK_TYPE){
+    if(gb->console_type == MEGADUCK_TYPE){
         address = megaduckShuffleRegisters(address);
         byte = megaduckNibbleSwap(address, byte);
     }
 
+    sm83_t* cpu = &gb->cpu;
+    gb_timer_t* tmr = &gb->timer;
+    dma_t* dma = &gb->dma;
+    joypad_t* joy = &gb->joypad;
+    serial_t* serial = &gb->serial;
+    ppu_t* ppu = &gb->ppu;
+    apu_t* apu = &gb->apu;
+
     goto *(write_io[address & 0xFF]);
 
     {
-        w_00: WRITE(JOYP);
-        w_01: WRITE(SB);
-        w_02: WRITE(SC);
+        w_00: WRITE(joy->JOYP);
+        w_01: WRITE(serial->SB);
+        w_02: WRITE(serial->SC);
         w_03: return;
-        w_04: gb_timer.counter = 0x00; return;
+        w_04: tmr->counter = 0x00; return;
         w_05: 
-                if(!gb_timer.ignore_write)
-                    TIMA_REG = byte;
-                gb_timer.delay = 0;
+                if(!tmr->ignore_write)
+                    tmr->TIMA_REG = byte;
+                tmr->delay = 0;
                 return;
         w_06: 
-                TMA_REG = byte;
-                if(gb_timer.ignore_write)
-                    TIMA_REG = TMA_REG;
+                tmr->TMA_REG = byte;
+                if(tmr->ignore_write)
+                    tmr->TIMA_REG = tmr->TMA_REG;
                 return;
-        w_07: WRITE(TAC);
+        w_07: WRITE(tmr->TAC);
         w_08: w_09: w_0A: w_0B: w_0C: w_0D: w_0E: return;
-        w_0F: cpu.IF = byte; return;
-        w_10: WRITE(NR10);
-        w_11: NR11_REG = byte; setChannel1Timer(); return;
-        w_12: NR12_REG = byte; checkDAC1(); return;
-        w_13: WRITE(NR13);
-        w_14: NR14_REG = byte; triggerChannel1(); return;
+        w_0F: cpu->IF = byte; return;
+        w_10: WRITE(apu->NR10);
+        w_11: apu->NR11_REG = byte; setChannel1Timer(apu); return;
+        w_12: apu->NR12_REG = byte; checkDAC1(apu); return;
+        w_13: WRITE(apu->NR13);
+        w_14: apu->NR14_REG = byte; triggerChannel1(apu); return;
         w_15: return;
-        w_16: NR21_REG = byte; setChannel2Timer(); return;
-        w_17: NR22_REG = byte; checkDAC2(); return;
-        w_18: WRITE(NR23);
-        w_19: NR24_REG = byte; triggerChannel2(); return;
-        w_1A: NR30_REG = byte; checkDAC3(); return;
-        w_1B: NR31_REG = byte; setChannel3Timer(); return;
-        w_1C: WRITE(NR32);
-        w_1D: WRITE(NR33);
-        w_1E: NR34_REG = byte; triggerChannel3(); return;
+        w_16: apu->NR21_REG = byte; setChannel2Timer(apu); return;
+        w_17: apu->NR22_REG = byte; checkDAC2(apu); return;
+        w_18: WRITE(apu->NR23);
+        w_19: apu->NR24_REG = byte; triggerChannel2(apu); return;
+        w_1A: apu->NR30_REG = byte; checkDAC3(apu); return;
+        w_1B: apu->NR31_REG = byte; setChannel3Timer(apu); return;
+        w_1C: WRITE(apu->NR32);
+        w_1D: WRITE(apu->NR33);
+        w_1E: apu->NR34_REG = byte; triggerChannel3(apu); return;
         w_1F: return;
-        w_20: NR41_REG = byte; setChannel4Timer(); return;
-        w_21: NR42_REG = byte; checkDAC4(); return;
-        w_22: WRITE(NR43);
-        w_23: NR44_REG = byte; triggerChannel4(); return;
-        w_24: WRITE(NR50);
-        w_25: WRITE(NR51);
-        w_26: WRITE(NR52);
+        w_20: apu->NR41_REG = byte; setChannel4Timer(apu); return;
+        w_21: apu->NR42_REG = byte; checkDAC4(apu); return;
+        w_22: WRITE(apu->NR43);
+        w_23: apu->NR44_REG = byte; triggerChannel4(apu); return;
+        w_24: WRITE(apu->NR50);
+        w_25: WRITE(apu->NR51);
+        w_26: WRITE(apu->NR52);
         w_27: w_28: w_29: w_2A: w_2B: w_2C: w_2D: w_2E: w_2F: return;
         w_30: w_31: w_32: w_33: w_34: w_35: w_36: w_37:
-        w_38: w_39: w_3A: w_3B: w_3C: w_3D: w_3E: w_3F: WAVE_RAM[getWaveRamAddress(address - 0xFF30)] = byte; return;
-        w_40: WRITE(LCDC);
+        w_38: w_39: w_3A: w_3B: w_3C: w_3D: w_3E: w_3F: apu->WAVE_RAM[getWaveRamAddress(apu, address - 0xFF30)] = byte; return;
+        w_40: WRITE(ppu->LCDC);
         w_41:
-                if(console_type != CGB_TYPE){
-                    if(!stat_irq && ppu_mode != OAM_SCAN_MODE)
-                        cpu.IF |= STAT_IRQ;
-                    stat_irq = true;
+                if(gb->console_type != CGB_TYPE){
+                    if(!ppu->stat_irq && ppu->mode != OAM_SCAN_MODE)
+                        cpu->IF |= STAT_IRQ;
+                    ppu->stat_irq = true;
                 }
-                STAT_REG = byte & 0b01111000;
+                ppu->STAT_REG = byte & 0b01111000;
                 return;
-        w_42: WRITE(SCY);
-        w_43: WRITE(SCX);
+        w_42: WRITE(ppu->SCY);
+        w_43: WRITE(ppu->SCX);
         w_44: return;
-        w_45: WRITE(LYC);
-        w_46: DMA_REG = byte; startDMA(); return;
-        w_47: WRITE(BGP);
-        w_48: WRITE(OBP0);
-        w_49: WRITE(OBP1);
-        w_4A: WRITE(WY);
-        w_4B: WRITE(WX);
-        w_4C: CGB_MODE_WRITE( WRITE(KEY0); );
-        w_4D: CGB_MODE_WRITE( if(byte & 1) KEY1_REG |= 0x80; return; );
+        w_45: WRITE(ppu->LYC);
+        w_46: dma->DMA_REG = byte; startDMA(gb); return;
+        w_47: WRITE(ppu->BGP);
+        w_48: WRITE(ppu->OBP0);
+        w_49: WRITE(ppu->OBP1);
+        w_4A: WRITE(ppu->WY);
+        w_4B: WRITE(ppu->WX);
+        w_4C: CGB_MODE_WRITE( WRITE(gb->KEY0); );
+        w_4D: CGB_MODE_WRITE( if(byte & 1) gb->KEY1_REG |= 0x80; return; );
         w_4E: return;
-        w_4F: CGB_MODE_WRITE( VBK_REG = byte & 1; return; );
+        w_4F: CGB_MODE_WRITE( gb->VBK_REG = byte & 1; return; );
         w_50: 
-                fillReadTable(0x00, 0x09, mbc_mapper_0000_3FFF);
-                if((KEY0_REG >> 2) == 0b01)
-                    console_type = DMG_ON_CGB_TYPE;
+                fillReadTable(gb->readTable, 0x00, 0x09, gb->mbc.mapper_0000_3FFF);
+                if((gb->KEY0_REG >> 2) == 0b01)
+                    gb->console_type = DMG_ON_CGB_TYPE;
                 return;
-        w_51: CGB_MODE_WRITE( HDMA_REGS[0] = byte; return; );
-        w_52: CGB_MODE_WRITE( HDMA_REGS[1] = byte; return; );
-        w_53: CGB_MODE_WRITE( HDMA_REGS[2] = byte; return; );
-        w_54: CGB_MODE_WRITE( HDMA_REGS[3] = byte; return; );
-        w_55: CGB_MODE_WRITE( startHDMA(byte); return; );
+        w_51: CGB_MODE_WRITE( dma->HDMA_REGS[0] = byte; return; );
+        w_52: CGB_MODE_WRITE( dma->HDMA_REGS[1] = byte; return; );
+        w_53: CGB_MODE_WRITE( dma->HDMA_REGS[2] = byte; return; );
+        w_54: CGB_MODE_WRITE( dma->HDMA_REGS[3] = byte; return; );
+        w_55: CGB_MODE_WRITE( startHDMA(gb, byte); return; );
         w_56: w_57:
         w_58: w_59: w_5A: w_5B: w_5C: w_5D: w_5E: w_5F:
         w_60: w_61: w_62: w_63: w_64: w_65: w_66: w_67: return;
-        w_68: CGB_MODE_WRITE( WRITE(BCPS); );
-        w_69: CGB_MODE_WRITE( writeCRAM(&BCPS_REG, byte, BGP_CRAM); return; );
-        w_6A: CGB_MODE_WRITE( WRITE(OCPS); );
-        w_6B: CGB_MODE_WRITE( writeCRAM(&OCPS_REG, byte, OBP_CRAM); return; );
+        w_68: CGB_MODE_WRITE( WRITE(ppu->BCPS); );
+        w_69: CGB_MODE_WRITE( writeCRAM(&ppu->BCPS_REG, byte, gb->BGP_CRAM); return; );
+        w_6A: CGB_MODE_WRITE( WRITE(ppu->OCPS); );
+        w_6B: CGB_MODE_WRITE( writeCRAM(&ppu->OCPS_REG, byte, gb->OBP_CRAM); return; );
         w_6C: w_6D: w_6E: w_6F: return;
-        w_70: CGB_MODE_WRITE( SVBK_REG = byte & 0b111; return; );
+        w_70: CGB_MODE_WRITE( gb->SVBK_REG = byte & 0b111; return; );
         w_71: w_72: w_73: w_74: w_75: w_76: w_77:
         w_78: w_79: w_7A: w_7B: w_7C: w_7D: w_7E: w_7F: return;
         w_80: w_81: w_82: w_83: w_84: w_85: w_86: w_87:
@@ -328,8 +341,8 @@ void writeIO(uint16_t address, uint8_t byte){
         w_E0: w_E1: w_E2: w_E3: w_E4: w_E5: w_E6: w_E7:
         w_E8: w_E9: w_EA: w_EB: w_EC: w_ED: w_EE: w_EF:
         w_F0: w_F1: w_F2: w_F3: w_F4: w_F5: w_F6: w_F7:
-        w_F8: w_F9: w_FA: w_FB: w_FC: w_FD: w_FE: HRAM[address - 0xFF80] = byte; return;
-        w_FF: cpu.IE = byte; return;
+        w_F8: w_F9: w_FA: w_FB: w_FC: w_FD: w_FE: gb->HRAM[address - 0xFF80] = byte; return;
+        w_FF: cpu->IE = byte; return;
     }
 }
 

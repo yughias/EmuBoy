@@ -4,7 +4,13 @@
 #include <stdint.h>
 #include <stdbool.h>
 
+typedef struct gb_t gb_t;
+
 typedef struct {
+    uint8_t TIMA_REG;
+    uint8_t TMA_REG;
+    uint8_t TAC_REG;
+    
     union {
         struct {
             uint8_t internal;
@@ -17,8 +23,6 @@ typedef struct {
     uint8_t delay;
 } gb_timer_t;
 
-extern gb_timer_t gb_timer;
-
 #define TIMER_ENABLE_MASK         0b00000100
 #define TIMER_CLOCK_MASK          0b00000011
 
@@ -27,10 +31,6 @@ extern gb_timer_t gb_timer;
 #define TAC_ADDR 0xFF07
 #define DIV_ADDR 0xFF04
 
-extern uint8_t TIMA_REG;
-extern uint8_t TMA_REG;
-extern uint8_t TAC_REG;
-
-void updateTimer();
+void updateTimer(gb_t*);
 
 #endif

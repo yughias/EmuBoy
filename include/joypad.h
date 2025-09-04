@@ -23,12 +23,15 @@
 extern const Uint8* keystate;
 extern SDL_GameController* gameController;
 
-extern uint8_t JOYP_REG;
+typedef struct joypad_t {
+    uint8_t JOYP_REG;
+    uint8_t ARROW_BTN;
+    uint8_t ACTION_BTN;
+} joypad_t;
 
 void initJoypad();
-void emulateJoypad();
 void emulateTurboButton();
-uint8_t getJoypadRegister();
+uint8_t getJoypadRegister(joypad_t*);
 void setGameControllerLed();
 
 #endif

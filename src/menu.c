@@ -3,9 +3,13 @@
 #include "ini.h"
 #include "serial.h"
 #include "ppu.h"
+#include "gb.h"
+
+//TODO
+extern gb_t gb;
 
 #define generateVideoMenuCallback(func_name, filter_name) void use ## func_name ## Menu(){ strcpy(config_render, filter_name); setupWindow(); }
-#define generatePaletteMenuCallback(func_name, palette_name) void set ## func_name ## Palette(){ strcpy(config_gb_palette, palette_name); initColorPalette(); }
+#define generatePaletteMenuCallback(func_name, palette_name) void set ## func_name ## Palette(){ strcpy(config_gb_palette, palette_name); initColorPalette(&gb); }
 
 generateVideoMenuCallback(Nearest, "nearest");
 generateVideoMenuCallback(Linear, "linear");

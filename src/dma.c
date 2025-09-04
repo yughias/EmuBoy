@@ -1,94 +1,94 @@
 #include "gb.h"
 
-uint8_t DMA_REG;
+static void getInfoHDMA(dma_t*, uint16_t* srcAddr, uint16_t* dstAddr, uint16_t* length);
+static void transferBlockHDMA(sm83_t* cpu, uint16_t* srcAddr, uint16_t* dstAddr);
 
-uint8_t HDMA_REGS[5];
-bool hblank_dma_started;
-
-void initHDMA(){
-    memset(HDMA_REGS, 0, sizeof(HDMA_REGS));
-    hblank_dma_started = false;
+void initHDMA(dma_t* dma){
+    memset(dma->HDMA_REGS, 0, sizeof(dma->HDMA_REGS));
+    dma->hblank_dma_started = false;
 }
 
-void startDMA(){
-    uint16_t hi8 = DMA_REG << 8;
+void startDMA(gb_t* gb){
+    dma_t* dma = &gb->dma;
+    uint16_t hi8 = dma->DMA_REG << 8;
     if(hi8 >> 12 == 0xF)
         hi8 = 0xD000 | (hi8 & 0xFFF);
     for(uint8_t lo8 = 0x00; lo8 < 0xA0; lo8++){
-        OAM[lo8] = cpu.readByte(hi8 | lo8);
+        gb->OAM[lo8] = gb->cpu.readByte(gb, hi8 | lo8);
     }
 }
 
-void startHDMA(uint8_t byte){
+void startHDMA(gb_t* gb, uint8_t byte){
+    dma_t* dma = &gb->dma;
     if(byte & 0x80){
-        hblank_dma_started = true;
-        HDMA_REGS[4] = byte & 0x7F;
+        dma->hblank_dma_started = true;
+        dma->HDMA_REGS[4] = byte & 0x7F;
 
-        if(ppu_mode == HBLANK_MODE && !cpu.HALTED)
-            stepHDMA();
+        if(gb->ppu.mode == HBLANK_MODE && !gb->cpu.HALTED)
+            stepHDMA(gb);
     } else {
-        if(hblank_dma_started){
-            hblank_dma_started = false;
-            HDMA_REGS[4] |= 0x80;
+        if(dma->hblank_dma_started){
+            dma->hblank_dma_started = false;
+            dma->HDMA_REGS[4] |= 0x80;
         } else {
-            HDMA_REGS[4] = byte;
+            dma->HDMA_REGS[4] = byte;
 
             uint16_t srcAddr;
             uint16_t dstAddr;
             uint16_t length;
 
-            getInfoHDMA(&srcAddr, &dstAddr, &length);
+            getInfoHDMA(dma, &srcAddr, &dstAddr, &length);
 
             while(length){
-                transferBlockHDMA(&srcAddr, &dstAddr);
+                transferBlockHDMA(&gb->cpu, &srcAddr, &dstAddr);
                 length--;
             }
 
-            HDMA_REGS[0] = srcAddr >> 8;
-            HDMA_REGS[1] = srcAddr;
-            HDMA_REGS[2] = dstAddr >> 8;
-            HDMA_REGS[3] = dstAddr;
-            HDMA_REGS[4] = 0xFF;
+            dma->HDMA_REGS[0] = srcAddr >> 8;
+            dma->HDMA_REGS[1] = srcAddr;
+            dma->HDMA_REGS[2] = dstAddr >> 8;
+            dma->HDMA_REGS[3] = dstAddr;
+            dma->HDMA_REGS[4] = 0xFF;
         }
     }   
 }
 
-void stepHDMA(){
+void stepHDMA(gb_t* gb){
+    dma_t* dma = &gb->dma;
     uint16_t srcAddr;
     uint16_t dstAddr;
     uint16_t length;
 
-    if(!hblank_dma_started)
+    if(!dma->hblank_dma_started)
         return;
 
-    getInfoHDMA(&srcAddr, &dstAddr, &length);  
+    getInfoHDMA(dma, &srcAddr, &dstAddr, &length);  
 
-    transferBlockHDMA(&srcAddr, &dstAddr);
+    transferBlockHDMA(&gb->cpu, &srcAddr, &dstAddr);
     length--;
 
-    HDMA_REGS[0] = srcAddr >> 8;
-    HDMA_REGS[1] = srcAddr;
-    HDMA_REGS[2] = dstAddr >> 8;
-    HDMA_REGS[3] = dstAddr;
+    dma->HDMA_REGS[0] = srcAddr >> 8;
+    dma->HDMA_REGS[1] = srcAddr;
+    dma->HDMA_REGS[2] = dstAddr >> 8;
+    dma->HDMA_REGS[3] = dstAddr;
 
     if(!length){
-        hblank_dma_started = false;
-        HDMA_REGS[4] = 0xFF;
+        dma->hblank_dma_started = false;
+        dma->HDMA_REGS[4] = 0xFF;
     } else
-        HDMA_REGS[4] = length - 1;
+        dma->HDMA_REGS[4] = length - 1;
 }
 
-
-void getInfoHDMA(uint16_t* srcAddr, uint16_t* dstAddr, uint16_t* length){
-    *srcAddr = ((HDMA_REGS[0] << 8) | (HDMA_REGS[1] & 0xF0));  
-    *dstAddr = ((HDMA_REGS[2] & 0x1F) << 8) | (HDMA_REGS[3] & 0xF0) | 0x8000;
-    *length =  ((HDMA_REGS[4] & 0x7F) + 1);
+static void getInfoHDMA(dma_t* dma, uint16_t* srcAddr, uint16_t* dstAddr, uint16_t* length){
+    *srcAddr = ((dma->HDMA_REGS[0] << 8) | (dma->HDMA_REGS[1] & 0xF0));  
+    *dstAddr = ((dma->HDMA_REGS[2] & 0x1F) << 8) | (dma->HDMA_REGS[3] & 0xF0) | 0x8000;
+    *length =  ((dma->HDMA_REGS[4] & 0x7F) + 1);
 }
 
-void transferBlockHDMA(uint16_t* srcAddr, uint16_t* dstAddr){
+static void transferBlockHDMA(sm83_t* cpu, uint16_t* srcAddr, uint16_t* dstAddr){
     for(int i = 0; i < 16; i++){
-        uint8_t byte = cpu.readByte(*srcAddr);
-        cpu.writeByte(*dstAddr, byte);
+        uint8_t byte = cpu->readByte(cpu->ctx, *srcAddr);
+        cpu->writeByte(cpu->ctx, *dstAddr, byte);
         (*srcAddr) += 1;
         (*dstAddr) += 1;
     }

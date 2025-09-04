@@ -3,7 +3,9 @@
 
 #include <stdint.h>
 
-uint8_t mbc1m_0000_3FFF(uint16_t addr);
-uint8_t mbc1m_4000_7FFF(uint16_t addr);
+typedef struct gb_t gb_t;
+
+uint8_t mbc1m_0000_3FFF(gb_t* gb, uint16_t addr);
+uint8_t mbc1m_4000_7FFF(gb_t* gb, uint16_t addr);
 
 #endif

@@ -9,180 +9,162 @@
 #include <stdio.h>
 #include <string.h>
 
-readFunc mbc_mapper_0000_3FFF;
-readFunc mbc_mapper_4000_7FFF;
-readFunc mbc_mapper_A000_BFFF_read;
-writeFunc mbc_mapper_A000_BFFF_write;
+#define RAM_MAPPER(name) mbc->mapper_A000_BFFF_read =  name ## _read; mbc->mapper_A000_BFFF_write = name ## _write
 
-writeFunc mbc_rom_write;
+static uint8_t no_mapped_address_read(gb_t* gb, uint16_t addr){ return 0xFF; }
+static void no_mapped_address_write(gb_t* gb, uint16_t addr, uint8_t byte){}
+static uint8_t no_mbc_address(gb_t* gb, uint16_t addr){ return gb->ROM[addr]; }
+static void mbc_no_write(gb_t* gb, uint16_t addr, uint8_t byte){}
 
-uint8_t MBC_0000_1FFF;
-uint8_t MBC_2000_3FFF;
-uint8_t MBC_4000_5FFF;
-uint8_t MBC_6000_7FFF;
-
-// advanced mbc registers
-uint8_t MBC_2000_2FFF;
-uint8_t MBC_3000_3FFF;
-
-bool hasBattery;
-bool mbcAlreadyWritten;
-bool hasRtc;
-bool hasCamera;
-
-#define RAM_MAPPER(name) mbc_mapper_A000_BFFF_read =  name ## _read; mbc_mapper_A000_BFFF_write = name ## _write
-
-uint8_t no_mapped_address_read(uint16_t addr){ return 0xFF; }
-void no_mapped_address_write(uint16_t addr, uint8_t byte){}
-uint8_t no_mbc_address(uint16_t addr){ return ROM[addr]; }
-void mbc_no_write(uint16_t addr, uint8_t byte){}
-
-void mbc_standard_registers(uint16_t addr, uint8_t byte){
+static void mbc_standard_registers(gb_t* gb, uint16_t addr, uint8_t byte){
+    mbc_t* mbc = &gb->mbc;
     if(addr < 0x2000){
-        MBC_0000_1FFF = byte;
+        mbc->REG_0000_1FFF = byte;
     } else if(addr < 0x4000) {
-        MBC_2000_3FFF = byte;
+        mbc->REG_2000_3FFF = byte;
     } else if(addr < 0x6000) {
-        MBC_4000_5FFF = byte;
+        mbc->REG_4000_5FFF = byte;
     } else {
-        MBC_6000_7FFF = byte;
+        mbc->REG_6000_7FFF = byte;
     }
 }
 
-void detectConsoleAndMbc(){
-    mbc_rom_write = mbc_standard_registers;
-    mbc_mapper_0000_3FFF = no_mbc_address;
-    mbc_mapper_4000_7FFF = no_mbc_address;
+void detectConsoleAndMbc(gb_t* gb){
+    mbc_t* mbc = &gb->mbc;
+    mbc->rom_write = mbc_standard_registers;
+    mbc->mapper_0000_3FFF = no_mbc_address;
+    mbc->mapper_4000_7FFF = no_mbc_address;
     RAM_MAPPER(no_mapped_address);
-    MBC_0000_1FFF = 0x00;
-    MBC_2000_3FFF = 0x00;
-    MBC_4000_5FFF = 0x00;
-    MBC_6000_7FFF = 0x00;
-    MBC_2000_2FFF = 0x00;
-    MBC_3000_3FFF = 0x00;
-    hasBattery = false;
-    hasRtc = false;
-    hasCamera = false;
-    mbcAlreadyWritten = false; 
+    mbc->REG_0000_1FFF = 0x00;
+    mbc->REG_2000_3FFF = 0x00;
+    mbc->REG_4000_5FFF = 0x00;
+    mbc->REG_6000_7FFF = 0x00;
+    mbc->REG_2000_2FFF = 0x00;
+    mbc->REG_3000_3FFF = 0x00;
+    mbc->hasBattery = false;
+    mbc->hasRtc = false;
+    mbc->hasCamera = false;
+    mbc->mbcAlreadyWritten = false; 
 
-    console_type = CGB_TYPE;
+    gb->console_type = CGB_TYPE;
 
-    if(config_force_dmg_when_possible && ROM[0x143] != 0xC0)
-        console_type = DMG_TYPE;
+    if(config_force_dmg_when_possible && gb->ROM[0x143] != 0xC0)
+        gb->console_type = DMG_TYPE;
 
     // in emscripten we don't have config file
     // DMG is emulated if ROM doesn't have any CGB enhancements
     #ifdef __EMSCRIPTEN__
     if(ROM[0x143] < 0x80)
-        console_type = DMG_TYPE;
+        gb->console_type = DMG_TYPE;
     #endif
 
     // MBC for megaduck
-    if(!containNintendoLogo(ROM)){
-        console_type = MEGADUCK_TYPE;
+    if(!containNintendoLogo(gb->ROM)){
+        gb->console_type = MEGADUCK_TYPE;
 
         // default 32k megaduck rom
-        if(ROM_SIZE == 1 << 15)
+        if(gb->ROM_SIZE == 1 << 15)
             return;
 
-        uint16_t checksum = calculateRomChecksum(ROM, ROM_SIZE);
+        uint16_t checksum = calculateRomChecksum(gb->ROM, gb->ROM_SIZE);
 
         if(
             checksum == SULEIMAN_TREASURE_CHECKSUM ||
             checksum == PUPPET_KNIGHT_CHECKSUM
         ){
-            mbc_mapper_0000_3FFF = megaduck_special_mapper;
-            mbc_mapper_4000_7FFF = megaduck_special_mapper;
+            mbc->mapper_0000_3FFF = megaduck_special_mapper;
+            mbc->mapper_4000_7FFF = megaduck_special_mapper;
             RAM_MAPPER(megaduck_special_registers);
-            mbc_rom_write = mbc_no_write;
+            mbc->rom_write = mbc_no_write;
             return;
         }
 
         // megaduck mapper with register in 0x0001
-        mbc_mapper_0000_3FFF = no_mbc_address;
-        mbc_mapper_4000_7FFF = megaduck_standard_mapper;
-        mbc_rom_write =  megaduck_standard_registers;
+        mbc->mapper_0000_3FFF = no_mbc_address;
+        mbc->mapper_4000_7FFF = megaduck_standard_mapper;
+        mbc->rom_write =  megaduck_standard_registers;
         return;
     }
 
-    if(detectM161(ROM)){
+    if(detectM161(gb->ROM)){
         printf("M161 DETECTED!\n");
-        mbc_rom_write = m161_registers;
-        mbc_mapper_0000_3FFF = m161_rom;
-        mbc_mapper_4000_7FFF = m161_rom;
+        mbc->rom_write = m161_registers;
+        mbc->mapper_0000_3FFF = m161_rom;
+        mbc->mapper_4000_7FFF = m161_rom;
         return;
     }
 
-    if(detectMMM01(ROM)){
+    if(detectMMM01(gb->ROM, gb->ROM_SIZE)){
         printf("MMM01 DETECTED!\n");
-        MBC_3000_3FFF = 0x01;
-        mbc_rom_write = mmm01_registers;
-        mbc_mapper_0000_3FFF = mmm01_0000_3FFF;
-        mbc_mapper_4000_7FFF = mmm01_4000_7FFF;
+        mbc->REG_3000_3FFF = 0x01;
+        mbc->rom_write = mmm01_registers;
+        mbc->mapper_0000_3FFF = mmm01_0000_3FFF;
+        mbc->mapper_4000_7FFF = mmm01_4000_7FFF;
         RAM_MAPPER(mmm01_ram);
         return;
     }
 
-    if(detectMBC1M(ROM)){
+    if(detectMBC1M(gb->ROM, gb->ROM_SIZE)){
         printf("MBC1M DETECTED\n");
-        mbc_mapper_0000_3FFF = mbc1m_0000_3FFF;
-        mbc_mapper_4000_7FFF = mbc1m_4000_7FFF;
+        mbc->mapper_0000_3FFF = mbc1m_0000_3FFF;
+        mbc->mapper_4000_7FFF = mbc1m_4000_7FFF;
         return;
     }
 
-    switch(ROM[0x147]){
+    switch(gb->ROM[0x147]){
         case 0x01:
-        mbc_mapper_0000_3FFF = mbc1_0000_3FFF;
-        mbc_mapper_4000_7FFF = mbc1_4000_7FFF;
+        mbc->mapper_0000_3FFF = mbc1_0000_3FFF;
+        mbc->mapper_4000_7FFF = mbc1_4000_7FFF;
         printf("MBC1 ON!\n");
         break;
 
         case 0x03:
-        mbc_mapper_0000_3FFF = mbc1_0000_3FFF;
-        mbc_mapper_4000_7FFF = mbc1_4000_7FFF;
+        mbc->mapper_0000_3FFF = mbc1_0000_3FFF;
+        mbc->mapper_4000_7FFF = mbc1_4000_7FFF;
         RAM_MAPPER(mbc1_ram);
-        hasBattery = true;
+        mbc->hasBattery = true;
         printf("MBC1 WITH RAM AND BATTERY ON!\n");
         break;
 
         case 0x05:
-        mbc_rom_write = mbc2_registers;
-        MBC_2000_3FFF = 0x01;
-        mbc_mapper_0000_3FFF = no_mbc_address;
-        mbc_mapper_4000_7FFF = mbc2_4000_7FFF;
+        mbc->rom_write = mbc2_registers;
+        mbc->REG_2000_3FFF = 0x01;
+        mbc->mapper_0000_3FFF = no_mbc_address;
+        mbc->mapper_4000_7FFF = mbc2_4000_7FFF;
         printf("MBC2 ONLY ON!\n");
         break;
 
         case 0x06:
-        mbc_rom_write = mbc2_registers;
-        MBC_2000_3FFF = 0x01;
-        mbc_mapper_0000_3FFF = no_mbc_address;
-        mbc_mapper_4000_7FFF = mbc2_4000_7FFF;
+        mbc->rom_write = mbc2_registers;
+        mbc->REG_2000_3FFF = 0x01;
+        mbc->mapper_0000_3FFF = no_mbc_address;
+        mbc->mapper_4000_7FFF = mbc2_4000_7FFF;
         RAM_MAPPER(mbc2_ram);
-        hasBattery = true;
+        mbc->hasBattery = true;
         printf("MBC2 WITH RAM AND BATTERY ON!\n");
         break;
 
         case 0x0F:
         case 0x10:
-        hasRtc  = true;
+        mbc->hasRtc = true;
+        mbc->data = allocRtc();
         case 0x11:
         case 0x12:
         case 0x13:
-        mbc_rom_write = mbc3_registers;
-        mbc_mapper_0000_3FFF = no_mbc_address;
-        mbc_mapper_4000_7FFF = mbc3_4000_7FFF;
+        mbc->rom_write = mbc3_registers;
+        mbc->mapper_0000_3FFF = no_mbc_address;
+        mbc->mapper_4000_7FFF = mbc3_4000_7FFF;
         RAM_MAPPER(mbc3_ram);
-        hasBattery = true;
+        mbc->hasBattery = true;
         printf("MBC3 WITH RAM AND BATTERY ON!\n");
         break;
 
         case 0x19:
-        mbc_rom_write = mbc5_registers;
-        MBC_2000_2FFF = 0x01;
-        mbc_mapper_0000_3FFF = no_mbc_address;
-        mbc_mapper_4000_7FFF = mbc5_4000_7FFF;
-        hasBattery = false;
+        mbc->rom_write = mbc5_registers;
+        mbc->REG_2000_2FFF = 0x01;
+        mbc->mapper_0000_3FFF = no_mbc_address;
+        mbc->mapper_4000_7FFF = mbc5_4000_7FFF;
+        mbc->hasBattery = false;
         printf("MBC5 ONLY ON!\n");
         break;
 
@@ -191,31 +173,33 @@ void detectConsoleAndMbc(){
         case 0x1C:
         case 0x1D:
         case 0x1E:
-        mbc_rom_write = mbc5_registers;
-        MBC_2000_2FFF = 0x01;
-        mbc_mapper_0000_3FFF = no_mbc_address;
-        mbc_mapper_4000_7FFF = mbc5_4000_7FFF;
+        mbc->hasRumble = gb->ROM[0x147] >= 0x1C;
+        mbc->rom_write = mbc5_registers;
+        mbc->REG_2000_2FFF = 0x01;
+        mbc->mapper_0000_3FFF = no_mbc_address;
+        mbc->mapper_4000_7FFF = mbc5_4000_7FFF;
         RAM_MAPPER(mbc5_ram);
-        hasBattery = true;
+        mbc->hasBattery = true;
         printf("MBC5 WITH RAM ON!\n");
         break;
 
         case 0x22:
-        hasBattery = true;
-        mbc_rom_write = mbc5_registers;
-        MBC_2000_2FFF = 0x01;
-        mbc_mapper_0000_3FFF = no_mbc_address;
-        mbc_mapper_4000_7FFF = mbc5_4000_7FFF;
+        mbc->hasBattery = true;
+        mbc->rom_write = mbc5_registers;
+        mbc->REG_2000_2FFF = 0x01;
+        mbc->mapper_0000_3FFF = no_mbc_address;
+        mbc->mapper_4000_7FFF = mbc5_4000_7FFF;
         RAM_MAPPER(mbc7_ram);
+        mbc->data = mbc7_alloc();
         printf("MBC7 ON!\n");
         break;
 
         case 0xFC:
-        hasBattery = true;
-        hasCamera = true;
-        MBC_2000_3FFF = 0x1;
-        mbc_mapper_0000_3FFF = no_mbc_address;
-        mbc_mapper_4000_7FFF = mbc3_4000_7FFF;
+        mbc->hasBattery = true;
+        mbc->hasCamera = true;
+        mbc->REG_2000_3FFF = 0x1;
+        mbc->mapper_0000_3FFF = no_mbc_address;
+        mbc->mapper_4000_7FFF = mbc3_4000_7FFF;
         RAM_MAPPER(mbc_cam_ram);
         mbc_cam_init();
         printf("GAMEBOY CAMERA ON!\n");
@@ -234,23 +218,23 @@ bool detectM161(const uint8_t* buf){
     return false;
 }
 
-bool detectMMM01(const uint8_t* buf){
-    if(ROM_SIZE == (1 << 15)){
+bool detectMMM01(const uint8_t* buf, size_t size){
+    if(size == (1 << 15)){
         return false;
     }
 
-    if(containNintendoLogo(buf + ROM_SIZE - (1 << 15)))
+    if(containNintendoLogo(buf + size - (1 << 15)))
         return true;
     return false;
 }
 
-bool detectMBC1M(const uint8_t* buf){
+bool detectMBC1M(const uint8_t* buf, size_t size){
     int nintendo_logo_size = 48; 
-    int nintendo_logo_postion = 0x10 << 14;
-    if(ROM_SIZE < nintendo_logo_postion + 0x100 + nintendo_logo_size)
+    int nintendo_logo_position = 0x10 << 14;
+    if(size < nintendo_logo_position + 0x100 + nintendo_logo_size)
         return false;
 
-    if(containNintendoLogo(buf + nintendo_logo_postion))
+    if(containNintendoLogo(buf + nintendo_logo_position))
         return true;
 
     return false;

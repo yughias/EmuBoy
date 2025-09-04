@@ -2,382 +2,278 @@
 #include <SDL2/SDL.h>
 #include <stdio.h>
 
-SDL_AudioSpec audioSpec;
-SDL_AudioDeviceID audioDev;
-
-int16_t buffer[AUDIO_BUFFER_SIZE];
-size_t bufIdx = 0;
-
-size_t audio_request_rate;
-size_t audio_counter;
-
-size_t queued_samples;
-size_t queued_check_counter;
-size_t queued_check_rate; 
-
-// gameboy registers
-uint8_t NR52_REG;
-uint8_t NR51_REG;
-uint8_t NR50_REG;
-
-uint8_t NR10_REG;
-uint8_t NR11_REG;
-uint8_t NR12_REG;
-uint8_t NR13_REG;
-uint8_t NR14_REG;
-
-uint8_t NR21_REG;
-uint8_t NR22_REG;
-uint8_t NR23_REG;
-uint8_t NR24_REG;
-
-uint8_t NR30_REG;
-uint8_t NR31_REG;
-uint8_t NR32_REG;
-uint8_t NR33_REG;
-uint8_t NR34_REG;
-
-uint8_t NR41_REG;
-uint8_t NR42_REG;
-uint8_t NR43_REG;
-uint8_t NR44_REG;
-
-uint8_t WAVE_RAM[WAVE_RAM_SIZE];
-
 // apu internal variables and functions
-size_t getWavedutyIdx(uint8_t);
-uint16_t getPeriodValue(uint8_t, uint8_t);
-uint8_t getLengthTimer(uint8_t);
-uint8_t getInitialVolume(uint8_t);
-bool getEnvelopeDirection(uint8_t);
-uint8_t getEnvelopePace(uint8_t);
-uint8_t getSweepPace(uint8_t);
-bool getSweepDirection(uint8_t);
-uint8_t getSweepSlope(uint8_t);
-size_t getShiftCounter(uint8_t);
+static size_t getWavedutyIdx(uint8_t);
+static uint16_t getPeriodValue(uint8_t, uint8_t);
+static uint8_t getLengthTimer(uint8_t);
+static uint8_t getInitialVolume(uint8_t);
+static bool getEnvelopeDirection(uint8_t);
+static uint8_t getEnvelopePace(uint8_t);
+static uint8_t getSweepPace(uint8_t);
+static bool getSweepDirection(uint8_t);
+static uint8_t getSweepSlope(uint8_t);
+static size_t getShiftCounter(uint8_t);
+static void resetApuRegisters(apu_t* apu);
+static void turnOffAudioChannels(apu_t* apu);
+static void apuMixer(apu_t*, int16_t*);
 
-void apuMixer(int16_t*);
-
-bool waveforms[4][8] = {
+static bool waveforms[4][8] = {
     { 0, 0, 0, 0, 0, 0, 0, 1 },
     { 1, 0, 0, 0, 0, 0, 0, 1 },
     { 1, 0, 0, 0, 0, 1, 1, 1 },
     { 0, 1, 1, 1, 1, 1, 1, 0 }
 };
 
-size_t pulse_wave_counter;
-size_t length_timer_counter;
-
-// channel 1: pulse with sweep pace
-bool ch1_on;
-uint16_t ch1_period_val;
-uint16_t ch1_length_timer;
-uint8_t ch1_volume;
-bool ch1_envelope_dir;
-uint8_t ch1_envelope_pace;
-uint16_t ch1_sweep_shadow;
-size_t ch1_envelope_counter;
-size_t ch1_waveduty_idx;
-size_t ch1_wavelevel_idx;
-size_t ch1_sweep_counter;
-uint8_t ch1_sweep_pace;
-bool ch1_sweep_dir;
-uint8_t ch1_sweep_slope;
-bool ch1_wave_level;
-int8_t ch1_sample;
-
-// channel 2: pulse
-bool ch2_on;
-uint16_t ch2_period_val;
-uint16_t ch2_length_timer;
-uint8_t ch2_volume;
-bool ch2_envelope_dir;
-uint8_t ch2_envelope_pace;
-size_t ch2_envelope_counter;
-size_t ch2_waveduty_idx;
-size_t ch2_wavelevel_idx;
-bool ch2_wave_level;
-int8_t ch2_sample;
-
-// channel 3: wave sound
-bool ch3_on;
-uint16_t ch3_period_val;
-uint16_t ch3_length_timer;
-int8_t ch3_sample;
-size_t ch3_wave_idx;
-
-// channel 4: noise
-bool ch4_on;
-uint16_t ch4_lfsr = 0xFFFF;
-size_t ch4_shift_counter;
-uint16_t ch4_length_timer;
-uint8_t ch4_volume;
-bool ch4_envelope_dir;
-uint8_t ch4_envelope_pace;
-size_t ch4_envelope_counter;
-int8_t ch4_sample;
-
-
 #define trigger_pulse_ch(n) \
-ch ## n ## _period_val = getPeriodValue(NR ## n ## 3_REG, NR ## n ## 4_REG); \
-ch ## n ## _waveduty_idx = getWavedutyIdx(NR ## n ## 1_REG); \
-ch ## n ## _wave_level = 0; \
-ch ## n ## _wavelevel_idx = 0; \
-ch ## n ## _on = true; \
-ch ## n ## _volume = getInitialVolume(NR ## n ## 2_REG); \
-ch ## n ## _envelope_dir = getEnvelopeDirection(NR ## n ## 2_REG); \
-ch ## n ## _envelope_pace = getEnvelopePace(NR ## n ## 2_REG); \
-ch ## n ## _envelope_counter = 65536 * ch ## n ## _envelope_pace; \
-if(!ch ## n ## _length_timer) \
-    ch ## n ## _length_timer = 64; \
+apu->ch ## n ## _period_val = getPeriodValue(apu->NR ## n ## 3_REG, apu->NR ## n ## 4_REG); \
+apu->ch ## n ## _waveduty_idx = getWavedutyIdx(apu->NR ## n ## 1_REG); \
+apu->ch ## n ## _wave_level = 0; \
+apu->ch ## n ## _wavelevel_idx = 0; \
+apu->ch ## n ## _on = true; \
+apu->ch ## n ## _volume = getInitialVolume(apu->NR ## n ## 2_REG); \
+apu->ch ## n ## _envelope_dir = getEnvelopeDirection(apu->NR ## n ## 2_REG); \
+apu->ch ## n ## _envelope_pace = getEnvelopePace(apu->NR ## n ## 2_REG); \
+apu->ch ## n ## _envelope_counter = 65536 * apu->ch ## n ## _envelope_pace; \
+if(!apu->ch ## n ## _length_timer) \
+    apu->ch ## n ## _length_timer = 64; \
 
 
 #define trigger_sweep() \
-ch1_sweep_pace = getSweepPace(NR10_REG); \
-ch1_sweep_dir = getSweepDirection(NR10_REG); \
-ch1_sweep_slope = getSweepSlope(NR10_REG); \
-ch1_sweep_counter = 32768 * ch1_sweep_pace; \
-ch1_sweep_shadow = getPeriodValue(NR13_REG, NR14_REG);
+apu->ch1_sweep_pace = getSweepPace(apu->NR10_REG); \
+apu->ch1_sweep_dir = getSweepDirection(apu->NR10_REG); \
+apu->ch1_sweep_slope = getSweepSlope(apu->NR10_REG); \
+apu->ch1_sweep_counter = 32768 * apu->ch1_sweep_pace; \
+apu->ch1_sweep_shadow = getPeriodValue(apu->NR13_REG, apu->NR14_REG);
 
 #define trigger_noise_ch(n) \
-ch ## n ## _on = true; \
-ch ## n ## _shift_counter = getShiftCounter(NR ## n ## 3_REG); \
-ch ## n ## _volume = getInitialVolume(NR ## n ## 2_REG); \
-ch ## n ## _envelope_dir = getEnvelopeDirection(NR ## n ## 2_REG); \
-ch ## n ## _envelope_pace = getEnvelopePace(NR ## n ## 2_REG); \
-ch ## n ## _envelope_counter = 65536 * ch ## n ## _envelope_pace; \
-if(!ch ## n ## _length_timer) \
-    ch ## n ## _length_timer = 64; \
+apu->ch ## n ## _on = true; \
+apu->ch ## n ## _shift_counter = getShiftCounter(apu->NR ## n ## 3_REG); \
+apu->ch ## n ## _volume = getInitialVolume(apu->NR ## n ## 2_REG); \
+apu->ch ## n ## _envelope_dir = getEnvelopeDirection(apu->NR ## n ## 2_REG); \
+apu->ch ## n ## _envelope_pace = getEnvelopePace(apu->NR ## n ## 2_REG); \
+apu->ch ## n ## _envelope_counter = 65536 * apu->ch ## n ## _envelope_pace; \
+if(!apu->ch ## n ## _length_timer) \
+    apu->ch ## n ## _length_timer = 64; \
 
 #define trigger_wave_ch(n) \
-ch ## n ## _period_val = getPeriodValue(NR ## n ## 3_REG, NR ## n ## 4_REG); \
-ch ## n ## _on = true; \
-ch ## n ## _wave_idx = 1; \
-if(!ch ## n ## _length_timer) \
-    ch ## n ## _length_timer = 256; \
+apu->ch ## n ## _period_val = getPeriodValue(apu->NR ## n ## 3_REG, apu->NR ## n ## 4_REG); \
+apu->ch ## n ## _on = true; \
+apu->ch ## n ## _wave_idx = 1; \
+if(!apu->ch ## n ## _length_timer) \
+    apu->ch ## n ## _length_timer = 256; \
 
 #define pulse_wave_ch(n) \
-if(ch ## n ## _on){ \
-    ch ## n ## _period_val++; \
-    if(ch ## n ## _period_val == 2048){ \
-        ch ## n ## _period_val = getPeriodValue(NR ## n ## 3_REG, NR ## n ## 4_REG); \
-        ch ## n ## _wave_level = waveforms[ch ## n ## _waveduty_idx][ch ## n ## _wavelevel_idx]; \
-        ch ## n ## _wavelevel_idx = (ch ## n ## _wavelevel_idx + 1) % 8; \
-        ch ## n ## _sample = ch ## n ## _wave_level * ch ## n ## _volume; \
+if(apu->ch ## n ## _on){ \
+    apu->ch ## n ## _period_val++; \
+    if(apu->ch ## n ## _period_val == 2048){ \
+        apu->ch ## n ## _period_val = getPeriodValue(apu->NR ## n ## 3_REG, apu->NR ## n ## 4_REG); \
+        apu->ch ## n ## _wave_level = waveforms[apu->ch ## n ## _waveduty_idx][apu->ch ## n ## _wavelevel_idx]; \
+        apu->ch ## n ## _wavelevel_idx = (apu->ch ## n ## _wavelevel_idx + 1) % 8; \
+        apu->ch ## n ## _sample = apu->ch ## n ## _wave_level * apu->ch ## n ## _volume; \
     } \
 } \
 
 #define ram_wave_ch(n) \
-if(ch ## n ## _on){ \
-    ch ## n ## _period_val++; \
-    if(ch ## n ## _period_val >= 2048){ \
-        ch ## n ## _period_val = getPeriodValue(NR ## n ## 3_REG, NR ## n ## 4_REG); \
-        uint8_t ram_idx = ch ## n ## _wave_idx >> 1; \
-        uint8_t sample = WAVE_RAM[ram_idx]; \
-        if(ch ## n ## _wave_idx & 0b1) \
+if(apu->ch ## n ## _on){ \
+    apu->ch ## n ## _period_val++; \
+    if(apu->ch ## n ## _period_val >= 2048){ \
+        apu->ch ## n ## _period_val = getPeriodValue(apu->NR ## n ## 3_REG, apu->NR ## n ## 4_REG); \
+        uint8_t ram_idx = apu->ch ## n ## _wave_idx >> 1; \
+        uint8_t sample = apu->WAVE_RAM[ram_idx]; \
+        if(apu->ch ## n ## _wave_idx & 0b1) \
             sample &= 0x0F; \
         else \
             sample >>= 4; \
-        ch ## n ## _wave_idx = (ch ## n ## _wave_idx + 1) % 32; \
-        uint8_t volume = (NR ## n ## 2_REG >> 4) & 0b11; \
+        apu->ch ## n ## _wave_idx = (apu->ch ## n ## _wave_idx + 1) % 32; \
+        uint8_t volume = (apu->NR ## n ## 2_REG >> 4) & 0b11; \
         if(!volume) \
-            ch ## n ## _sample = 0; \
+            apu->ch ## n ## _sample = 0; \
         else \
-            ch ## n ## _sample = sample >> (volume-1); \
+            apu->ch ## n ## _sample = sample >> (volume-1); \
     } \
 } \
 
 #define timer_update_ch(n) \
-if(NR ## n ## 4_REG & 0x40){ \
-    if(ch ## n ## _length_timer) \
-        ch ## n ## _length_timer--; \
-    if(!ch ## n ## _length_timer){ \
-        ch ## n ## _on = false; \
+if(apu->NR ## n ## 4_REG & 0x40){ \
+    if(apu->ch ## n ## _length_timer) \
+        apu->ch ## n ## _length_timer--; \
+    if(!apu->ch ## n ## _length_timer){ \
+        apu->ch ## n ## _on = false; \
     } \
 } \
 
 #define envelope_update_ch(n) \
-if(!ch ## n ## _envelope_pace) \
-    ch ## n ## _volume = getInitialVolume(NR ## n ## 2_REG); \
-else if(!ch ## n ## _envelope_counter){ \
-    if(ch ## n ## _envelope_dir){ \
-        if(ch ## n ## _volume != 15) \
-            ch ## n ## _volume++; \
+if(!apu->ch ## n ## _envelope_pace) \
+    apu->ch ## n ## _volume = getInitialVolume(apu->NR ## n ## 2_REG); \
+else if(!apu->ch ## n ## _envelope_counter){ \
+    if(apu->ch ## n ## _envelope_dir){ \
+        if(apu->ch ## n ## _volume != 15) \
+            apu->ch ## n ## _volume++; \
     } else { \
-        if(ch ## n ## _volume != 0) \
-            ch ## n ## _volume--; \
+        if(apu->ch ## n ## _volume != 0) \
+            apu->ch ## n ## _volume--; \
     } \
-    ch ## n ## _envelope_counter = 65536 * ch ## n ## _envelope_pace; \
+    apu->ch ## n ## _envelope_counter = 65536 * apu->ch ## n ## _envelope_pace; \
 } \
 
-void initAudio(){
+void initAudio(apu_t* apu){
+    SDL_AudioSpec audioSpec;
     SDL_memset(&audioSpec, 0, sizeof(audioSpec));
     audioSpec.freq = AUDIO_FREQUENCY;
     audioSpec.format = AUDIO_S16;
     audioSpec.channels = 2;
     audioSpec.samples = AUDIO_SAMPLES;
     audioSpec.callback = NULL;
-    audioDev = SDL_OpenAudioDevice(NULL, 0, &audioSpec, &audioSpec, 0);
+    apu->audioDev = SDL_OpenAudioDevice(NULL, 0, &audioSpec, &audioSpec, 0);
 
-    audio_request_rate = APU_FREQUENCY / AUDIO_FREQUENCY;
-    audio_counter = 0;
+    apu->push_rate_reload = PUSH_RATE_RELOAD;
+    apu->push_rate_counter = apu->push_rate_reload;
 
-    queued_check_rate = audio_request_rate * AUDIO_SAMPLES;
-    queued_check_counter = 0;
-
-    SDL_PauseAudioDevice(audioDev, 0);
+    SDL_PauseAudioDevice(apu->audioDev, 0);
+    apu->ch4_lfsr = 0xFFFF;
 }
 
-void emulateApu(){
+void emulateApu(apu_t* apu){
     // APU DISABLED CHECK
-
-    if(!(NR52_REG & 0x80)){
-        resetApuRegisters();
-        ch1_on = false;
-        ch2_on = false;
-        ch4_on = false;
+    if(!(apu->NR52_REG & 0x80)){
+        resetApuRegisters(apu);
+        apu->ch1_on = false;
+        apu->ch2_on = false;
+        apu->ch4_on = false;
         return;
     }
 
-    if(pulse_wave_counter % 2 == 0){
+    if(apu->pulse_wave_counter % 2 == 0){
         ram_wave_ch(3);
     }
 
-    if(!pulse_wave_counter){
+    if(!apu->pulse_wave_counter){
         pulse_wave_ch(1);
         pulse_wave_ch(2);
 
-        pulse_wave_counter = 4;
+        apu->pulse_wave_counter = 4;
     }
 
-    if(!length_timer_counter){
+    if(!apu->length_timer_counter){
         timer_update_ch(1);
         timer_update_ch(2);
         timer_update_ch(3);
         timer_update_ch(4);
 
-        length_timer_counter = 16384;
+        apu->length_timer_counter = 16384;
     }
 
-    if((NR10_REG & 0b1110000) && !ch1_sweep_pace && !ch1_sweep_dir && !ch1_sweep_slope){
+    if((apu->NR10_REG & 0b1110000) && !apu->ch1_sweep_pace && !apu->ch1_sweep_dir && !apu->ch1_sweep_slope){
         trigger_sweep();
     }
 
-    if(!ch1_sweep_counter && (NR10_REG & 0b1110000)){
-        uint16_t tmp = ch1_sweep_shadow >> ch1_sweep_slope;
-        if(ch1_sweep_dir){
-            ch1_sweep_shadow -= tmp;
-            if(ch1_sweep_shadow == 0)
-                ch1_on = false;
+    if(!apu->ch1_sweep_counter && (apu->NR10_REG & 0b1110000)){
+        uint16_t tmp = apu->ch1_sweep_shadow >> apu->ch1_sweep_slope;
+        if(apu->ch1_sweep_dir){
+            apu->ch1_sweep_shadow -= tmp;
+            if(apu->ch1_sweep_shadow == 0)
+                apu->ch1_on = false;
         } else {
-            ch1_sweep_shadow += tmp;
-            if(ch1_sweep_shadow >= 2048)
-                ch1_on = false;
+            apu->ch1_sweep_shadow += tmp;
+            if(apu->ch1_sweep_shadow >= 2048)
+                apu->ch1_on = false;
         }
         
-        NR13_REG = ch1_sweep_shadow & 0xFF;
-        NR14_REG &= 0b11111000;
-        NR14_REG |= (ch1_sweep_shadow >> 8) & 0b111;
+        apu->NR13_REG = apu->ch1_sweep_shadow & 0xFF;
+        apu->NR14_REG &= 0b11111000;
+        apu->NR14_REG |= (apu->ch1_sweep_shadow >> 8) & 0b111;
 
         trigger_sweep();
     }
 
-    if(!ch4_shift_counter){
-        if(ch4_on){
-            bool sample = !(ch4_lfsr & 0b1);
-            ch4_sample = sample * ch4_volume;
+    if(!apu->ch4_shift_counter){
+        if(apu->ch4_on){
+            bool sample = !(apu->ch4_lfsr & 0b1);
+            apu->ch4_sample = sample * apu->ch4_volume;
 
-            bool xor = (ch4_lfsr & 0b1) ^ ((ch4_lfsr & 0b10) >> 1);
-            ch4_lfsr = (xor << 14) | (ch4_lfsr >> 1);
-            if(NR43_REG & 0b1000)
-                ch4_lfsr |= xor << 7;
+            bool xor = (apu->ch4_lfsr & 0b1) ^ ((apu->ch4_lfsr & 0b10) >> 1);
+            apu->ch4_lfsr = (xor << 14) | (apu->ch4_lfsr >> 1);
+            if(apu->NR43_REG & 0b1000)
+                apu->ch4_lfsr |= xor << 7;
         }
 
-        ch4_shift_counter = getShiftCounter(NR43_REG);
+        apu->ch4_shift_counter = getShiftCounter(apu->NR43_REG);
     }
 
     envelope_update_ch(1);
     envelope_update_ch(2);
     envelope_update_ch(4);
 
-    ch1_envelope_counter--;
-    ch2_envelope_counter--;
-    ch4_envelope_counter--;
+    apu->ch1_envelope_counter--;
+    apu->ch2_envelope_counter--;
+    apu->ch4_envelope_counter--;
 
-    ch1_sweep_counter--;
-    ch4_shift_counter--;
+    apu->ch1_sweep_counter--;
+    apu->ch4_shift_counter--;
 
-    pulse_wave_counter--;
-    length_timer_counter--;
+    apu->pulse_wave_counter--;
+    apu->length_timer_counter--;
 }
 
-void convertAudio(){
-    if(!audio_counter && bufIdx < AUDIO_BUFFER_SIZE){
-        int16_t samples[2];
-        apuMixer(samples);
-        buffer[bufIdx++] = samples[0];
-        buffer[bufIdx++] = samples[1];
-        audio_counter = audio_request_rate;
-    } 
+void convertAudio(apu_t* apu){
+    if(apu->push_rate_counter <= 0){
+        apu->push_rate_counter += apu->push_rate_reload;
+        int16_t sample[2];
+        apuMixer(apu, sample);
 
-    if(bufIdx >= AUDIO_SAMPLES && queued_samples < AUDIO_BUFFER_SIZE*2){
-        SDL_QueueAudio(audioDev, &buffer, bufIdx*2);
-        bufIdx = 0;
+        apu->buffer[apu->bufIdx++] = sample[0];
+        apu->buffer[apu->bufIdx++] = sample[1];
+
+        if(apu->bufIdx == AUDIO_BUFFER_SIZE){
+            SDL_QueueAudio(apu->audioDev, apu->buffer, apu->bufIdx * 2);
+            apu->bufIdx = 0;
+        }
     }
 
-    if(!queued_check_counter){
-        queued_samples = SDL_GetQueuedAudioSize(audioDev);
-        queued_check_counter = queued_check_rate;
-    }
-
-    if(audio_counter)
-        audio_counter--;
-
-    if(queued_check_counter)
-        queued_check_counter--;
+    apu->push_rate_counter -= 1;
 }
 
-void freeAudio(){
-    SDL_CloseAudioDevice(audioDev);
+void freeAudio(apu_t* apu){
+    SDL_CloseAudioDevice(apu->audioDev);
 }
 
-size_t getWavedutyIdx(uint8_t reg){
+static size_t getWavedutyIdx(uint8_t reg){
     return reg >> 6;
 }
 
-uint16_t getPeriodValue(uint8_t lo_reg, uint8_t hi_reg){
+static uint16_t getPeriodValue(uint8_t lo_reg, uint8_t hi_reg){
     return ((hi_reg & 0b111) << 8) | lo_reg;
 }
 
-uint8_t getLengthTimer(uint8_t reg){
+static uint8_t getLengthTimer(uint8_t reg){
     return reg & 0b111111;
 }
 
-uint8_t getInitialVolume(uint8_t reg){
+static uint8_t getInitialVolume(uint8_t reg){
     return reg >> 4;
 }
 
-bool getEnvelopeDirection(uint8_t reg){
+static bool getEnvelopeDirection(uint8_t reg){
     return reg & 0b1000;
 }
 
-uint8_t getEnvelopePace(uint8_t reg){
+static uint8_t getEnvelopePace(uint8_t reg){
     return reg & 0b111;
 }
 
-uint8_t getSweepPace(uint8_t reg){
+static uint8_t getSweepPace(uint8_t reg){
     return (reg >> 4) & 0b111;
 }
 
-bool getSweepDirection(uint8_t reg){
+static bool getSweepDirection(uint8_t reg){
     return reg & 0b1000;
 }
 
-uint8_t getSweepSlope(uint8_t reg){
+static uint8_t getSweepSlope(uint8_t reg){
     return reg & 0b111;
 }
 
-size_t getShiftCounter(uint8_t reg){
+static size_t getShiftCounter(uint8_t reg){
     static uint8_t noise_divisor[8] = {8, 16, 32, 48, 64, 80, 96, 112};
     uint8_t r = reg & 0b111;
     uint8_t s = reg >> 4;
@@ -385,31 +281,31 @@ size_t getShiftCounter(uint8_t reg){
     return noise_divisor[r] << s;
 }
 
-void apuMixer(int16_t* samples){
+static void apuMixer(apu_t* apu, int16_t* samples){
     samples[0] = 0;
     samples[1] = 0;
 
-    if(NR51_REG & 1)
-        samples[1] += ch1_sample;
-    if(NR51_REG & (1 << 1))
-        samples[1] += ch2_sample;
-    if(NR51_REG & (1 << 2))
-        samples[1] += ch3_sample;
-    if(NR51_REG & (1 << 3))
-        samples[1] += ch4_sample;
+    if(apu->NR51_REG & 1)
+        samples[1] += apu->ch1_sample;
+    if(apu->NR51_REG & (1 << 1))
+        samples[1] += apu->ch2_sample;
+    if(apu->NR51_REG & (1 << 2))
+        samples[1] += apu->ch3_sample;
+    if(apu->NR51_REG & (1 << 3))
+        samples[1] += apu->ch4_sample;
     
-    if(NR51_REG & (1 << 4))
-        samples[0] += ch1_sample;
-    if(NR51_REG & (1 << 5))
-        samples[0] += ch2_sample;
-    if(NR51_REG & (1 << 6))
-        samples[0] += ch3_sample;
-    if(NR51_REG & (1 << 7))
-        samples[0] += ch4_sample;
+    if(apu->NR51_REG & (1 << 4))
+        samples[0] += apu->ch1_sample;
+    if(apu->NR51_REG & (1 << 5))
+        samples[0] += apu->ch2_sample;
+    if(apu->NR51_REG & (1 << 6))
+        samples[0] += apu->ch3_sample;
+    if(apu->NR51_REG & (1 << 7))
+        samples[0] += apu->ch4_sample;
     
     uint8_t volume[2];
-    volume[0] = ((NR50_REG >> 4) & 0b111) + 1;
-    volume[1] = (NR50_REG & 0b111) + 1;
+    volume[0] = ((apu->NR50_REG >> 4) & 0b111) + 1;
+    volume[1] = (apu->NR50_REG & 0b111) + 1;
 
     samples[0] *= volume[0];
     samples[1] *= volume[1];
@@ -418,116 +314,116 @@ void apuMixer(int16_t* samples){
     samples[1] *= 64;
 }
 
-uint8_t getNR52(){ 
-    return (NR52_REG & 0x80) | 0x70 | (ch4_on << 3) | (ch3_on << 2) | (ch2_on << 1) | (ch1_on); 
+uint8_t getNR52(apu_t* apu){
+    return (apu->NR52_REG & 0x80) | 0x70 | (apu->ch4_on << 3) | (apu->ch3_on << 2) | (apu->ch2_on << 1) | (apu->ch1_on); 
 }
 
-uint8_t getNR10(){ return NR10_REG | 0x80; }
-uint8_t getNR11(){ return NR11_REG | 0x3F; }
-uint8_t getNR14(){ return NR14_REG | 0xBF; }
+uint8_t getNR10(apu_t* apu){ return apu->NR10_REG | 0x80; }
+uint8_t getNR11(apu_t* apu){ return apu->NR11_REG | 0x3F; }
+uint8_t getNR14(apu_t* apu){ return apu->NR14_REG | 0xBF; }
 
-uint8_t getNR21(){ return NR21_REG | 0x3F; }
-uint8_t getNR24(){ return NR24_REG | 0xBF; }
+uint8_t getNR21(apu_t* apu){ return apu->NR21_REG | 0x3F; }
+uint8_t getNR24(apu_t* apu){ return apu->NR24_REG | 0xBF; }
 
-uint8_t getNR30(){ return NR30_REG | 0x7F; }
-uint8_t getNR32(){ return NR32_REG | 0x9F; }
-uint8_t getNR34(){ return NR34_REG | 0xBF; }
+uint8_t getNR30(apu_t* apu){ return apu->NR30_REG | 0x7F; }
+uint8_t getNR32(apu_t* apu){ return apu->NR32_REG | 0x9F; }
+uint8_t getNR34(apu_t* apu){ return apu->NR34_REG | 0xBF; }
 
-uint8_t getNR44(){ return NR44_REG | 0xBF; } 
+uint8_t getNR44(apu_t* apu){ return apu->NR44_REG | 0xBF; } 
 
-void resetApuRegisters(){
-    NR52_REG = 0x00;
-    NR51_REG = 0x00;
-    NR50_REG = 0x00;
-    NR10_REG = 0x00;
-    NR11_REG = 0x00;
-    NR12_REG = 0x00;
-    NR13_REG = 0x00;
-    NR14_REG = 0x00;
-    NR21_REG = 0x00;
-    NR22_REG = 0x00;
-    NR23_REG = 0x00;
-    NR24_REG = 0x00;
-    NR30_REG = 0x00;
-    NR31_REG = 0x00;
-    NR32_REG = 0x00;
-    NR33_REG = 0x00;
-    NR34_REG = 0x00;
-    NR41_REG = 0x00;
-    NR42_REG = 0x00;
-    NR43_REG = 0x00;
-    NR44_REG = 0x00;   
+static void resetApuRegisters(apu_t* apu){
+    apu->NR52_REG = 0x00;
+    apu->NR51_REG = 0x00;
+    apu->NR50_REG = 0x00;
+    apu->NR10_REG = 0x00;
+    apu->NR11_REG = 0x00;
+    apu->NR12_REG = 0x00;
+    apu->NR13_REG = 0x00;
+    apu->NR14_REG = 0x00;
+    apu->NR21_REG = 0x00;
+    apu->NR22_REG = 0x00;
+    apu->NR23_REG = 0x00;
+    apu->NR24_REG = 0x00;
+    apu->NR30_REG = 0x00;
+    apu->NR31_REG = 0x00;
+    apu->NR32_REG = 0x00;
+    apu->NR33_REG = 0x00;
+    apu->NR34_REG = 0x00;
+    apu->NR41_REG = 0x00;
+    apu->NR42_REG = 0x00;
+    apu->NR43_REG = 0x00;
+    apu->NR44_REG = 0x00;   
 }
 
-void checkDAC1(){ if(!(NR12_REG >> 3)) ch1_on = false; }
-void checkDAC2(){ if(!(NR22_REG >> 3)) ch2_on = false; }
-void checkDAC3(){ if(!(NR30_REG & 0x80)) ch3_on = false; }
-void checkDAC4(){ if(!(NR42_REG >> 3)) ch4_on = false; }
+void checkDAC1(apu_t* apu){ if(!(apu->NR12_REG >> 3)) apu->ch1_on = false; }
+void checkDAC2(apu_t* apu){ if(!(apu->NR22_REG >> 3)) apu->ch2_on = false; }
+void checkDAC3(apu_t* apu){ if(!(apu->NR30_REG & 0x80)) apu->ch3_on = false; }
+void checkDAC4(apu_t* apu){ if(!(apu->NR42_REG >> 3)) apu->ch4_on = false; }
 
-void triggerChannel1(){
-    if(!(NR52_REG & 0x80))
+void triggerChannel1(apu_t* apu){
+    if(!(apu->NR52_REG & 0x80))
         return;
 
-    if(NR14_REG & 0x80){
-        NR14_REG &= 0x7F;
-        if(NR12_REG >> 3){
+    if(apu->NR14_REG & 0x80){
+        apu->NR14_REG &= 0x7F;
+        if(apu->NR12_REG >> 3){
             trigger_pulse_ch(1);
             trigger_sweep();
         }
     }
 }
 
-void triggerChannel2(){
-    if(!(NR52_REG & 0x80))
+void triggerChannel2(apu_t* apu){
+    if(!(apu->NR52_REG & 0x80))
         return;
 
-    if(NR24_REG & 0x80){
-        NR24_REG &= 0x7F;
-        if(NR22_REG >> 3){
+    if(apu->NR24_REG & 0x80){
+        apu->NR24_REG &= 0x7F;
+        if(apu->NR22_REG >> 3){
             trigger_pulse_ch(2);
         }
     }
 }
 
-void triggerChannel3(){
-    if(!(NR52_REG & 0x80))
+void triggerChannel3(apu_t* apu){
+    if(!(apu->NR52_REG & 0x80))
         return;
     
-    if(NR34_REG & 0x80){
-        NR34_REG &= 0x7F;
-        if(NR30_REG & 0x80){
+    if(apu->NR34_REG & 0x80){
+        apu->NR34_REG &= 0x7F;
+        if(apu->NR30_REG & 0x80){
             trigger_wave_ch(3);
         }
     }
 }
 
-void triggerChannel4(){
-    if(!(NR52_REG & 0x80))
+void triggerChannel4(apu_t* apu){
+    if(!(apu->NR52_REG & 0x80))
         return;
 
-    if(NR44_REG & 0x80){
-        NR44_REG &= 0x7F;
-        if(NR42_REG >> 3){
+    if(apu->NR44_REG & 0x80){
+        apu->NR44_REG &= 0x7F;
+        if(apu->NR42_REG >> 3){
             trigger_noise_ch(4);
         }
     }
 }
 
-void setChannel1Timer(){ ch1_length_timer = 64 - getLengthTimer(NR11_REG); }
+void setChannel1Timer(apu_t* apu){ apu->ch1_length_timer = 64 - getLengthTimer(apu->NR11_REG); }
 
-void setChannel2Timer(){ ch2_length_timer = 64 - getLengthTimer(NR21_REG); }
+void setChannel2Timer(apu_t* apu){ apu->ch2_length_timer = 64 - getLengthTimer(apu->NR21_REG); }
 
-void setChannel3Timer(){ ch3_length_timer = 256 - NR31_REG; }
+void setChannel3Timer(apu_t* apu){ apu->ch3_length_timer = 256 - apu->NR31_REG; }
 
-void setChannel4Timer(){ ch4_length_timer = 64 - getLengthTimer(NR41_REG); }
+void setChannel4Timer(apu_t* apu){ apu->ch4_length_timer = 64 - getLengthTimer(apu->NR41_REG); }
 
-void turnOffAudioChannels(){
-    ch1_on = false;
-    ch2_on = false;
-    ch3_on = false;
-    ch4_on = false;
+static void turnOffAudioChannels(apu_t* apu){
+    apu->ch1_on = false;
+    apu->ch2_on = false;
+    apu->ch3_on = false;
+    apu->ch4_on = false;
 }
 
-uint8_t getWaveRamAddress(uint8_t address){
-    return ch3_on ? ch3_wave_idx >> 1 : address;
+uint8_t getWaveRamAddress(apu_t* apu, uint8_t address){
+    return apu->ch3_on ? apu->ch3_wave_idx >> 1 : address;
 }

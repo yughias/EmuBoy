@@ -3,10 +3,12 @@
 
 #include <stdint.h>
 
-void mmm01_registers(uint16_t addr, uint8_t byte);
-uint8_t mmm01_0000_3FFF(uint16_t addr);
-uint8_t mmm01_4000_7FFF(uint16_t addr);
-uint8_t mmm01_ram_read(uint16_t addr);
-void mmm01_ram_write(uint16_t addr, uint8_t byte);
+typedef struct gb_t gb_t;
+
+void mmm01_registers(gb_t* gb, uint16_t addr, uint8_t byte);
+uint8_t mmm01_0000_3FFF(gb_t* gb, uint16_t addr);
+uint8_t mmm01_4000_7FFF(gb_t* gb, uint16_t addr);
+uint8_t mmm01_ram_read(gb_t* gb, uint16_t addr);
+void mmm01_ram_write(gb_t* gb, uint16_t addr, uint8_t byte);
 
 #endif

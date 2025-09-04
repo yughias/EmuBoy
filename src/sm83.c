@@ -89,12 +89,12 @@ static inline void RETI(sm83_t*);
 #define ld_ind_r_dec(r1, r2) writeByteAndTick(cpu, r1, r2); r1 -= 1; 
 #define ld_r_ind_dec(r1, r2) r1 = readByteAndTick(cpu, r2); r2 -= 1; 
 #define inc8(r) INC_8(cpu, &r); 
-#define inc16(r) cpu->tickSystem(4); INC_16(cpu, &r); 
+#define inc16(r) cpu->tickSystem(cpu->ctx, 4); INC_16(cpu, &r); 
 #define dec8(r) DEC_8(cpu, &r); 
-#define dec16(r) cpu->tickSystem(4); DEC_16(cpu, &r); 
+#define dec16(r) cpu->tickSystem(cpu->ctx, 4); DEC_16(cpu, &r); 
 #define ld_rr(r1, r2) r1 = r2; 
 #define ld_r8_im(r) pc_inc(1); r = readByteAndTick(cpu, cpu->PC - 1); 
-#define add16(r1, r2) cpu->tickSystem(4); ADD_16(cpu, &r1, r2);
+#define add16(r1, r2) cpu->tickSystem(cpu->ctx, 4); ADD_16(cpu, &r1, r2);
 #define jr(CC) pc_inc(1); JR ## CC (cpu, readByteAndTick(cpu, cpu->PC - 1));
 #define inc8_ind(r) { uint8_t tmp = readByteAndTick(cpu, r); INC_8(cpu, &tmp); writeByteAndTick(cpu, r, tmp); } 
 #define dec8_ind(r) { uint8_t tmp = readByteAndTick(cpu, r); DEC_8(cpu, &tmp); writeByteAndTick(cpu, r, tmp); } 
@@ -102,12 +102,12 @@ static inline void RETI(sm83_t*);
 #define alu_rr(fun, r1, r2) fun(cpu, &r1, r2);  
 #define alu_hl(fun) fun(cpu, &cpu->A, readByteAndTick(cpu, cpu->HL));   
 #define alu_im(fun) pc_inc(1); fun(cpu, &cpu->A, readByteAndTick(cpu, cpu->PC - 1));   
-#define ret(CC) cpu->tickSystem(4); RET ## CC (cpu); 
+#define ret(CC) cpu->tickSystem(cpu->ctx, 4); RET ## CC (cpu); 
 #define pop(r) POP(cpu, &r); 
-#define push(r) cpu->tickSystem(4); PUSH(cpu, r);
+#define push(r) cpu->tickSystem(cpu->ctx, 4); PUSH(cpu, r);
 #define jp(CC) pc_inc(2); JP ## CC (cpu, readShortAndTick(cpu, cpu->PC - 2)); 
 #define call(CC) pc_inc(2); CALL ## CC (cpu, readShortAndTick(cpu, cpu->PC - 2)); 
-#define rst(idx) cpu->tickSystem(4); RST(cpu, idx); 
+#define rst(idx) cpu->tickSystem(cpu->ctx, 4); RST(cpu, idx); 
 #define ld_u16_A() pc_inc(2); writeByteAndTick(cpu, readShortAndTick(cpu, cpu->PC - 2), cpu->A); 
 #define ld_A_u16() pc_inc(2); cpu->A = readByteAndTick(cpu, readShortAndTick(cpu, cpu->PC - 2)); 
 
@@ -122,10 +122,10 @@ static inline void RETI(sm83_t*);
 static inline bool calculateCarry(int, uint16_t, uint16_t, bool);
 static inline void prefix_CB(sm83_t*, uint8_t opcode);
 
-uint8_t readByteAndTick(sm83_t*, uint16_t);
-uint16_t readShortAndTick(sm83_t*, uint16_t);
-void writeByteAndTick(sm83_t*, uint16_t, uint8_t);
-void writeShortAndTick(sm83_t*, uint16_t, uint16_t);
+static inline uint8_t readByteAndTick(sm83_t*, uint16_t);
+static inline uint16_t readShortAndTick(sm83_t*, uint16_t);
+static inline void writeByteAndTick(sm83_t*, uint16_t, uint8_t);
+static inline void writeShortAndTick(sm83_t*, uint16_t, uint16_t);
 
 void initCPU(sm83_t* cpu){
     cpu->cycles = 0;
@@ -150,12 +150,12 @@ void infoCPU(sm83_t* cpu){
             cpu->A, cpu->F, cpu->B, cpu->C, cpu->D, cpu->E, cpu->H, cpu->L);
 
     fprintf(stderr, "SP: %04X PC: 00:%04X (%02X %02X %02X %02X)\n",
-            cpu->SP, cpu->PC, cpu->readByte(cpu->PC), cpu->readByte(cpu->PC+1), cpu->readByte(cpu->PC+2), cpu->readByte(cpu->PC+3));
+            cpu->SP, cpu->PC, cpu->readByte(cpu->ctx, cpu->PC), cpu->readByte(cpu->ctx, cpu->PC+1), cpu->readByte(cpu->ctx, cpu->PC+2), cpu->readByte(cpu->ctx, cpu->PC+3));
 }
 
 static inline void dispatchInterrupt(sm83_t* cpu){
     cpu->PC -= 1;
-    cpu->tickSystem(4);
+    cpu->tickSystem(cpu->ctx, 4);
 
     cpu->SP -= 1;
     writeByteAndTick(cpu, cpu->SP, cpu->PC >> 8);
@@ -165,7 +165,7 @@ static inline void dispatchInterrupt(sm83_t* cpu){
     cpu->SP -= 1;
     writeByteAndTick(cpu, cpu->SP, cpu->PC & 0xFF);
     
-    cpu->tickSystem(4);
+    cpu->tickSystem(cpu->ctx, 4);
     uint8_t mask = ie_flag & cpu->IF;
     uint16_t jmp_addr = 0;
     for(int i = 0; i < 5; i++){
@@ -434,7 +434,7 @@ void stepCPU(sm83_t* cpu){
         op_C0: ret(NZ); return;
         op_C1: pop(cpu->BC); return;
         op_C2: jp(NZ); return;
-        op_C3: pc_inc(2); JP(cpu, readShortAndTick(cpu, cpu->PC - 2)); cpu->tickSystem(4); return;
+        op_C3: pc_inc(2); JP(cpu, readShortAndTick(cpu, cpu->PC - 2)); cpu->tickSystem(cpu->ctx, 4); return;
         op_C4: call(NZ); return;
         op_C5: push(cpu->BC); return;
         op_C6: alu_im(ADD); return;
@@ -444,7 +444,7 @@ void stepCPU(sm83_t* cpu){
         op_CA: jp(Z); return;
         op_CB: pc_inc(1); prefix_CB(cpu, readByteAndTick(cpu, cpu->PC - 1)); return;
         op_CC: call(Z); return;
-        op_CD: pc_inc(2); cpu->tickSystem(4); CALL(cpu, readShortAndTick(cpu, cpu->PC - 2)); return;
+        op_CD: pc_inc(2); cpu->tickSystem(cpu->ctx, 4); CALL(cpu, readShortAndTick(cpu, cpu->PC - 2)); return;
         op_CE: alu_im(ADC); return;
         op_CF: rst(0x08); return;
 
@@ -473,7 +473,7 @@ void stepCPU(sm83_t* cpu){
         op_E5: push(cpu->HL); return;
         op_E6: alu_im(AND); return;
         op_E7: rst(0x20); return;
-        op_E8: pc_inc(1); ADD_SP(cpu, readByteAndTick(cpu, cpu->PC - 1)); cpu->tickSystem(8); return;
+        op_E8: pc_inc(1); ADD_SP(cpu, readByteAndTick(cpu, cpu->PC - 1)); cpu->tickSystem(cpu->ctx, 8); return;
         op_E9: JP(cpu, cpu->HL); return;
         op_EA: ld_u16_A(); return;
         op_EB: printf("empty opcode\n"); return;
@@ -490,8 +490,8 @@ void stepCPU(sm83_t* cpu){
         op_F5: push(cpu->AF); return;
         op_F6: alu_im(OR); return;
         op_F7: rst(0x30); return;
-        op_F8: pc_inc(1); LD_SP(cpu, readByteAndTick(cpu, cpu->PC - 1)); cpu->tickSystem(4); return;
-        op_F9: cpu->tickSystem(4); cpu->SP = cpu->HL; return;
+        op_F8: pc_inc(1); LD_SP(cpu, readByteAndTick(cpu, cpu->PC - 1)); cpu->tickSystem(cpu->ctx, 4); return;
+        op_F9: cpu->tickSystem(cpu->ctx, 4); cpu->SP = cpu->HL; return;
         op_FA: ld_A_u16(); return;
         op_FB: EI(cpu); cpu->EI_DELAY = true; return;
         op_FC: printf("empty opcode!\n"); return;
@@ -806,7 +806,7 @@ static inline void STOP(sm83_t* cpu){
 
 static inline void JR(sm83_t* cpu, int8_t d){
     cpu->PC += d;
-    cpu->tickSystem(4);
+    cpu->tickSystem(cpu->ctx, 4);
 }
 
 static inline void JRNZ(sm83_t* cpu, int8_t d){
@@ -916,28 +916,28 @@ static inline void HLT(sm83_t* cpu){
 
 static inline void RETNZ(sm83_t* cpu){
     if(!cpu->Z_FLAG){
-        cpu->tickSystem(4);
+        cpu->tickSystem(cpu->ctx, 4);
         POP(cpu, &cpu->PC);
     }
 }
 
 static inline void RETZ(sm83_t* cpu){
     if(cpu->Z_FLAG){
-        cpu->tickSystem(4);
+        cpu->tickSystem(cpu->ctx, 4);
         POP(cpu, &cpu->PC);
     }
 }
 
 static inline void RETNC(sm83_t* cpu){
     if(!cpu->C_FLAG){
-        cpu->tickSystem(4);
+        cpu->tickSystem(cpu->ctx, 4);
         POP(cpu, &cpu->PC);
     }
 }
 
 static inline void RETC(sm83_t* cpu){
     if(cpu->C_FLAG){
-        cpu->tickSystem(4);
+        cpu->tickSystem(cpu->ctx, 4);
         POP(cpu, &cpu->PC);
     }
 }
@@ -975,7 +975,7 @@ static inline void POP(sm83_t* cpu, uint16_t* reg){
 
 static inline void RET(sm83_t* cpu){
     POP(cpu, &cpu->PC);
-    cpu->tickSystem(4);
+    cpu->tickSystem(cpu->ctx, 4);
 }
 
 static inline void JP(sm83_t* cpu, uint16_t val){
@@ -985,28 +985,28 @@ static inline void JP(sm83_t* cpu, uint16_t val){
 static inline void JPNZ(sm83_t* cpu, uint16_t val){
     if(!cpu->Z_FLAG){
         JP(cpu, val);
-        cpu->tickSystem(4);
+        cpu->tickSystem(cpu->ctx, 4);
     }
 }
 
 static inline void JPZ(sm83_t* cpu, uint16_t val){
     if(cpu->Z_FLAG){
         JP(cpu, val);
-        cpu->tickSystem(4);
+        cpu->tickSystem(cpu->ctx, 4);
     }
 }
 
 static inline void JPNC(sm83_t* cpu, uint16_t val){
     if(!cpu->C_FLAG){
         JP(cpu, val);
-        cpu->tickSystem(4);
+        cpu->tickSystem(cpu->ctx, 4);
     }
 }
 
 static inline void JPC(sm83_t* cpu, uint16_t val){
     if(cpu->C_FLAG){
         JP(cpu, val);
-        cpu->tickSystem(4);
+        cpu->tickSystem(cpu->ctx, 4);
     }
 }
 
@@ -1025,28 +1025,28 @@ static inline void CALL(sm83_t* cpu, uint16_t val){
 
 static inline void CALLNZ(sm83_t* cpu, uint16_t val){
     if(!cpu->Z_FLAG){
-        cpu->tickSystem(4);
+        cpu->tickSystem(cpu->ctx, 4);
         CALL(cpu, val);
     }
 }
 
 static inline void CALLZ(sm83_t* cpu, uint16_t val){
     if(cpu->Z_FLAG){
-        cpu->tickSystem(4);
+        cpu->tickSystem(cpu->ctx, 4);
         CALL(cpu, val);
     }
 }
 
 static inline void CALLNC(sm83_t* cpu, uint16_t val){
     if(!cpu->C_FLAG){
-        cpu->tickSystem(4);
+        cpu->tickSystem(cpu->ctx, 4);
         CALL(cpu, val);
     }
 }
 
 static inline void CALLC(sm83_t* cpu, uint16_t val){
     if(cpu->C_FLAG){
-        cpu->tickSystem(4);
+        cpu->tickSystem(cpu->ctx, 4);
         CALL(cpu, val);
     }
 }
@@ -1290,22 +1290,22 @@ static inline bool calculateCarry(int bit, uint16_t a, uint16_t b, bool cy) {
   return carry & (1 << bit);
 }
 
-uint8_t readByteAndTick(sm83_t* cpu, uint16_t addr){
-    uint8_t byte = cpu->readByte(addr);
-    cpu->tickSystem(4);
+static inline uint8_t readByteAndTick(sm83_t* cpu, uint16_t addr){
+    uint8_t byte = cpu->readByte(cpu->ctx, addr);
+    cpu->tickSystem(cpu->ctx, 4);
     return byte;
 }
 
-uint16_t readShortAndTick(sm83_t* cpu, uint16_t addr){
+static inline uint16_t readShortAndTick(sm83_t* cpu, uint16_t addr){
     return (readByteAndTick(cpu, addr+1) << 8) | readByteAndTick(cpu, addr);
 }
 
-void writeByteAndTick(sm83_t* cpu, uint16_t addr, uint8_t byte){
-    cpu->writeByte(addr, byte);
-    cpu->tickSystem(4);
+static inline void writeByteAndTick(sm83_t* cpu, uint16_t addr, uint8_t byte){
+    cpu->writeByte(cpu->ctx, addr, byte);
+    cpu->tickSystem(cpu->ctx, 4);
 }
 
-void writeShortAndTick(sm83_t* cpu, uint16_t addr, uint16_t val){
+static inline void writeShortAndTick(sm83_t* cpu, uint16_t addr, uint16_t val){
     writeByteAndTick(cpu, addr, val & 0xFF);
     writeByteAndTick(cpu, addr+1, val >> 8);
 }

@@ -12,16 +12,19 @@
 #include <stdlib.h>
 #include <string.h>
 
+gb_t gb;
+
 void closeEmulator(){
-    if(hasBattery)
-        saveSav(savName);
-    if(hasRtc)
-        saveRtc(savName);
-    if(hasCamera)
+    mbc_t* mbc = &gb.mbc;
+    if(mbc->hasBattery)
+        saveSav(&gb, savName);
+    if(mbc->hasRtc)
+        saveRtc((rtc_t*)gb.mbc.data, savName);
+    if(mbc->hasCamera)
         mbc_cam_free();
     freeGameShark();
-    freeMemory();
-    freeAudio();
+    freeMemory(&gb);
+    freeAudio(&gb.apu);
     freeSerial();
 }
 
@@ -49,17 +52,15 @@ void setup(){
 
     setFilename(getArgv(1));
 
-    initAudio();
     initSerial();
     initJoypad();
-
-    initConsole();
+    initConsole(&gb);
 
     #ifdef DEBUG
     freopen("log.txt", "wb", stderr);
     #endif
 
-    printInfo(ROM);
+    printInfo(gb.ROM, gb.ROM_SIZE);
 
     onExit = closeEmulator;
 }
@@ -71,7 +72,7 @@ void loop(){
         avg += 1000.0f / deltaTime; 
     }
 
-    if(cpu.PC >= 0x100){
+    if(gb.cpu.PC >= 0x100){
         avg /= frameCount - 5;
         printf("SPEED TEST FINISHED\n");
         printf("ideal speedup: x%d\n", SPEED_TEST);
@@ -92,8 +93,9 @@ void loop(){
     #else
     int speed = SPEED_TEST;
     #endif
+    gb.apu.push_rate_reload = speed*PUSH_RATE_RELOAD;
     for(int i = 0; i < speed; i++)
-        emulateHardware(&cpu);
+        emulateHardware(&gb);
 
     (*renderDisplay)();
 }

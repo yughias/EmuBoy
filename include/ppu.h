@@ -46,70 +46,83 @@
 #define MEGADUCK_OBJ_ENABLE_MASK            0b00000001
 #define MEGADUCK_BG_WIN_ENABLE_MASK         0b01000000
 
-extern uint8_t LCD_ENABLE_MASK;            
-extern uint8_t WIN_TILE_MAP_AREA_MASK;   
-extern uint8_t WIN_ENABLE_MASK;    
-extern uint8_t BG_WIN_TILE_DATA_AREA_MASK;
-extern uint8_t BG_TILE_MAP_AREA_MASK;
-extern uint8_t OBJ_SIZE_MASK;     
-extern uint8_t OBJ_ENABLE_MASK;            
-extern uint8_t BG_WIN_ENABLE_MASK;         
-
-extern uint8_t LY_REG;
-extern uint8_t LYC_REG;
-extern uint8_t LCDC_REG;
-extern uint8_t STAT_REG;
-extern uint8_t SCX_REG;
-extern uint8_t SCY_REG;
-extern uint8_t BGP_REG;
-extern uint8_t OBP0_REG;
-extern uint8_t OBP1_REG;
-extern uint8_t WX_REG;
-extern uint8_t WY_REG;
-
-extern uint8_t BCPS_REG;
-extern uint8_t OCPS_REG;
+typedef struct gb_t gb_t;
 
 typedef enum {HBLANK_MODE = 0, VBLANK_MODE, OAM_SCAN_MODE, DRAW_MODE} PPU_MODE;
-extern PPU_MODE ppu_mode;
-extern bool lyc_compare;
-extern size_t ppu_counter;
-extern bool stat_irq;
-extern uint8_t internal_ly;
 
-void initColorPalette();
-void copyDefaultCgbPalette();
-void drawBgRamAt(int, int);
-void drawWinRamAt(int, int);
-void drawOAMAt(int, int, uint8_t);
+typedef struct ppu_t {
+    uint8_t LCD_ENABLE_MASK;            
+    uint8_t WIN_TILE_MAP_AREA_MASK;   
+    uint8_t WIN_ENABLE_MASK;    
+    uint8_t BG_WIN_TILE_DATA_AREA_MASK;
+    uint8_t BG_TILE_MAP_AREA_MASK;
+    uint8_t OBJ_SIZE_MASK;     
+    uint8_t OBJ_ENABLE_MASK;            
+    uint8_t BG_WIN_ENABLE_MASK;         
+
+    uint8_t LY_REG;
+    uint8_t LYC_REG;
+    uint8_t LCDC_REG;
+    uint8_t STAT_REG;
+    uint8_t SCX_REG;
+    uint8_t SCY_REG;
+    uint8_t BGP_REG;
+    uint8_t OBP0_REG;
+    uint8_t OBP1_REG;
+    uint8_t WX_REG;
+    uint8_t WY_REG;
+
+    uint8_t BCPS_REG;
+    uint8_t OCPS_REG;
+
+    PPU_MODE mode;
+    bool lyc_compare;
+    size_t counter;
+    bool stat_irq;
+    uint8_t internal_ly;
+
+    int workingBuffer[LCD_WIDTH*LCD_HEIGHT];
+    int renderBuffer[LCD_WIDTH*LCD_HEIGHT];
+    int* workingBufferPtr;
+    int* renderBufferPtr;
+
+    int dmgColors[4];
+    int backgroundColor;
+    uint8_t windowY_counter;
+    bool frameSkip;
+    bool lastFrameOn;
+} ppu_t;
+
+void initColorPalette(gb_t*);
+void copyDefaultCgbPalette(gb_t*);
+void drawBgRamAt(gb_t*, int, int);
+void drawWinRamAt(gb_t*, int, int);
+void drawOAMAt(gb_t*, int, int, uint8_t);
 void drawColorAt(int, int, int, int, uint8_t*);
 
-uint8_t* getTileMap(bool);
-uint8_t* getTileData(uint8_t);
+uint8_t* getTileMap(gb_t*, bool);
+uint8_t* getTileData(gb_t*, uint8_t);
 
-int getColorFromTileDataRGB(uint8_t*, uint8_t, uint8_t, uint8_t);
-int convertDMG2RGB(uint8_t, uint8_t, uint8_t*);
-int convertCGB2RGB(uint8_t, uint8_t, uint8_t*);
+int getColorFromTileDataRGB(gb_t*, uint8_t*, uint8_t, uint8_t, uint8_t);
+int convertDMG2RGB(gb_t*, uint8_t, uint8_t, uint8_t*);
+int convertCGB2RGB(gb_t*, uint8_t, uint8_t, uint8_t*);
 uint8_t getColorGb(uint8_t* tilePtr, uint8_t tilePX, uint8_t tilePY);
-int getTileMapPixelRGB(uint8_t* tileMapPtr, uint8_t x, uint8_t y, bool* dmgPrio, bool* cgbPrio);
-int getSpritePixelRGB(uint8_t* tilePtr, uint8_t x, uint8_t y, bool obp_n, uint8_t palette, bool flipX, bool flipY, bool bigSprite, bool* transparent);
-void getSpriteAttribute(uint8_t* spriteData, bool* flipX, bool* flipY, bool* backgroundOver, bool* obp_n, uint8_t* palette, uint8_t** tilePtr);
+int getTileMapPixelRGB(gb_t*, uint8_t* tileMapPtr, uint8_t x, uint8_t y, bool* dmgPrio, bool* cgbPrio);
+int getSpritePixelRGB(gb_t*, uint8_t* tilePtr, uint8_t x, uint8_t y, bool obp_n, uint8_t palette, bool flipX, bool flipY, bool bigSprite, bool* transparent);
+void getSpriteAttribute(gb_t*, uint8_t* spriteData, bool* flipX, bool* flipY, bool* backgroundOver, bool* obp_n, uint8_t* palette, uint8_t** tilePtr);
 
-int getSpriteRealX(uint8_t);
-int getSpriteRealY(uint8_t);
+int getSpriteRealX(gb_t*, uint8_t);
+int getSpriteRealY(gb_t*, uint8_t);
 
-void renderLine(uint8_t);
-void renderLcdOff();
-void initLcdcMasks();
-void updatePPU();
-uint8_t getStatRegister();
+void renderLine(gb_t*, uint8_t);
+void renderLcdOff(ppu_t*);
+void initLcdcMasks(gb_t*);
+void updatePPU(gb_t*);
+uint8_t getStatRegister(ppu_t*);
 
 void writeColorToCRAM(uint8_t, uint8_t, uint8_t, uint8_t*, uint8_t);
 int CgbToRgb(uint8_t, uint8_t);
 
-extern int* renderBufferPtr;
-extern int dmgColors[4];
-extern int backgroundColor;
-void swapBuffers();
+void swapBuffers(ppu_t*);
 
 #endif

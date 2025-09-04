@@ -3,8 +3,10 @@
 
 #include <stdint.h>
 
-void skipDmgBootrom();
-void skipCgbBootrom();
-void hleDmgColorization(uint8_t* rom);
+typedef struct gb_t gb_t;
+
+void skipDmgBootrom(gb_t*);
+void skipCgbBootrom(gb_t*);
+void hleDmgColorization(gb_t*);
 
 #endif

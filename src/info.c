@@ -4,7 +4,7 @@
 #include <string.h>
 #include <stdio.h>
 
-const char* old_licensee_code[] = {
+static const char* old_licensee_code[] = {
     [0x00] = "None",
     [0x01] = "Nintendo",
     [0x08] = "Capcom",
@@ -159,7 +159,7 @@ typedef struct {
     const char manufacturer[64];
 } new_licensee_code;
 
-new_licensee_code new_licensee_list[] = {
+static new_licensee_code new_licensee_list[] = {
     { "00",	"None" },
     { "01",	"Nintendo R&D1" },
     { "08",	"Capcom" },
@@ -223,9 +223,9 @@ new_licensee_code new_licensee_list[] = {
     { "9H",	"Bottom Up" },
     { "A4",	"Konami (Yu-Gi-Oh!)" }
 };
-size_t new_licensee_list_size = sizeof(new_licensee_list)/sizeof(new_licensee_code);
+static size_t new_licensee_list_size = sizeof(new_licensee_list)/sizeof(new_licensee_code);
 
-const char* cartridge_type[] = {
+static const char* cartridge_type[] = {
     [0x00] = "ROM ONLY",
     [0x01] = "MBC1",
     [0x02] = "MBC1+RAM",
@@ -278,14 +278,14 @@ const char* getManufacturerName(uint8_t* buffer){
     return "UNKNOWN";
 }
 
-const char* getCartridgeType(uint8_t* buffer){
+const char* getCartridgeType(uint8_t* buffer, size_t size){
     if(detectM161(buffer))
         return "M161";
 
-    if(detectMMM01(buffer))
+    if(detectMMM01(buffer, size))
         return "MMM01";
 
-    if(detectMBC1M(buffer))
+    if(detectMBC1M(buffer, size))
         return "MBC1M";
 
     return cartridge_type[buffer[0x147]];
@@ -323,7 +323,7 @@ size_t getRamSize(uint8_t* buffer){
     return 0;
 }
 
-void printInfo(uint8_t* buffer){
+void printInfo(uint8_t* buffer, size_t size){
     printf("NINTENDO LOGO ");
     if(containNintendoLogo(buffer))
         printf("PRESENT\n");
@@ -363,7 +363,7 @@ void printInfo(uint8_t* buffer){
         printf("x 8 BITS\n");
     
     printf("MANUFACTURER: %s\n", getManufacturerName(buffer));
-    printf("CARTRIDGE TYPE: %s\n", getCartridgeType(buffer));
+    printf("CARTRIDGE TYPE: %s\n", getCartridgeType(buffer, size));
 
     printf("CGB COMPATIBILITY: 0x%02X\n", buffer[0x143]);
 

@@ -3,7 +3,10 @@
 
 #include <stdint.h>
 
-uint8_t mbc7_ram_read(uint16_t addr);
-void mbc7_ram_write(uint16_t addr, uint8_t byte);
+typedef struct gb_t gb_t;
+
+uint8_t mbc7_ram_read(gb_t* gb, uint16_t addr);
+void mbc7_ram_write(gb_t* gb, uint16_t addr, uint8_t byte);
+void* mbc7_alloc();
 
 #endif

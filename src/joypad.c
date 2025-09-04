@@ -1,10 +1,7 @@
 #include <SDL2/SDL.h>
 #include "joypad.h"
 
-uint8_t JOYP_REG;
-
-uint8_t ARROW_BTN;
-uint8_t ACTION_BTN;
+static void emulateJoypad(joypad_t*);
 
 const Uint8* keystate;
 SDL_GameController* gameController;
@@ -19,7 +16,7 @@ void initJoypad(){
         SDL_GameControllerSetSensorEnabled(gameController, SDL_SENSOR_ACCEL, SDL_TRUE);
 }
 
-void emulateJoypad(){
+static void emulateJoypad(joypad_t* joy){
     uint8_t new_arrow_btn = 0x0F;
     uint8_t new_action_btn = 0x0F;
     Sint16 x_axis = 0;
@@ -73,8 +70,8 @@ void emulateJoypad(){
         new_action_btn |= b_turbo_btn;
     }
 
-    ARROW_BTN = new_arrow_btn;
-    ACTION_BTN = new_action_btn;
+    joy->ARROW_BTN = new_arrow_btn;
+    joy->ACTION_BTN = new_action_btn;
 }
 
 void emulateTurboButton(){
@@ -82,21 +79,21 @@ void emulateTurboButton(){
     b_turbo_btn ^= 1;
 }
 
-uint8_t getJoypadRegister(){
+uint8_t getJoypadRegister(joypad_t* joy){
     uint8_t output_val;
 
-    emulateJoypad();
+    emulateJoypad(joy);
 
-    uint8_t chosen = (JOYP_REG >> 4) & 0b11;
+    uint8_t chosen = (joy->JOYP_REG >> 4) & 0b11;
 
-    output_val = JOYP_REG & 0b110000;
+    output_val = joy->JOYP_REG & 0b110000;
     output_val |= 0b11000000;
 
     if(chosen == 0b10)
-        output_val |= ARROW_BTN;
+        output_val |= joy->ARROW_BTN;
     
     if(chosen == 0b01)
-        output_val |= ACTION_BTN;
+        output_val |= joy->ACTION_BTN;
 
     if(chosen == 0b11)
         output_val = 0xFF;

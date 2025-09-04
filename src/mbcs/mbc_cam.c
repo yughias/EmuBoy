@@ -23,7 +23,7 @@ uint8_t CAM_REG[0x36];
 struct SimpleCapParams cameraDev;
 #endif
 
-void getCapturedFrame();
+void getCapturedFrame(gb_t* gb);
 
 void mbc_cam_init(){
     memset(CAM_REG, 0, sizeof(CAM_REG));
@@ -43,29 +43,31 @@ void mbc_cam_free(){
     #endif
 }
 
-uint8_t mbc_cam_ram_read(uint16_t addr){
+uint8_t mbc_cam_ram_read(gb_t* gb, uint16_t addr){
+    mbc_t* mbc = &gb->mbc;
     size_t real_addr = addr;
     real_addr &= (1 << 13) - 1;
-    if(MBC_4000_5FFF & 0x10){
+    if(mbc->REG_4000_5FFF & 0x10){
         real_addr &= 0x7F;
         if(!real_addr) {
-            getCapturedFrame();
+            getCapturedFrame(gb);
             CAM_REG[0] &= 0x07;
             return CAM_REG[0];
         } else
             return 0;
     }
 
-    real_addr |= (MBC_4000_5FFF & 0x0F) << 13;
-    real_addr &= ERAM_SIZE - 1;
-    return ERAM[real_addr];
+    real_addr |= (mbc->REG_4000_5FFF & 0x0F) << 13;
+    real_addr &= gb->ERAM_SIZE - 1;
+    return gb->ERAM[real_addr];
 }
 
-void mbc_cam_ram_write(uint16_t addr, uint8_t byte){
+void mbc_cam_ram_write(gb_t* gb, uint16_t addr, uint8_t byte){
+    mbc_t* mbc = &gb->mbc;
     size_t real_addr = addr;
     real_addr &= (1 << 13) - 1;
 
-    if(MBC_4000_5FFF & 0x10){
+    if(mbc->REG_4000_5FFF & 0x10){
         real_addr &= 0x7F;
         if(real_addr >= 0x36)
             return;
@@ -76,9 +78,9 @@ void mbc_cam_ram_write(uint16_t addr, uint8_t byte){
             doCapture(0);
         #endif
     } else {
-        real_addr |= (MBC_4000_5FFF & 0x0F) << 13;
-        real_addr &= ERAM_SIZE - 1;
-        ERAM[real_addr] = byte;
+        real_addr |= (mbc->REG_4000_5FFF & 0x0F) << 13;
+        real_addr &= gb->ERAM_SIZE - 1;
+        gb->ERAM[real_addr] = byte;
     }
 }
 
@@ -112,7 +114,7 @@ static inline uint32_t gb_cam_matrix_process(uint32_t value, uint32_t x, uint32_
     return 0xC0;
 }
 
-void getCapturedFrame(){
+void getCapturedFrame(gb_t* gb){
     #ifndef __EMSCRIPTEN__
     int i, j;
     // Get configuration
@@ -301,7 +303,7 @@ void getCapturedFrame(){
     }
 
     // Copy to cart ram...
-    memcpy(&ERAM[0x0100], finalbuffer, sizeof(finalbuffer));
+    memcpy(&gb->ERAM[0x0100], finalbuffer, sizeof(finalbuffer));
     #endif
 
     CAM_REG[0] &= 0xFE;
