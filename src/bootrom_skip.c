@@ -306,13 +306,16 @@ void hleDmgColorization(gb_t* gb){
     }
 }
 
-void switchCompatibilityMode(gb_t* gb){
-    if(gb->console_type == DMG_TYPE){
-        gb->console_type = DMG_ON_CGB_TYPE;
-        hleDmgColorization(gb);
-    } else if(gb->console_type == DMG_ON_CGB_TYPE){
-        gb->console_type = DMG_TYPE;
+#ifdef __EMSCRIPTEN__
+extern gb_t gb;
+void switchCompatibilityMode(){
+    if(gb.console_type == DMG_TYPE){
+        gb.console_type = DMG_ON_CGB_TYPE;
+        hleDmgColorization(&gb);
+    } else if(gb.console_type == DMG_ON_CGB_TYPE){
+        gb.console_type = DMG_TYPE;
     }
 
-    initColorPalette(gb);
+    initColorPalette(&gb);
 }
+#endif

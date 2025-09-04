@@ -54,7 +54,7 @@ void detectConsoleAndMbc(gb_t* gb){
     // in emscripten we don't have config file
     // DMG is emulated if ROM doesn't have any CGB enhancements
     #ifdef __EMSCRIPTEN__
-    if(ROM[0x143] < 0x80)
+    if(gb->ROM[0x143] < 0x80)
         gb->console_type = DMG_TYPE;
     #endif
 

@@ -14,7 +14,6 @@ static bool getSweepDirection(uint8_t);
 static uint8_t getSweepSlope(uint8_t);
 static size_t getShiftCounter(uint8_t);
 static void resetApuRegisters(apu_t* apu);
-static void turnOffAudioChannels(apu_t* apu);
 static void apuMixer(apu_t*, int16_t*);
 
 static bool waveforms[4][8] = {
@@ -417,7 +416,7 @@ void setChannel3Timer(apu_t* apu){ apu->ch3_length_timer = 256 - apu->NR31_REG; 
 
 void setChannel4Timer(apu_t* apu){ apu->ch4_length_timer = 64 - getLengthTimer(apu->NR41_REG); }
 
-static void turnOffAudioChannels(apu_t* apu){
+void turnOffAudioChannels(apu_t* apu){
     apu->ch1_on = false;
     apu->ch2_on = false;
     apu->ch3_on = false;

@@ -105,10 +105,10 @@ void loop(){
 void emscripten_loadRom(const char* filename){
     setFilename(filename);
 
-    turnOffAudioChannels();
-    freeMemory();
+    turnOffAudioChannels(&gb.apu);
+    freeMemory(&gb);
 
-    initConsole();
+    initConsole(&gb);
 }
 
 #endif

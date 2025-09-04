@@ -154,5 +154,6 @@ void triggerChannel3(apu_t* apu);
 void triggerChannel4(apu_t* apu);
 
 uint8_t getWaveRamAddress(apu_t* apu, uint8_t);
+void turnOffAudioChannels(apu_t* apu);
 
 #endif
