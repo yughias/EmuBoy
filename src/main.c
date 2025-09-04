@@ -21,7 +21,7 @@ void closeEmulator(){
     if(mbc->hasRtc)
         saveRtc((rtc_t*)gb.mbc.data, savName);
     if(mbc->hasCamera)
-        mbc_cam_free();
+        mbc_cam_free(&gb);
     freeGameShark();
     freeMemory(&gb);
     freeAudio(&gb.apu);

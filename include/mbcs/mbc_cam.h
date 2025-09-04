@@ -5,8 +5,8 @@
 
 typedef struct gb_t gb_t;
 
-void mbc_cam_init();
-void mbc_cam_free();
+void mbc_cam_init(gb_t*);
+void mbc_cam_free(gb_t*);
 uint8_t mbc_cam_ram_read(gb_t*, uint16_t addr);
 void mbc_cam_ram_write(gb_t*, uint16_t addr, uint8_t byte);
 

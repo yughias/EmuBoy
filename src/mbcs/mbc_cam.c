@@ -20,25 +20,27 @@ uint8_t CAM_REG[0x36];
 #define GBCAM_SENSOR_W (128)
 #define GBCAM_SENSOR_H (112+GBCAM_SENSOR_EXTRA_LINES)
 #define BIT(n) (1<<(n))
-struct SimpleCapParams cameraDev;
 #endif
 
 void getCapturedFrame(gb_t* gb);
 
-void mbc_cam_init(){
+void mbc_cam_init(gb_t* gb){
     memset(CAM_REG, 0, sizeof(CAM_REG));
     #ifndef __EMSCRIPTEN__
-    cameraDev.mWidth = GBCAM_SENSOR_W;
-    cameraDev.mHeight = GBCAM_SENSOR_H;
-    cameraDev.mTargetBuf = malloc(sizeof(int)*GBCAM_SENSOR_W*GBCAM_SENSOR_H);
+    gb->mbc.data = malloc(sizeof(struct SimpleCapParams));
+    memset(gb->mbc.data, 0, sizeof(struct SimpleCapParams));
+    struct SimpleCapParams* cameraDev = (struct SimpleCapParams*)gb->mbc.data;
+    cameraDev->mWidth = GBCAM_SENSOR_W;
+    cameraDev->mHeight = GBCAM_SENSOR_H;
+    cameraDev->mTargetBuf = malloc(sizeof(int)*GBCAM_SENSOR_W*GBCAM_SENSOR_H);
     setupESCAPI();
-    initCapture(0, &cameraDev);
+    initCapture(0, cameraDev);
     #endif
 }
 
-void mbc_cam_free(){
+void mbc_cam_free(gb_t* gb){
     #ifndef __EMSCRIPTEN__
-    free(cameraDev.mTargetBuf);
+    free(((struct SimpleCapParams*)gb->mbc.data)->mTargetBuf);
     deinitCapture(0);
     #endif
 }
@@ -156,7 +158,8 @@ void getCapturedFrame(gb_t* gb){
     int gb_cam_retina_output_buf[GBCAM_SENSOR_W][GBCAM_SENSOR_H];
     for(i = 0; i < GBCAM_SENSOR_W; i++) for(j = 0; j < GBCAM_SENSOR_H; j++)
     {
-        int col = cameraDev.mTargetBuf[i + j * GBCAM_W];
+        struct SimpleCapParams* cameraDev = (struct SimpleCapParams*)gb->mbc.data;
+        int col = cameraDev->mTargetBuf[i + j * GBCAM_W];
         int r = (col >> 16) & 0xFF;
         int g = (col >> 8) & 0xFF;
         int b = col & 0xFF; 

@@ -201,7 +201,7 @@ void detectConsoleAndMbc(gb_t* gb){
         mbc->mapper_0000_3FFF = no_mbc_address;
         mbc->mapper_4000_7FFF = mbc3_4000_7FFF;
         RAM_MAPPER(mbc_cam_ram);
-        mbc_cam_init();
+        mbc_cam_init(gb);
         printf("GAMEBOY CAMERA ON!\n");
         break;
 
